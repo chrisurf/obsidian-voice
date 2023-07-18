@@ -1,0 +1,11 @@
+{
+	"id": "voice",
+	"name": "Voice",
+	"version": "0.0.1",
+	"minAppVersion": "0.15.0",
+	"description": "Listening to your written content being read aloud to you.",
+	"author": "Chris Oguntolu",
+	"authorUrl": "https://github.com/chrisurf",
+	"fundingUrl": "https://github.com/chrisurf",
+	"isDesktopOnly": false
+}

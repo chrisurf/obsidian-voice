@@ -1,0 +1,27 @@
+{
+	"name": "voice",
+	"version": "0.0.1",
+	"description": "Add a voice to Obsidian (https://obsidian.md)",
+	"main": "main.js",
+	"scripts": {
+		"dev": "node esbuild.config.mjs",
+		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+		"version": "node version-bump.mjs && git add manifest.json versions.json"
+	},
+	"keywords": [],
+	"author": "",
+	"license": "MIT",
+	"devDependencies": {
+		"@aws-sdk/client-polly": "3.40.0",
+		"@aws-sdk/credential-providers": "3.350.0",
+		"@types/node": "16.11.6",
+		"@typescript-eslint/eslint-plugin": "5.29.0",
+		"@typescript-eslint/parser": "5.29.0",
+		"builtin-modules": "3.3.0",
+		"esbuild": "0.17.3",
+		"obsidian": "latest",
+		"tslib": "2.4.0",
+		"typescript": "4.7.4",
+		"dotenv": "^16.1.4"
+	}
+}

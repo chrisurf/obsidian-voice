@@ -1,3 +1,4 @@
+import { PollyService } from "./PollyService";
 import {
   App,
   MarkdownView,
@@ -6,8 +7,6 @@ import {
   Setting,
   setIcon,
 } from "obsidian";
-
-const globalConfig = require("../data.json");
 
 const DEFAULT_SETTINGS: VoiceSettings = {
   VOICE: "Joanna",
@@ -23,22 +22,11 @@ interface VoiceSettings {
   AWS_SECRET_ACCESS_KEY: string;
 }
 
-import { PollyService } from "./PollyService";
-const pollyService = new PollyService(
-  {
-    credentials: {
-      accessKeyId: String(globalConfig.AWS_ACCESS_KEY_ID),
-      secretAccessKey: String(globalConfig.AWS_SECRET_ACCESS_KEY),
-    },
-    region: String(globalConfig.AWS_REGION),
-  },
-  globalConfig.VOICE
-);
-
 export default class Voice extends Plugin {
   settings: VoiceSettings;
   activeContent: string | "";
   private ribbonIconEl: HTMLElement;
+  public pollyService: PollyService;
 
   cleanString(str: string) {
     var pattern = /\[(.*?)\]\(.*?\)/gm;
@@ -70,22 +58,24 @@ export default class Voice extends Plugin {
   async speakText() {
     this.ribbonIconHandler();
 
-    switch (pollyService.isPlaying()) {
+    switch (this.pollyService.isPlaying()) {
       case true:
-        pollyService.stopAudio();
+        this.pollyService.stopAudio();
         break;
       case false:
-        await pollyService.smartPolly(this.cleanString(this.getMarkdownView()));
+        await this.pollyService.smartPolly(
+          this.cleanString(this.getMarkdownView())
+        );
         break;
       default:
-        pollyService.stopAudio();
+        this.pollyService.stopAudio();
         break;
     }
   }
 
   ribbonIconHandler() {
     this.ribbonIconEl.addClass("rotating-icon");
-    if (!pollyService.isPlaying()) {
+    if (!this.pollyService.isPlaying()) {
       setIcon(this.ribbonIconEl, "refresh-ccw");
     }
   }
@@ -94,12 +84,23 @@ export default class Voice extends Plugin {
     await this.loadSettings();
     this.addSettingTab(new VoiceSettingTab(this.app, this));
 
-    pollyService.getAudio().addEventListener("play", () => {
+    this.pollyService = new PollyService(
+      {
+        credentials: {
+          accessKeyId: String(this.settings.AWS_ACCESS_KEY_ID),
+          secretAccessKey: String(this.settings.AWS_SECRET_ACCESS_KEY),
+        },
+        region: String(this.settings.AWS_REGION),
+      },
+      this.settings.VOICE
+    );
+
+    this.pollyService.getAudio().addEventListener("play", () => {
       this.ribbonIconEl.removeClass("rotating-icon");
       setIcon(this.ribbonIconEl, "pause-circle");
     });
 
-    pollyService.getAudio().addEventListener("pause", () => {
+    this.pollyService.getAudio().addEventListener("pause", () => {
       this.ribbonIconEl.removeClass("rotating-icon");
       setIcon(this.ribbonIconEl, "play-circle");
     });
@@ -123,14 +124,14 @@ export default class Voice extends Plugin {
   }
 
   onunload() {
-    pollyService.getAudio().removeEventListener("play", () => {
-      this.ribbonIconEl.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-circle"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg>';
+    this.pollyService.getAudio().removeEventListener("play", () => {
+      this.ribbonIconEl.removeClass("rotating-icon");
+      setIcon(this.ribbonIconEl, "pause-circle");
     });
 
-    pollyService.getAudio().removeEventListener("pause", () => {
-      this.ribbonIconEl.innerHTML =
-        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-circle"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>';
+    this.pollyService.getAudio().removeEventListener("pause", () => {
+      this.ribbonIconEl.removeClass("rotating-icon");
+      setIcon(this.ribbonIconEl, "play-circle");
     });
   }
 
@@ -168,14 +169,12 @@ class VoiceSettingTab extends PluginSettingTab {
           .addOption("Joanna", "Joanna")
           .addOption("Stephen", "Stephen")
           .setValue(
-            pollyService.getVoice() ||
-              this.plugin.settings.VOICE ||
-              globalConfig.VOICE
+            this.plugin.pollyService.getVoice() || this.plugin.settings.VOICE
           )
           .onChange(async (value) => {
             this.plugin.settings.VOICE = value;
             await this.plugin.saveSettings();
-            pollyService.setVoice(value);
+            this.plugin.pollyService.setVoice(value);
           })
       );
 

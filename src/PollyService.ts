@@ -204,5 +204,4 @@ export class PollyService {
 
     return audioBlob;
   }
-
 }

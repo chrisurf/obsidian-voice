@@ -1,246 +1,250 @@
-import { App, MarkdownView, Plugin, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  MarkdownView,
+  Plugin,
+  PluginSettingTab,
+  Setting,
+  setIcon,
+} from "obsidian";
 
 const globalConfig = require("../data.json");
 
 const DEFAULT_SETTINGS: VoiceSettings = {
-	VOICE: "Joanna",
-	AWS_REGION: "eu-central-1",
-	AWS_ACCESS_KEY_ID: "",
-	AWS_SECRET_ACCESS_KEY: "",
+  VOICE: "Joanna",
+  AWS_REGION: "eu-central-1",
+  AWS_ACCESS_KEY_ID: "",
+  AWS_SECRET_ACCESS_KEY: "",
 };
 
 interface VoiceSettings {
-	VOICE: string;
-	AWS_REGION: string;
-	AWS_ACCESS_KEY_ID: string;
-	AWS_SECRET_ACCESS_KEY: string;
+  VOICE: string;
+  AWS_REGION: string;
+  AWS_ACCESS_KEY_ID: string;
+  AWS_SECRET_ACCESS_KEY: string;
 }
 
 import { PollyService } from "./PollyService";
 const pollyService = new PollyService(
-	{
-		credentials: {
-			accessKeyId: String(globalConfig.AWS_ACCESS_KEY_ID),
-			secretAccessKey: String(globalConfig.AWS_SECRET_ACCESS_KEY),
-		},
-		region: String(globalConfig.AWS_REGION),
-	},
-	globalConfig.VOICE
+  {
+    credentials: {
+      accessKeyId: String(globalConfig.AWS_ACCESS_KEY_ID),
+      secretAccessKey: String(globalConfig.AWS_SECRET_ACCESS_KEY),
+    },
+    region: String(globalConfig.AWS_REGION),
+  },
+  globalConfig.VOICE
 );
 
 export default class Voice extends Plugin {
-	settings: VoiceSettings;
-	activeContent: string | "";
-	private ribbonIconEl: HTMLElement;
+  settings: VoiceSettings;
+  activeContent: string | "";
+  private ribbonIconEl: HTMLElement;
 
-	cleanString(str: string) {
-		var pattern = /\[(.*?)\]\(.*?\)/gm;
-		var markdown = str.replace(pattern, "");
-		pattern = /[#+<>]\s*/gm;
-		markdown = markdown.replace(pattern, "");
-		return markdown;
-	}
+  cleanString(str: string) {
+    var pattern = /\[(.*?)\]\(.*?\)/gm;
+    var markdown = str.replace(pattern, "");
+    pattern = /[#+<>]\s*/gm;
+    markdown = markdown.replace(pattern, "");
+    return markdown;
+  }
 
-	async getMarkdownView() {
-		const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
-		let content = "";
+  getMarkdownView() {
+    const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
+    let content = "";
 
-		if (activeView) {
-			const editor = activeView.editor;
-			const selectedText = editor.getSelection();
-			if (selectedText) {
-				content = selectedText;
-			} else {
-				content = await this.app.vault.cachedRead(activeView.file);
-			}
-		} else {
-			content = "No active file found.";
-		}
+    if (activeView) {
+      const editor = activeView.editor;
+      const selectedText = editor.getSelection();
+      if (selectedText) {
+        content = selectedText;
+      } else {
+        content = editor.getValue();
+      }
+    } else {
+      content = "No active file found.";
+    }
 
-		return content;
-	}
+    return content;
+  }
 
-	async speakText() {
-		this.ribbonIconHandler();
+  async speakText() {
+    this.ribbonIconHandler();
 
-		switch (pollyService.isPlaying()) {
-			case true:
-				pollyService.stopAudio();
-				break;
-			case false:
-				await pollyService.smartPolly(
-					this.cleanString(await this.getMarkdownView())
-				);
-				break;
-			default:
-				pollyService.stopAudio();
-				break;
-		}
-	}
+    switch (pollyService.isPlaying()) {
+      case true:
+        pollyService.stopAudio();
+        break;
+      case false:
+        await pollyService.smartPolly(this.cleanString(this.getMarkdownView()));
+        break;
+      default:
+        pollyService.stopAudio();
+        break;
+    }
+  }
 
-	ribbonIconHandler() {
-		if (!pollyService.isPlaying()) {
-			this.ribbonIconEl.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-refresh-ccw rotating-icon"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 16h5v5"/></svg>';
-		}
-	}
+  ribbonIconHandler() {
+    this.ribbonIconEl.addClass("rotating-icon");
+    if (!pollyService.isPlaying()) {
+      setIcon(this.ribbonIconEl, "refresh-ccw");
+    }
+  }
 
-	async onload() {
-		await this.loadSettings();
-		this.addSettingTab(new VoiceSettingTab(this.app, this));
+  async onload() {
+    await this.loadSettings();
+    this.addSettingTab(new VoiceSettingTab(this.app, this));
 
-		pollyService.getAudio().addEventListener("play", () => {
-			this.ribbonIconEl.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-circle"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg>';
-		});
+    pollyService.getAudio().addEventListener("play", () => {
+      this.ribbonIconEl.removeClass("rotating-icon");
+      setIcon(this.ribbonIconEl, "pause-circle");
+    });
 
-		pollyService.getAudio().addEventListener("pause", () => {
-			this.ribbonIconEl.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-circle"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>';
-		});
+    pollyService.getAudio().addEventListener("pause", () => {
+      this.ribbonIconEl.removeClass("rotating-icon");
+      setIcon(this.ribbonIconEl, "play-circle");
+    });
 
-		this.ribbonIconEl = this.addRibbonIcon(
-			"play-circle",
-			"Voice",
-			(evt: MouseEvent) => {
-				this.speakText();
-			}
-		);
+    this.ribbonIconEl = this.addRibbonIcon(
+      "play-circle",
+      "Voice",
+      (evt: MouseEvent) => {
+        this.speakText();
+      }
+    );
 
-		this.addCommand({
-			id: "play-or-stop-audio",
-			name: "Play or Stop reading the current document",
-			callback: () => {
-				this.speakText();
-				console.log("Play command");
-			},
-		});
-	}
+    this.addCommand({
+      id: "play-or-stop-audio",
+      name: "Play or Stop reading the current document",
+      callback: () => {
+        this.speakText();
+        console.log("Play command");
+      },
+    });
+  }
 
-	onunload() {
-		pollyService.getAudio().removeEventListener("play", () => {
-			this.ribbonIconEl.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-circle"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg>';
-		});
+  onunload() {
+    pollyService.getAudio().removeEventListener("play", () => {
+      this.ribbonIconEl.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-pause-circle"><circle cx="12" cy="12" r="10"/><line x1="10" x2="10" y1="15" y2="9"/><line x1="14" x2="14" y1="15" y2="9"/></svg>';
+    });
 
-		pollyService.getAudio().removeEventListener("pause", () => {
-			this.ribbonIconEl.innerHTML =
-				'<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-circle"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>';
-		});
-	}
+    pollyService.getAudio().removeEventListener("pause", () => {
+      this.ribbonIconEl.innerHTML =
+        '<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-play-circle"><circle cx="12" cy="12" r="10"/><polygon points="10 8 16 12 10 16 10 8"/></svg>';
+    });
+  }
 
-	async loadSettings() {
-		this.settings = Object.assign(
-			{},
-			DEFAULT_SETTINGS,
-			await this.loadData()
-		);
-	}
+  async loadSettings() {
+    this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+  }
 
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
+  async saveSettings() {
+    await this.saveData(this.settings);
+  }
 }
 
 class VoiceSettingTab extends PluginSettingTab {
-	plugin: Voice;
+  plugin: Voice;
 
-	constructor(app: App, plugin: Voice) {
-		super(app, plugin);
-		this.plugin = plugin;
-	}
+  constructor(app: App, plugin: Voice) {
+    super(app, plugin);
+    this.plugin = plugin;
+  }
 
-	display(): void {
-		const { containerEl } = this;
-		containerEl.empty();
-		containerEl.createEl("h2", { text: "General Settings" });
+  display(): void {
+    const { containerEl } = this;
+    containerEl.empty();
+    containerEl.createEl("h2", { text: "General" });
 
-		new Setting(containerEl)
-			.setName("Voice")
-			.setDesc("Select a voice")
-			.addDropdown((dropdown) =>
-				dropdown
-					.addOption("Andres", "Andres")
-					.addOption("Brian", "Brian")
-					.addOption("Camila", "Camila")
-					.addOption("Emma", "Emma")
-					.addOption("Joanna", "Joanna")
-					.addOption("Stephen", "Stephen")
-					.setValue(
-						pollyService.getVoice() ||
-							this.plugin.settings.VOICE ||
-							globalConfig.VOICE
-					)
-					.onChange(async (value) => {
-						this.plugin.settings.VOICE = value;
-						await this.plugin.saveSettings();
-						pollyService.setVoice(value);
-					})
-			);
+    new Setting(containerEl)
+      .setName("Voice")
+      .setDesc("Select a voice")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("Andres", "Andres")
+          .addOption("Brian", "Brian")
+          .addOption("Camila", "Camila")
+          .addOption("Emma", "Emma")
+          .addOption("Joanna", "Joanna")
+          .addOption("Stephen", "Stephen")
+          .setValue(
+            pollyService.getVoice() ||
+              this.plugin.settings.VOICE ||
+              globalConfig.VOICE
+          )
+          .onChange(async (value) => {
+            this.plugin.settings.VOICE = value;
+            await this.plugin.saveSettings();
+            pollyService.setVoice(value);
+          })
+      );
 
-		new Setting(containerEl)
-			.setName("AWS Region")
-			.setDesc("The AWS Region for the Polly service.")
-			.addDropdown((dropdown) => {
-				dropdown
-					.addOption("us-east-2", "US East (Ohio)")
-					.addOption("us-east-1", "US East (N. Virginia)")
-					.addOption("us-west-1", "US West (N. California)")
-					.addOption("us-west-2", "US West (Oregon)")
-					.addOption("af-south-1", "Africa (Cape Town)")
-					.addOption("ap-east-1", "Asia Pacific (Hong Kong)")
-					.addOption("ap-south-2", "Asia Pacific (Hyderabad)")
-					.addOption("ap-southeast-3", "Asia Pacific (Jakarta)")
-					.addOption("ap-southeast-4", "Asia Pacific (Melbourne)")
-					.addOption("ap-south-1", "Asia Pacific (Mumbai)")
-					.addOption("ap-northeast-3", "Asia Pacific (Osaka)")
-					.addOption("ap-northeast-2", "Asia Pacific (Seoul)")
-					.addOption("ap-southeast-1", "Asia Pacific (Singapore)")
-					.addOption("ap-southeast-2", "Asia Pacific (Sydney)")
-					.addOption("ap-northeast-1", "Asia Pacific (Tokyo)")
-					.addOption("ca-central-1", "Canada (Central)")
-					.addOption("eu-central-1", "Europe (Frankfurt)")
-					.addOption("eu-west-1", "Europe (Ireland)")
-					.addOption("eu-west-2", "Europe (London)")
-					.addOption("eu-south-1", "Europe (Milan)")
-					.addOption("eu-west-3", "Europe (Paris)")
-					.addOption("eu-south-2", "Europe (Spain)")
-					.addOption("eu-north-1", "Europe (Stockholm)")
-					.addOption("eu-central-2", "Europe (Zurich)")
-					.addOption("me-south-1", "Middle East (Bahrain)")
-					.addOption("me-central-1", "Middle East (UAE)")
-					.addOption("sa-east-1", "South America (São Paulo)")
-					.setValue(this.plugin.settings.AWS_REGION)
-					.onChange(async (value) => {
-						this.plugin.settings.AWS_REGION = value;
-						await this.plugin.saveSettings();
-					});
-			});
+    containerEl.createEl("h2", { text: "AWS" });
 
-		new Setting(containerEl)
-			.setName("AWS Access Key ID")
-			.setDesc("The AWS Access Key ID for the Polly service.")
-			.addText((text) =>
-				text
-					.setPlaceholder("Enter your AWS Access Key ID")
-					.setValue(this.plugin.settings.AWS_ACCESS_KEY_ID)
-					.onChange(async (value) => {
-						this.plugin.settings.AWS_ACCESS_KEY_ID = value;
-						await this.plugin.saveSettings();
-					})
-			);
+    new Setting(containerEl)
+      .setName("AWS Region")
+      .setDesc("The AWS Region for the Polly service.")
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("us-east-2", "US East (Ohio)")
+          .addOption("us-east-1", "US East (N. Virginia)")
+          .addOption("us-west-1", "US West (N. California)")
+          .addOption("us-west-2", "US West (Oregon)")
+          .addOption("af-south-1", "Africa (Cape Town)")
+          .addOption("ap-east-1", "Asia Pacific (Hong Kong)")
+          .addOption("ap-south-2", "Asia Pacific (Hyderabad)")
+          .addOption("ap-southeast-3", "Asia Pacific (Jakarta)")
+          .addOption("ap-southeast-4", "Asia Pacific (Melbourne)")
+          .addOption("ap-south-1", "Asia Pacific (Mumbai)")
+          .addOption("ap-northeast-3", "Asia Pacific (Osaka)")
+          .addOption("ap-northeast-2", "Asia Pacific (Seoul)")
+          .addOption("ap-southeast-1", "Asia Pacific (Singapore)")
+          .addOption("ap-southeast-2", "Asia Pacific (Sydney)")
+          .addOption("ap-northeast-1", "Asia Pacific (Tokyo)")
+          .addOption("ca-central-1", "Canada (Central)")
+          .addOption("eu-central-1", "Europe (Frankfurt)")
+          .addOption("eu-west-1", "Europe (Ireland)")
+          .addOption("eu-west-2", "Europe (London)")
+          .addOption("eu-south-1", "Europe (Milan)")
+          .addOption("eu-west-3", "Europe (Paris)")
+          .addOption("eu-south-2", "Europe (Spain)")
+          .addOption("eu-north-1", "Europe (Stockholm)")
+          .addOption("eu-central-2", "Europe (Zurich)")
+          .addOption("me-south-1", "Middle East (Bahrain)")
+          .addOption("me-central-1", "Middle East (UAE)")
+          .addOption("sa-east-1", "South America (São Paulo)")
+          .setValue(this.plugin.settings.AWS_REGION)
+          .onChange(async (value) => {
+            this.plugin.settings.AWS_REGION = value;
+            await this.plugin.saveSettings();
+          });
+      });
 
-		new Setting(containerEl)
-			.setName("AWS Secret Access Key")
-			.setDesc("The AWS Secret Access Key for the Polly service.")
-			.addText((text) => {
-				text.setPlaceholder("Enter your AWS Secret Access Key")
-					.setValue(this.plugin.settings.AWS_SECRET_ACCESS_KEY)
-					.onChange(async (value) => {
-						this.plugin.settings.AWS_SECRET_ACCESS_KEY = value;
-						await this.plugin.saveSettings();
-					});
-				text.inputEl.type = "password";
-			});
-	}
+    new Setting(containerEl)
+      .setName("AWS Access Key ID")
+      .setDesc("The AWS Access Key ID for the Polly service.")
+      .addText((text) =>
+        text
+          .setPlaceholder("Enter your AWS Access Key ID")
+          .setValue(this.plugin.settings.AWS_ACCESS_KEY_ID)
+          .onChange(async (value) => {
+            this.plugin.settings.AWS_ACCESS_KEY_ID = value;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("AWS Secret Access Key")
+      .setDesc("The AWS Secret Access Key for the Polly service.")
+      .addText((text) => {
+        text
+          .setPlaceholder("Enter your AWS Secret Access Key")
+          .setValue(this.plugin.settings.AWS_SECRET_ACCESS_KEY)
+          .onChange(async (value) => {
+            this.plugin.settings.AWS_SECRET_ACCESS_KEY = value;
+            await this.plugin.saveSettings();
+          });
+        text.inputEl.type = "password";
+      });
+  }
 }

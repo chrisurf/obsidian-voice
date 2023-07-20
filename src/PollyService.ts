@@ -57,10 +57,8 @@ export class PollyService {
 
   smartPolly(text: string) {
     if (text === this.synthesizeInput.Text && !this.voiceChanged) {
-      console.log("💿 Cache Audio");
       this.playAudio();
     } else {
-      console.log("🚀 New Audio");
       this.synthesizeInput.Text = text;
       this.voiceChanged = false;
 
@@ -207,11 +205,4 @@ export class PollyService {
     return audioBlob;
   }
 
-  sleep(num: number): Promise<void> {
-    return new Promise<void>((resolve) => {
-      setTimeout(() => {
-        resolve();
-      }, num);
-    });
-  }
 }

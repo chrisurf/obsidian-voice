@@ -155,7 +155,6 @@ class VoiceSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-    containerEl.createEl("h2", { text: "General" });
 
     new Setting(containerEl)
       .setName("Voice")

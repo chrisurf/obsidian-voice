@@ -1,5 +1,4 @@
 import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly";
-import { Readable } from "stream";
 
 interface AwsCredentials {
   credentials: {
@@ -89,7 +88,25 @@ export class PollyService {
           throw new Error("Invalid response from Polly");
         }
 
-        const audioBlob = await this.convertToBlob(data.AudioStream);
+        const readableStream = data.AudioStream as ReadableStream<Uint8Array>;
+
+        const reader = readableStream.getReader();
+        const blobParts: Uint8Array[] = [];
+        let totalLength = 0;
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          blobParts.push(value);
+          totalLength += value.length;
+        }
+
+        const audioBlob = new Blob(blobParts, {
+          type: "audio/mp3",
+        });
+
+        //       const audioBlob = await this.convertToBlob(data.AudioStream);
         audioChunks.push(audioBlob);
       } catch (error) {
         console.error("Error playing the audio stream:", error);
@@ -179,29 +196,5 @@ export class PollyService {
     }
 
     return chunks;
-  }
-
-  private async convertToBlob(
-    audioStream: Blob | Readable | ReadableStream<Uint8Array>
-  ) {
-    const readableStream = audioStream as ReadableStream<Uint8Array>;
-
-    const reader = readableStream.getReader();
-    const blobParts: Uint8Array[] = [];
-    let totalLength = 0;
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      blobParts.push(value);
-      totalLength += value.length;
-    }
-
-    const audioBlob = new Blob(blobParts, {
-      type: "audio/mp3",
-    });
-
-    return audioBlob;
   }
 }

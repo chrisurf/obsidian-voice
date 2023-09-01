@@ -114,11 +114,31 @@ export default class Voice extends Plugin {
     );
 
     this.addCommand({
+      id: "play-audio",
+      name: "Start reading the current document",
+      callback: () => {
+        this.pollyService.playAudio();
+      },
+    });
+    this.addCommand({
+      id: "pause-audio",
+      name: "Pause reading the current document",
+      callback: () => {
+        this.pollyService.pauseAudio();
+      },
+    });
+    this.addCommand({
+      id: "stop-audio",
+      name: "Stop reading the current document",
+      callback: () => {
+        this.pollyService.stopAudio();
+      },
+    });
+    this.addCommand({
       id: "play-or-stop-audio",
       name: "Play or Stop reading the current document",
       callback: () => {
         this.speakText();
-        console.log("Play command");
       },
     });
   }
@@ -155,7 +175,6 @@ class VoiceSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
-
     new Setting(containerEl)
       .setName("Voice")
       .setDesc("Select a voice")

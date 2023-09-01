@@ -16,7 +16,7 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 -   **Localisation**: Choose your preferred AWS Region to optimize performance and ensure the best experience with the Voice Plugin.
 -   **Mobile Support**: Seamlessly integrated into the mobile Obsidian application, it ensures you can enjoy a similar audio experience wherever you are.
 -   **Caching**: Each speech is cached until new content will be submitted. Ensuring a seamless experience while keeping your expenses in check.
--   **Hotkey**: Define your custom shortcuts for quickly starting the voice synthesizer.
+-   **Hotkey**: Define your custom shortcuts to quickly *start*, *stop* and *pause* the voice synthesizer.
 
 > **Note**: Just a heads up, when it comes to synthesizing large content files, give it a moment to work its magic. You'll know the Voice Plugin is hard at work when you see that slick Ribbon Icon doing its thing. Once the processing is completed, that Ribbon Icon will switch things up and show off a cool pause icon. So sit back, relax, and let the Voice Plugin do its thing!
 

@@ -1,6 +1,6 @@
 {
 	"name": "voice",
-	"version": "0.0.3",
+	"version": "0.0.5",
 	"description": "Add a voice to Obsidian (https://obsidian.md)",
 	"main": "main.js",
 	"scripts": {

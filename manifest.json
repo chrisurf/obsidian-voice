@@ -1,7 +1,7 @@
 {
 	"id": "voice",
 	"name": "Voice",
-	"version": "0.0.3",
+	"version": "0.0.5",
 	"description": "Listen to your notes aloud to you.",
 	"author": "Chris Oguntolu",
 	"authorUrl": "https://github.com/chrisurf",

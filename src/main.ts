@@ -1,3 +1,4 @@
+import { RegEx } from "RegEx";
 import { PollyService } from "./PollyService";
 import {
   App,
@@ -28,14 +29,6 @@ export default class Voice extends Plugin {
   private ribbonIconEl: HTMLElement;
   public pollyService: PollyService;
 
-  cleanString(str: string) {
-    var pattern = /\[(.*?)\]\(.*?\)/gm;
-    var markdown = str.replace(pattern, "");
-    pattern = /[#+<>]\s*/gm;
-    markdown = markdown.replace(pattern, "");
-    return markdown;
-  }
-
   getMarkdownView() {
     const activeView = this.app.workspace.getActiveViewOfType(MarkdownView);
     let content = "";
@@ -64,7 +57,7 @@ export default class Voice extends Plugin {
         break;
       case false:
         await this.pollyService.smartPolly(
-          this.cleanString(this.getMarkdownView())
+          new RegEx(this.getMarkdownView()).getcleanContent()
         );
         break;
       default:

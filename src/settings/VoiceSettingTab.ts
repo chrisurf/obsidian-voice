@@ -43,12 +43,13 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("Kajal", "Kajal (Hindi)")
           .addOption("Zhiyu", "Zhiyu (Mandarin)")
           .setValue(
-            this.plugin.pollyService.getVoice() || this.plugin.settings.VOICE
+            this.plugin.getPollyService().getVoice() ||
+              this.plugin.settings.VOICE
           )
           .onChange(async (value) => {
             this.plugin.settings.VOICE = value;
             await this.plugin.saveSettings();
-            this.plugin.pollyService.setVoice(value);
+            this.plugin.getPollyService().setVoice(value);
           })
       );
 

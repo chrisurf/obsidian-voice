@@ -10,7 +10,7 @@ export class Voice extends Plugin {
   activeContent: string | "";
   private ribbonIconEl: HTMLElement;
   private markdownHelper: MarkdownHelper;
-  public pollyService: AwsPollyService;
+  private pollyService: AwsPollyService;
 
   async speakText() {
     this.ribbonIconHandler();
@@ -119,5 +119,9 @@ export class Voice extends Plugin {
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  public getPollyService(): AwsPollyService {
+    return this.pollyService;
   }
 }

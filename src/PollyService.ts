@@ -38,10 +38,10 @@ export class PollyService {
     this.voiceChanged = true;
     this.synthesizeInput = {
       Engine: "neural",
-      LanguageCode: "en-US" || "en-GB",
       SampleRate: "24000",
       TextType: "text",
       OutputFormat: "mp3",
+      LanguageCode: this.getLanguageCode(voice),
       VoiceId: voice || "Joanna",
       Text: "No document selected.",
     };
@@ -60,7 +60,6 @@ export class PollyService {
     } else {
       this.synthesizeInput.Text = text;
       this.voiceChanged = false;
-
       this.callPolly();
     }
   }
@@ -68,6 +67,7 @@ export class PollyService {
   async callPolly() {
     const chunkedTexts = this.chunkText(this.synthesizeInput.Text, 100);
     const audioChunks: Blob[] = [];
+    this.setLanguageCode(this.getLanguageCode(this.synthesizeInput.VoiceId));
 
     for (const chunk of chunkedTexts) {
       const input = {
@@ -106,7 +106,6 @@ export class PollyService {
           type: "audio/mp3",
         });
 
-        //       const audioBlob = await this.convertToBlob(data.AudioStream);
         audioChunks.push(audioBlob);
       } catch (error) {
         console.error("Error playing the audio stream:", error);
@@ -152,12 +151,70 @@ export class PollyService {
     this.voiceChanged = true;
   }
 
+  setLanguageCode(language: string) {
+    this.synthesizeInput.LanguageCode = language;
+    this.voiceChanged = true;
+  }
+
   isPlaying() {
     return !this.audio.paused;
   }
 
   hasEnded() {
     return this.audio.ended;
+  }
+
+  getLanguageCode(voice: string) {
+    switch (voice) {
+      case "Brian":
+        return "en-GB";
+      case "Emma":
+        return "en-GB";
+      case "Daniel":
+        return "de-DE";
+      case "Vicki":
+        return "de-DE";
+      case "Remi":
+        return "fr-FR";
+      case "Lea":
+        return "fr-FR";
+      case "Sergio":
+        return "es-ES";
+      case "Lucia":
+        return "es-ES";
+      case "Adriano":
+        return "it-IT";
+      case "Bianca":
+        return "it-IT";
+      case "Ola":
+        return "pl-PL";
+      case "Laura":
+        return "nl-NL";
+      case "Ines":
+        return "pt-PT";
+      case "Arlet":
+        return "ca-ES";
+      case "Elin":
+        return "sv-SE";
+      case "Sofie":
+        return "da-DK";
+      case "Ida":
+        return "nb-NO";
+      case "Suvi":
+        return "fi-FI";
+      case "Takumi":
+        return "ja-JP";
+      case "Tomoko":
+        return "ja-JP";
+      case "Kajal":
+        return "hi-IN";
+      case "Seoyeon":
+        return "ko-KR";
+      case "Zhiyu":
+        return "cmn-CN";
+      default:
+        return "en-US";
+    }
   }
 
   getContent() {

@@ -8,7 +8,7 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
 - **Text-to-Speech**: The Voice Plugin leverages advanced text-to-speech technology to synthesize natural-sounding human speech, enabling your written content in Obsidian to be read aloud.
 - **Private Communication**: Enjoy a completely private communication experience as the Voice Plugin utilizes your personal AWS account, ensuring you have full control over your data.
-- **Voice Languages**: Select your preferred pronunciation style from 18 language options.
+- **Voice Languages**: Select your preferred pronunciation style from 18 language options (American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi and Mandarin).
 - **Voice Control**: Play and pause the captivating narration at your fingertips, granting you the power to immerse yourself in your notes on your own terms.
 - **Content Selection**: By default, the Voice Plugin intelligently plays the entire text content within the file. However, for a more tailored experience, simply select the specific sections you want to hear, giving you the freedom to focus on what truly matters.
 - **Voice Options**: Choose from a selection of 25 available voices to customize the reading experience to your preference.

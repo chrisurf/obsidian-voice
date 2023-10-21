@@ -18,7 +18,7 @@ interface SynthesizeInput {
   Text: string;
 }
 
-export class PollyService {
+export class AwsPollyService {
   private audio: HTMLAudioElement;
   private synthesizeInput: {
     Engine: string | "neural";
@@ -26,7 +26,7 @@ export class PollyService {
     SampleRate: string | "24000";
     TextType: string | "text";
     OutputFormat: string | "mp3";
-    VoiceId: string | "Joanna";
+    VoiceId: string | "Stephen";
     Text: string;
   };
   private pollyClient: PollyClient;
@@ -42,7 +42,7 @@ export class PollyService {
       TextType: "text",
       OutputFormat: "mp3",
       LanguageCode: this.getLanguageCode(voice),
-      VoiceId: voice || "Joanna",
+      VoiceId: voice || "Stephen",
       Text: "No document selected.",
     };
     this.pollyClient = new PollyClient({

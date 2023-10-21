@@ -1,6 +1,6 @@
 {
 	"name": "voice",
-	"version": "0.0.7",
+	"version": "0.0.8",
 	"description": "Add a voice to Obsidian (https://obsidian.md). Let your notes talk and speak to you and enhance your Obsidian experience to effortlessly listen to your notes being read aloud and enjoy the power of sound, audio, and speech.",
 	"main": "main.js",
 	"scripts": {
@@ -8,8 +8,13 @@
 		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
 		"version": "node version-bump.mjs && git add manifest.json versions.json"
 	},
-	"keywords": [],
-	"author": "",
+	"keywords": [
+		"Obsidian",
+		"Voice",
+		"Plugin",
+		"Text-to-Speech"
+	],
+	"author": "Chris Oguntolu",
 	"license": "MIT",
 	"devDependencies": {
 		"@aws-sdk/client-polly": "3.40.0",

@@ -1,7 +1,7 @@
-import { AwsPollyService } from "./services/AwsPollyService";
-import { Plugin, setIcon } from "obsidian";
-import { VoiceSettingTab } from "./settings/VoiceSettingTab";
 import { DEFAULT_SETTINGS, VoiceSettings } from "./settings/VoiceSettings";
+import { Plugin, setIcon, addIcon } from "obsidian";
+import { AwsPollyService } from "./services/AwsPollyService";
+import { VoiceSettingTab } from "./settings/VoiceSettingTab";
 import { MarkdownHelper } from "./utils/MarkdownHelper";
 import { RegEx } from "utils/RegExHelper";
 
@@ -75,7 +75,7 @@ export class Voice extends Plugin {
       id: "play-audio",
       name: "Start reading the current document",
       callback: () => {
-        this.pollyService.playAudio();
+        this.speakText();
       },
     });
     this.addCommand({

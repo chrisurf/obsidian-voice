@@ -29,7 +29,6 @@ export class RegEx {
   removeSpecialCharacters() {
     const text = this.content;
     var result: string = text.replace(/[*_#><():|"~`'{}]/g, "");
-    result = result.replace(/-+/g, "");
     this.content = result;
   }
 

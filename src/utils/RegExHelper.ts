@@ -19,7 +19,8 @@ export class RegEx {
 
   removeLinks() {
     const text = this.content;
-    var result: string = text.replace(/!\[/gm, "");
+    var result: string = text.replace(/!/g, "");
+    result = result.replace(/\[\[.*?\]\]/gm, "");
     result = result.replace(/\([^)]*\)/gm, "");
     result = result.replace(/[\[\]]/g, "");
     this.content = result;

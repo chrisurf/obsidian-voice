@@ -1,7 +1,8 @@
 import { DEFAULT_SETTINGS, VoiceSettings } from "./settings/VoiceSettings";
-import { Plugin, setIcon, addIcon } from "obsidian";
-import { AwsPollyService } from "./services/AwsPollyService";
 import { VoiceSettingTab } from "./settings/VoiceSettingTab";
+import { HotkeyHandler } from "./settings/HotkeySettings";
+import { AwsPollyService } from "./lib/AwsPollyService";
+import { Plugin, setIcon } from "obsidian";
 import { MarkdownHelper } from "./utils/MarkdownHelper";
 import { RegEx } from "utils/RegExHelper";
 
@@ -11,17 +12,18 @@ export class Voice extends Plugin {
   private ribbonIconEl: HTMLElement;
   private markdownHelper: MarkdownHelper;
   private pollyService: AwsPollyService;
+  private hotkeyHandler: HotkeyHandler;
 
-  async speakText() {
+  async speakText(speed?: number) {
     this.ribbonIconHandler();
-
     switch (this.pollyService.isPlaying()) {
       case true:
         this.pollyService.stopAudio();
         break;
       case false:
         await this.pollyService.smartPolly(
-          new RegEx(this.markdownHelper.getMarkdownView()).getcleanContent()
+          new RegEx(this.markdownHelper.getMarkdownView()).getcleanContent(),
+          speed
         );
         break;
       default:
@@ -50,9 +52,17 @@ export class Voice extends Plugin {
         },
         region: String(this.settings.AWS_REGION),
       },
-      this.settings.VOICE
+      this.settings.VOICE,
+      Number(this.settings.SPEED),
     );
 
+    this.initializeEventListeners();
+
+    this.hotkeyHandler = new HotkeyHandler(this, this.pollyService);
+    this.hotkeyHandler.initHotkeys();
+  }
+
+  private initializeEventListeners() {
     this.pollyService.getAudio().addEventListener("play", () => {
       this.ribbonIconEl.removeClass("rotating-icon");
       setIcon(this.ribbonIconEl, "pause-circle");
@@ -70,35 +80,6 @@ export class Voice extends Plugin {
         this.speakText();
       }
     );
-
-    this.addCommand({
-      id: "play-audio",
-      name: "Start reading the current document",
-      callback: () => {
-        this.speakText();
-      },
-    });
-    this.addCommand({
-      id: "pause-audio",
-      name: "Pause reading the current document",
-      callback: () => {
-        this.pollyService.pauseAudio();
-      },
-    });
-    this.addCommand({
-      id: "stop-audio",
-      name: "Stop reading the current document",
-      callback: () => {
-        this.pollyService.stopAudio();
-      },
-    });
-    this.addCommand({
-      id: "play-or-stop-audio",
-      name: "Play or Stop reading the current document",
-      callback: () => {
-        this.speakText();
-      },
-    });
   }
 
   onunload() {

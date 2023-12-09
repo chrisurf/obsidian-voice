@@ -20,6 +20,7 @@ interface SynthesizeInput {
 
 export class AwsPollyService {
   private audio: HTMLAudioElement;
+  private speed: number;
   private synthesizeInput: {
     Engine: string | "neural";
     LanguageCode: string | "en-US";
@@ -32,7 +33,8 @@ export class AwsPollyService {
   private pollyClient: PollyClient;
   private voiceChanged: boolean;
 
-  constructor(awsConfig: AwsCredentials, voice: string) {
+  constructor(awsConfig: AwsCredentials, voice: string, speed?: number) {
+    this.speed = speed || 1.0;
     this.audio = new Audio();
     this.audio.src = "";
     this.voiceChanged = true;
@@ -54,17 +56,17 @@ export class AwsPollyService {
     });
   }
 
-  smartPolly(text: string) {
+  smartPolly(text: string, speed?: number) {
     if (text === this.synthesizeInput.Text && !this.voiceChanged) {
-      this.playAudio();
+      this.playAudio(speed);
     } else {
       this.synthesizeInput.Text = text;
       this.voiceChanged = false;
-      this.callPolly();
+      this.callPolly(speed);
     }
   }
 
-  async callPolly() {
+  async callPolly(speed?: number) {
     const chunkedTexts = this.chunkText(this.synthesizeInput.Text, 100);
     const audioChunks: Blob[] = [];
     this.setLanguageCode(this.getLanguageCode(this.synthesizeInput.VoiceId));
@@ -118,11 +120,22 @@ export class AwsPollyService {
         type: "audio/mp3",
       });
       this.audio.src = URL.createObjectURL(concatenatedAudioBlob);
-      this.playAudio();
+      this.playAudio(speed);
     }
   }
 
-  async playAudio() {
+  async playAudio(speed?: number) {
+    let fSpeed =
+      typeof speed === "number" ? parseFloat(speed.toFixed(2)) : this.speed;
+
+    if (fSpeed < 0.5) {
+      fSpeed = 0.5;
+    } else if (fSpeed > 2) {
+      fSpeed = 2;
+    }
+
+    this.audio.playbackRate = fSpeed;
+
     this.audio.play();
   }
 
@@ -144,6 +157,10 @@ export class AwsPollyService {
 
   setAudio(text: string) {
     this.synthesizeInput.Text = text;
+  }
+
+  setSpeed(speed: number) {
+    return (this.speed = speed);
   }
 
   setVoice(voice: string) {
@@ -227,6 +244,10 @@ export class AwsPollyService {
 
   getAudio() {
     return this.audio;
+  }
+
+  getSpeed() {
+    return this.speed;
   }
 
   getDuration() {

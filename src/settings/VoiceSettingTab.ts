@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import { Voice } from "../VoicePlugin";
+import { Voice } from "../Voice";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -14,7 +14,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     containerEl.empty();
     new Setting(containerEl)
       .setName("Voice")
-      .setDesc("Select a voice")
+      .setDesc("Choose a voice tone, gender, and language for a personalized audio experience.")
       .addDropdown((dropdown) =>
         dropdown
           .addOption("Stephen", "Stephen (American)")
@@ -50,6 +50,36 @@ export class VoiceSettingTab extends PluginSettingTab {
             this.plugin.settings.VOICE = value;
             await this.plugin.saveSettings();
             this.plugin.getPollyService().setVoice(value);
+          })
+      );
+
+    new Setting(containerEl)
+      .setName("Tempo")
+      .setDesc("Set a preferred reading tempo for pleasant and comfortable audio playback.")
+      .addDropdown((dropdown) =>
+        dropdown
+          .addOption("1.9", "190% faster")
+          .addOption("1.7", "170% faster")
+          .addOption("1.6", "160% faster")
+          .addOption("1.5", "150% faster")
+          .addOption("1.4", "140% faster")
+          .addOption("1.3", "130% faster")
+          .addOption("1.1", "120% faster")
+          .addOption("1.2", "110% faster")
+          .addOption("1.0", "normal")
+          .addOption("0.9", "90% slower")
+          .addOption("0.8", "80% slower")
+          .addOption("0.7", "70% slower")
+          .addOption("0.6", "60% slower")
+          .addOption("0.5", "50% slower")
+          .setValue(
+            this.plugin.settings.SPEED ||
+              this.plugin.getPollyService().getSpeed().toString()
+          )
+          .onChange(async (value) => {
+            this.plugin.settings.SPEED = value;
+            await this.plugin.saveSettings();
+            this.plugin.getPollyService().setSpeed(Number(value));
           })
       );
 

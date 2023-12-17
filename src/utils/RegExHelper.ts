@@ -1,4 +1,4 @@
-export class RegEx {
+export class RegExHelper {
   private content: string;
 
   constructor(input: string) {

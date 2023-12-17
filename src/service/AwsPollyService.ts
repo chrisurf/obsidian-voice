@@ -37,7 +37,7 @@ export class AwsPollyService {
     this.speed = speed || 1.0;
     this.audio = new Audio();
     this.audio.src = "";
-    this.voiceChanged = true;
+    this.voiceChanged = false;
     this.synthesizeInput = {
       Engine: "neural",
       SampleRate: "24000",
@@ -56,14 +56,14 @@ export class AwsPollyService {
     });
   }
 
-  smartPolly(text: string, speed?: number) {
-    if (text === this.synthesizeInput.Text && !this.voiceChanged) {
+  playCachedAudio(text: string, speed?: number) {
+    if (text == this.synthesizeInput.Text && !this.voiceChanged) {
       this.playAudio(speed);
     } else {
       this.synthesizeInput.Text = text;
-      this.voiceChanged = false;
       this.callPolly(speed);
     }
+    this.voiceChanged = false;
   }
 
   async callPolly(speed?: number) {
@@ -146,6 +146,21 @@ export class AwsPollyService {
   stopAudio() {
     this.audio.pause();
     this.audio.currentTime = 0;
+  }
+
+  rewindAudio() {
+    if (this.audio && !isNaN(this.audio.duration)) {
+      this.audio.currentTime = Math.max(0, this.audio.currentTime - 3);
+    }
+  }
+
+  fastForwardAudio() {
+    if (this.audio && !isNaN(this.audio.duration)) {
+      this.audio.currentTime = Math.min(
+        this.audio.duration,
+        this.audio.currentTime + 3
+      );
+    }
   }
 
   setSynthesizeInput(synthesizeInput: SynthesizeInput) {

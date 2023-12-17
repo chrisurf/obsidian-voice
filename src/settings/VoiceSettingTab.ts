@@ -1,5 +1,5 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
-import { Voice } from "../Voice";
+import { Voice } from "../utils/VoicePlugin";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;

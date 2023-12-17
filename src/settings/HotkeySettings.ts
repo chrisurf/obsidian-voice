@@ -1,7 +1,7 @@
-import { AwsPollyService } from "../lib/AwsPollyService";
-import { Voice } from "../Voice";
+import { AwsPollyService } from "../service/AwsPollyService";
+import { Voice } from "../utils/VoicePlugin";
 
-export class HotkeyHandler {
+export class HotkeySettings {
   private voice: Voice;
   private pollyService: AwsPollyService;
 
@@ -27,6 +27,18 @@ export class HotkeyHandler {
       id: "stop-audio",
       name: "Stop reading the current document.",
       callback: () => this.pollyService.stopAudio(),
+    });
+
+    this.voice.addCommand({
+      id: "rewind-audio",
+      name: "Rewind by few seconds reading the current document.",
+      callback: () => this.pollyService.rewindAudio(),
+    });
+
+    this.voice.addCommand({
+      id: "fast-forward-audio",
+      name: "Fast-Forward by few seconds reading the current document.",
+      callback: () => this.pollyService.fastForwardAudio(),
     });
 
     this.voice.addCommand({

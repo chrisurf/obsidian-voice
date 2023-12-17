@@ -8,7 +8,7 @@ import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
 
 export class Voice extends Plugin {
-  private settings: VoiceSettings;
+  settings: VoiceSettings;
   private markdownHelper: MarkdownHelper;
   private pollyService: AwsPollyService;
   private hotkeySettings: HotkeySettings;

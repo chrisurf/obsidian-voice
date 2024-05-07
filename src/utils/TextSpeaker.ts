@@ -11,7 +11,7 @@ export class TextSpeaker {
   constructor(
     pollyService: AwsPollyService,
     markdownHelper: MarkdownHelper,
-    iconEventHandler: IconEventHandler
+    iconEventHandler: IconEventHandler,
   ) {
     this.pollyService = pollyService;
     this.markdownHelper = markdownHelper;

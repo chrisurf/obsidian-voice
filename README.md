@@ -53,4 +53,4 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
 > **Note**: No AWS Account? No problem! Get a free account on [aws.amazon.com](https://aws.amazon.com/) to get started with the Free Tier. With the Free Tier, you'll have access to 1 million characters per month for Neural voices or Speech Marks requests for the first 12 months, starting from your initial speech request.
 
-> **Note**: The Voice Plugin is currently in beta, and feedback is always appreciated. As an beta version, it may still have limitations or bugs. Your insights and suggestions will help shape the future development of the Voice plugin, ensuring its continued improvement and refinement.
+> **Info**: The Voice Plugin is currently in beta, feedback is still appreciated. Keep in mind as in beta version, it may still have limitations. Your suggestions will help shape the future development of the Voice plugin, ensuring its continued improvement and refinement.

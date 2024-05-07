@@ -1,4 +1,5 @@
 import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly";
+import SSMLTagger from "../utils/SSMLTagger";
 
 interface AwsCredentials {
   credentials: {
@@ -72,13 +73,15 @@ export class AwsPollyService {
     this.setLanguageCode(this.getLanguageCode(this.synthesizeInput.VoiceId));
 
     for (const chunk of chunkedTexts) {
+      const ssmlTagger = new SSMLTagger();
+      const ssmlText = ssmlTagger.addSSMLTags(chunk);
       const input = {
         Engine: this.synthesizeInput.Engine,
         LanguageCode: this.synthesizeInput.LanguageCode,
         SampleRate: this.synthesizeInput.SampleRate,
-        TextType: this.synthesizeInput.TextType,
+        TextType: "ssml",
         OutputFormat: this.synthesizeInput.OutputFormat,
-        Text: chunk,
+        Text: ssmlText,
         VoiceId: this.synthesizeInput.VoiceId,
       };
 

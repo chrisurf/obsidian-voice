@@ -24,7 +24,7 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
   ![tempo control](./assets/tempo.png)
 
-- **Content Selection**: By default, the **Voice Plugin** intelligently plays the entire text content within the file. However, for a more tailored experience, simply select the specific sections you want to hear, giving you the freedom to focus on what truly matters.
+- **Content Selection**: By default, the **Voice Plugin** intelligently plays the entire text content within the file. In "Source mode", if you select the specific text you want to hear, then **Voice plugin** will speak only that selected text.
 - **Voice Options**: Choose from a selection of 25 available voices to customize the reading experience to your preference.
 - **AWS Polly Support**: Benefit from the power of AWS Polly, an advanced text-to-speech service that offers high-quality and human like voices.
 - **AWS Account Integration**: Use your own AWS account credentials to utilize AWS Polly with the **Voice Plugin**.

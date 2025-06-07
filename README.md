@@ -62,8 +62,9 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 The Voice Plugin requires the following specific AWS permissions to function properly:
 
 1. **Amazon Polly Permissions**:
-  - `polly:SynthesizeSpeech` - Core permission to convert text to speech
-  - `polly:DescribeVoices` - Optional: only needed if you want to dynamically fetch available voices
+
+- `polly:SynthesizeSpeech` - Core permission to convert text to speech
+- `polly:DescribeVoices` - Optional: only needed if you want to dynamically fetch available voices
 
 ### Setting Up a Dedicated IAM User (Recommended)
 
@@ -76,30 +77,29 @@ For optimal security, it's recommend creating a dedicated IAM user for this plug
 5. Select "Access key - Programmatic access" for Access type
 6. On the permissions page, choose one of these options:
 
-  **Option A: Use AWS Managed Policy (Easiest)**
-  - Select "Attach existing policies directly"
-  - Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
+   **Option A: Use AWS Managed Policy (Easiest)**
 
-  **Option B: Create Custom Policy (Most Secure)**
-  - Select "Create policy"
-  - Choose the JSON tab and paste the following:
-    ```json
-    {
-      "Version": "2012-10-17",
-      "Statement": [
-         {
-            "Effect": "Allow",
-            "Action": [
-              "polly:SynthesizeSpeech",
-              "polly:DescribeVoices"
-            ],
-            "Resource": "*"
-         }
-      ]
-    }
-    ```
-  - Name the policy (e.g., "ObsidianVoiceMinimalAccess") and create it
-  - Return to your user creation and attach this new custom policy
+- Select "Attach existing policies directly"
+- Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
+
+**Option B: Create Custom Policy (Most Secure)**
+
+- Select "Create policy"
+- Choose the JSON tab and paste the following:
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["polly:SynthesizeSpeech", "polly:DescribeVoices"],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+- Name the policy (e.g., "ObsidianVoiceMinimalAccess") and create it
+- Return to your user creation and attach this new custom policy
 
 7. Complete the user creation process
 8. Save the Access Key ID and Secret Access Key

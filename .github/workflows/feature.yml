@@ -1,0 +1,51 @@
+name: Feature Branch CI
+
+on:
+  push:
+    branches:
+      - "feature/*"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18.x"
+          cache: 'yarn'
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+#      - name: Lint code
+#        run: yarn lint
+        
+      - name: Check formatting
+        run: yarn format
+        
+      - name: Build plugin
+        run: yarn build
+        
+      - name: Verify plugin structure
+        run: |
+          if [ ! -f main.js ]; then
+            echo "❌ main.js is missing"
+            exit 1
+          fi
+          if [ ! -f manifest.json ]; then
+            echo "❌ manifest.json is missing"
+            exit 1
+          fi
+          if [ ! -f styles.css ]; then
+            echo "❌ styles.css is missing"
+            exit 1
+          fi
+          echo "✅ Plugin structure is valid"
+

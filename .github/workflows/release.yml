@@ -140,7 +140,7 @@ jobs:
 
           # Create GitHub release with required files
           gh release create "$TAG" \
-            --title="Voice Plugin v$TAG" \
+            --title="$TAG" \
             --notes-file="release_notes.md" \
             main.js manifest.json styles.css versions.json
 

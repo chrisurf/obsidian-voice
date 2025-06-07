@@ -161,7 +161,7 @@ export class AwsPollyService {
     if (this.audio && !isNaN(this.audio.duration)) {
       this.audio.currentTime = Math.min(
         this.audio.duration,
-        this.audio.currentTime + 3
+        this.audio.currentTime + 3,
       );
     }
   }

@@ -14,7 +14,9 @@ export class VoiceSettingTab extends PluginSettingTab {
     containerEl.empty();
     new Setting(containerEl)
       .setName("Voice")
-      .setDesc("Choose a voice tone, gender, and language for a personalized audio experience.")
+      .setDesc(
+        "Choose a voice tone, gender, and language for a personalized audio experience.",
+      )
       .addDropdown((dropdown) =>
         dropdown
           .addOption("Stephen", "Stephen (American)")
@@ -44,18 +46,20 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("Zhiyu", "Zhiyu (Mandarin)")
           .setValue(
             this.plugin.getPollyService().getVoice() ||
-              this.plugin.settings.VOICE
+              this.plugin.settings.VOICE,
           )
           .onChange(async (value) => {
             this.plugin.settings.VOICE = value;
             await this.plugin.saveSettings();
             this.plugin.getPollyService().setVoice(value);
-          })
+          }),
       );
 
     new Setting(containerEl)
       .setName("Tempo")
-      .setDesc("Set a preferred reading tempo for pleasant and comfortable audio playback.")
+      .setDesc(
+        "Set a preferred reading tempo for pleasant and comfortable audio playback.",
+      )
       .addDropdown((dropdown) =>
         dropdown
           .addOption("1.9", "90% faster")
@@ -74,13 +78,13 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("0.5", "50% slower")
           .setValue(
             this.plugin.settings.SPEED ||
-              this.plugin.getPollyService().getSpeed().toString()
+              this.plugin.getPollyService().getSpeed().toString(),
           )
           .onChange(async (value) => {
             this.plugin.settings.SPEED = value;
             await this.plugin.saveSettings();
             this.plugin.getPollyService().setSpeed(Number(value));
-          })
+          }),
       );
 
     containerEl.createEl("h2", { text: "AWS" });
@@ -134,7 +138,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.AWS_ACCESS_KEY_ID = value;
             await this.plugin.saveSettings();
-          })
+          }),
       );
 
     new Setting(containerEl)

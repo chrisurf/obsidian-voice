@@ -7,16 +7,16 @@ class SSMLTagger {
    * @returns A string with SSML tags added.
    */
   addSSMLTags(text: string): string {
-    let ssmlText = '';
+    let ssmlText = "";
 
     // Split the text into words
-    const words = text.split(' ');
+    const words = text.split(" ");
 
     for (let i = 0; i < words.length; i++) {
       let ssmlWord = words[i];
 
       if (/^[A-Z]+$/.test(ssmlWord)) {
-//        ssmlWord = `<emphasis level="strong">${ssmlWord}</emphasis>`;
+        //        ssmlWord = `<emphasis level="strong">${ssmlWord}</emphasis>`;
       } else if (/^\d+$/.test(ssmlWord)) {
         ssmlWord = `<say-as interpret-as="number">${ssmlWord}</say-as>`;
       } else if (/[.!?]/.test(ssmlWord)) {

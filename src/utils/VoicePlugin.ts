@@ -29,14 +29,14 @@ export class Voice extends Plugin {
         region: String(this.settings.AWS_REGION),
       },
       this.settings.VOICE,
-      Number(this.settings.SPEED)
+      Number(this.settings.SPEED),
     );
 
     this.iconEventHandler = new IconEventHandler(this, this, this.pollyService);
     this.textSpeaker = new TextSpeaker(
       this.pollyService,
       this.markdownHelper,
-      this.iconEventHandler
+      this.iconEventHandler,
     );
 
     this.hotkeySettings = new HotkeySettings(this, this.pollyService);

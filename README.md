@@ -54,3 +54,53 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 > **Note**: No AWS Account? No problem! Get a free account on [aws.amazon.com](https://aws.amazon.com/) to get started with the Free Tier. With the Free Tier, you'll have access to 1 million characters per month for Neural voices or Speech Marks requests for the first 12 months, starting from your initial speech request.
 
 > **Info**: The Voice Plugin is currently in beta, feedback is still appreciated. Keep in mind as in beta version, it may still have limitations. Your suggestions will help shape the future development of the Voice plugin, ensuring its continued improvement and refinement.
+
+## AWS Security and Permissions
+
+### Required AWS Permissions
+
+The Voice Plugin requires the following specific AWS permissions to function properly:
+
+1. **Amazon Polly Permissions**:
+
+- `polly:SynthesizeSpeech` - Core permission to convert text to speech
+- `polly:DescribeVoices` - Optional: only needed if you want to dynamically fetch available voices
+
+### Setting Up a Dedicated IAM User (Recommended)
+
+For optimal security, it's recommend creating a dedicated IAM user for this plugin rather than using your main AWS credentials:
+
+1. Log in to the AWS Management Console
+2. Navigate to IAM (Identity and Access Management)
+3. Select "Users" and click "Add user"
+4. Choose a username (e.g., "obsidian-voice-plugin")
+5. Select "Access key - Programmatic access" for Access type
+6. On the permissions page, choose one of these options:
+
+   **Option A: Use AWS Managed Policy (Easiest)**
+
+- Select "Attach existing policies directly"
+- Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
+
+**Option B: Create Custom Policy (Most Secure)**
+
+- Select "Create policy"
+- Choose the JSON tab and paste the following:
+  ```json
+  {
+    "Version": "2012-10-17",
+    "Statement": [
+      {
+        "Effect": "Allow",
+        "Action": ["polly:SynthesizeSpeech", "polly:DescribeVoices"],
+        "Resource": "*"
+      }
+    ]
+  }
+  ```
+- Name the policy (e.g., "ObsidianVoiceMinimalAccess") and create it
+- Return to your user creation and attach this new custom policy
+
+7. Complete the user creation process
+8. Save the Access Key ID and Secret Access Key
+9. Enter these credentials in the Obsidian Voice plugin settings

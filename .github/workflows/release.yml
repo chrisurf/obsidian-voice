@@ -1,34 +1,147 @@
-name: Release Obsidian plugin
+name: Release Obsidian Plugin
 
 on:
   push:
-    tags:
-      - "*"
+    branches:
+      - main
 
 jobs:
-  build:
+  create_release:
+    name: Create Release
     runs-on: ubuntu-latest
-
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: Use Node.js
-        uses: actions/setup-node@v3
+      - name: Set up Node.js environment
+        uses: actions/setup-node@v4
         with:
           node-version: "18.x"
+          cache: "yarn"
 
-      - name: Build plugin
+      - name: Retrieve last tag
+        id: get_last_tag
         run: |
-          yarn
+          TAGS=$(git tag --list)
+          if [[ -z "${TAGS}" ]]; then
+            echo "last_tag=v0.0.0" >> $GITHUB_ENV
+            echo "No previous tags found, using v0.0.0 as base"
+          else
+            LAST_TAG=$(git describe --tags --abbrev=0)
+            echo "last_tag=$LAST_TAG" >> $GITHUB_ENV
+            echo "Found previous tag: $LAST_TAG"
+          fi
+
+      - name: Calculate semantic version
+        id: version
+        uses: paulhatch/semantic-version@v5.4.0
+        with:
+          bump_each_commit: false
+          tag_prefix: ""
+          major_pattern: "BREAKING CHANGE:"
+          minor_pattern: "feat:"
+          bump_each_commit_patch_pattern: "fix:|docs:|style:|refactor:|perf:|test:|build:|ci:|chore:"
+
+      - name: Verify version does not exist
+        id: check_version
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          echo "Calculated new version: $NEW_VERSION"
+
+          if git rev-parse "$NEW_VERSION" >/dev/null 2>&1; then
+            echo "Version $NEW_VERSION already exists as a tag. Skipping tag creation."
+            echo "tag_exists=true" >> $GITHUB_ENV
+          else
+            echo "Version $NEW_VERSION does not exist. Will create new tag."
+            echo "tag_exists=false" >> $GITHUB_ENV
+          fi
+
+      - name: Update package.json version
+        if: env.tag_exists == 'false'
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating package.json to version $NEW_VERSION"
+          jq --arg version "$NEW_VERSION" '.version = $version' package.json > package.tmp.json && mv package.tmp.json package.json
+
+      - name: Create and commit tag
+        if: env.tag_exists == 'false'
+        run: |
+          git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git config --local user.name "github-actions[bot]"
+          git add package.json
+          git commit -m "chore(release): update package.json to version ${{ steps.version.outputs.version }}"
+          git tag -a ${{ steps.version.outputs.version }} -m "Release ${{ steps.version.outputs.version }}"
+          echo "Created tag ${{ steps.version.outputs.version }}"
+
+      - name: Push changes to repository
+        if: env.tag_exists == 'false'
+        uses: ad-m/github-push-action@master
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          branch: main
+          tags: true
+
+      - name: Install project dependencies
+        run: |
+          echo "Installing dependencies with yarn"
+          yarn install --frozen-lockfile
+
+      - name: Synchronize version files
+        run: |
+          echo "Running version bump script to update manifest.json and versions.json"
+          node version-bump.mjs
+
+      - name: Build plugin artifacts
+        run: |
+          echo "Building Obsidian plugin"
           yarn build
 
-      - name: Create release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+      - name: Verify required plugin files
+        id: verify_files
         run: |
-          tag="${GITHUB_REF#refs/tags/}"
+          echo "Verifying Obsidian plugin structure..."
+          MISSING_FILES=0
 
-          gh release create "$tag" \
-            --title="$tag" \
-            --draft \
-            main.js manifest.json styles.css
+          for FILE in main.js manifest.json styles.css versions.json; do
+            if [ -f "$FILE" ]; then
+              echo "✓ $FILE exists"
+            else
+              echo "❌ $FILE is missing"
+              MISSING_FILES=1
+            fi
+          done
+
+          if [ $MISSING_FILES -eq 1 ]; then
+            echo "::error::Required plugin files are missing!"
+            exit 1
+          fi
+
+          echo "✅ Plugin structure is valid"
+          echo "artifact_ready=true" >> $GITHUB_ENV
+
+      - name: Create GitHub release
+        if: env.tag_exists == 'false' && env.artifact_ready == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="${{ steps.version.outputs.version }}"
+
+          # Debug info
+          echo "Creating release for tag: $TAG"
+          ls -la
+
+          # Generate release notes
+          echo "## Changes in $TAG" > release_notes.md
+          echo "" >> release_notes.md
+          echo "### What's Changed" >> release_notes.md
+          git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md
+
+          # Create GitHub release with required files
+          gh release create "$TAG" \
+            --title="Voice Plugin v$TAG" \
+            --notes-file="release_notes.md" \
+            main.js manifest.json styles.css versions.json
+
+          echo "✅ Release created successfully"

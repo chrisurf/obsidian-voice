@@ -24,10 +24,10 @@ export class IconEventHandler {
   private initStatusBarItem(): void {
     this.statusBarItem = this.plugin.addStatusBarItem();
     this.createStatusBarIcon("rewind", "rewind", () =>
-      this.pollyService.rewindAudio()
+      this.pollyService.rewindAudio(),
     );
     this.createStatusBarIcon("square", "stop", () =>
-      this.pollyService.stopAudio()
+      this.pollyService.stopAudio(),
     );
 
     this.playPauseIconEl = this.createStatusBarIcon(
@@ -40,11 +40,11 @@ export class IconEventHandler {
         }
         this.voice.speakText();
       },
-      true
+      true,
     );
 
     this.createStatusBarIcon("fast-forward", "fast-forward", () =>
-      this.pollyService.fastForwardAudio()
+      this.pollyService.fastForwardAudio(),
     );
   }
 
@@ -52,7 +52,7 @@ export class IconEventHandler {
     icon: string,
     cls: string,
     onClick: () => void,
-    isPlayPauseIcon: boolean = false
+    isPlayPauseIcon: boolean = false,
   ): HTMLElement {
     const iconEl = this.statusBarItem.createEl("span", {
       cls: "status-bar-icon " + cls,
@@ -70,7 +70,7 @@ export class IconEventHandler {
 
   private initRibbonIcon(): void {
     this.ribbonIconEl = this.plugin.addRibbonIcon("play-circle", "Voice", () =>
-      this.voice.speakText()
+      this.voice.speakText(),
     );
     this.initializeEventListeners();
   }

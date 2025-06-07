@@ -1,32 +1,61 @@
 {
-	"name": "voice",
-	"version": "1.0.0",
-	"description": "Add a voice to Obsidian (https://obsidian.md). Let your notes talk and speak to you and enhance your Obsidian experience to effortlessly listen to your notes being read aloud and enjoy the power of sound, audio, and speech.",
-	"main": "main.js",
-	"scripts": {
-		"dev": "node esbuild.config.mjs",
-		"build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
-		"version": "node version-bump.mjs && git add manifest.json versions.json"
-	},
-	"keywords": [
-		"Obsidian",
-		"Voice",
-		"Plugin",
-		"Text-to-Speech"
-	],
-	"author": "Chris Oguntolu",
-	"license": "MIT",
-	"devDependencies": {
-		"@aws-sdk/client-polly": "3.40.0",
-		"@aws-sdk/credential-providers": "3.350.0",
-		"@types/node": "16.11.6",
-		"@typescript-eslint/eslint-plugin": "5.29.0",
-		"@typescript-eslint/parser": "5.29.0",
-		"builtin-modules": "3.3.0",
-		"esbuild": "0.17.3",
-		"obsidian": "latest",
-		"tslib": "2.4.0",
-		"typescript": "4.7.4",
-		"dotenv": "^16.1.4"
-	}
+  "name": "voice",
+  "version": "1.0.1",
+  "description": "Add a voice to Obsidian (https://obsidian.md). Let your notes talk and speak to you and enhance your Obsidian experience to effortlessly listen to your notes being read aloud and enjoy the power of sound, audio, and speech.",
+  "main": "main.js",
+  "scripts": {
+    "lint": "eslint .",
+    "format": "prettier --check \"**/*.{ts,json,md}\"",
+    "format:fix": "prettier --write \"**/*.{ts,json,md}\"",
+    "dev": "node esbuild.config.mjs",
+    "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json"
+  },
+  "keywords": [
+    "Obsidian",
+    "Voice",
+    "Plugin",
+    "Text-to-Speech"
+  ],
+  "author": "Chris Oguntolu",
+  "license": "MIT",
+  "release": {
+    "branches": [
+      "main"
+    ]
+  },
+  "plugins": [
+    "@semantic-release/commit-analyzer",
+    "@semantic-release/release-notes-generator",
+    "@semantic-release/changelog",
+    "@semantic-release/github",
+    [
+      "@semantic-release/git",
+      {
+        "assets": [
+          "CHANGELOG.md",
+          "package.json"
+        ],
+        "message": "chore(release): ${nextRelease.version} [skip ci]\n\n${nextRelease.notes}"
+      }
+    ]
+  ],
+  "devDependencies": {
+    "@aws-sdk/client-polly": "3.40.0",
+    "@aws-sdk/credential-providers": "3.350.0",
+    "@eslint/js": "9.19.0",
+    "@types/node": "16.11.6",
+    "@typescript-eslint/eslint-plugin": "5.29.0",
+    "@typescript-eslint/parser": "5.29.0",
+    "builtin-modules": "3.3.0",
+    "dotenv": "16.1.4",
+    "esbuild": "0.17.3",
+    "eslint": "9.19.0",
+    "globals": "15.14.0",
+    "obsidian": "latest",
+    "prettier": "3.4.2",
+    "tslib": "2.4.0",
+    "typescript": "4.7.4",
+    "typescript-eslint": "8.22.0"
+  }
 }

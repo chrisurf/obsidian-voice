@@ -24,7 +24,7 @@ export class TextSpeaker {
       this.pollyService.pauseAudio();
     } else {
       const cleanedText = new RegExHelper(
-        this.markdownHelper.getMarkdownView()
+        this.markdownHelper.getMarkdownView(),
       ).getcleanContent();
       await this.pollyService.playCachedAudio(cleanedText, speed);
     }

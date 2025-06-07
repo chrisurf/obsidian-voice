@@ -65,13 +65,36 @@ jobs:
           echo "Updating package.json to version $NEW_VERSION"
           jq --arg version "$NEW_VERSION" '.version = $version' package.json > package.tmp.json && mv package.tmp.json package.json
 
+      - name: Update manifest.json version
+        if: env.tag_exists == 'false'
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          echo "Updating manifest.json to version $NEW_VERSION"
+          jq --arg version "$NEW_VERSION" '.version = $version' manifest.json > manifest.tmp.json && mv manifest.tmp.json manifest.json
+          
+      - name: Update versions.json
+        if: env.tag_exists == 'false'
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.version }}"
+          MIN_APP_VERSION=$(jq -r '.minAppVersion' manifest.json)
+          echo "Updating versions.json with version $NEW_VERSION (minAppVersion: $MIN_APP_VERSION)"
+          
+          # Create or update versions.json
+          if [ -f versions.json ]; then
+            # Update existing file
+            jq --arg version "$NEW_VERSION" --arg minApp "$MIN_APP_VERSION" '.[$version] = $minApp' versions.json > versions.tmp.json && mv versions.tmp.json versions.json
+          else
+            # Create new file
+            echo "{\"$NEW_VERSION\": \"$MIN_APP_VERSION\"}" > versions.json
+          fi
+
       - name: Create and commit tag
         if: env.tag_exists == 'false'
         run: |
           git config --local user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add package.json
-          git commit -m "chore(release): update package.json to version ${{ steps.version.outputs.version }}"
+          git add package.json manifest.json versions.json
+          git commit -m "chore(release): update version to ${{ steps.version.outputs.version }}"
           git tag -a ${{ steps.version.outputs.version }} -m "Release ${{ steps.version.outputs.version }}"
           echo "Created tag ${{ steps.version.outputs.version }}"
 
@@ -87,11 +110,6 @@ jobs:
         run: |
           echo "Installing dependencies with yarn"
           yarn install --frozen-lockfile
-
-      - name: Synchronize version files
-        run: |
-          echo "Running version bump script to update manifest.json and versions.json"
-          node version-bump.mjs
 
       - name: Build plugin artifacts
         run: |

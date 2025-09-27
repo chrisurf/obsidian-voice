@@ -23,9 +23,8 @@ export class TextSpeaker {
     if (this.pollyService.isPlaying()) {
       this.pollyService.pauseAudio();
     } else {
-      const cleanedText = new RegExHelper(
-        this.markdownHelper.getMarkdownView(),
-      ).getcleanContent();
+      const rawText = await this.markdownHelper.getMarkdownView();
+      const cleanedText = new RegExHelper(rawText).getcleanContent();
       await this.pollyService.playCachedAudio(cleanedText, speed);
     }
   }

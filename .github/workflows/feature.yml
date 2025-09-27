@@ -4,6 +4,8 @@ on:
   push:
     branches:
       - "feature/*"
+      - "fix/*"
+      - copilot/*
 
 jobs:
   test:
@@ -19,20 +21,20 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18.x"
-          cache: 'yarn'
+          cache: "yarn"
 
       - name: Install dependencies
         run: yarn install --frozen-lockfile
 
       - name: Check formatting
         run: yarn format
-        
+
       - name: Check Lint
         run: yarn lint
-        
+
       - name: Build plugin
         run: yarn build
-        
+
       - name: Verify plugin structure
         run: |
           if [ ! -f main.js ]; then
@@ -48,4 +50,3 @@ jobs:
             exit 1
           fi
           echo "✅ Plugin structure is valid"
-

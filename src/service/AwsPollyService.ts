@@ -96,15 +96,13 @@ export class AwsPollyService {
         const readableStream = data.AudioStream as ReadableStream<Uint8Array>;
 
         const reader = readableStream.getReader();
-        const blobParts: Uint8Array[] = [];
-        let totalLength = 0;
+        const blobParts: BlobPart[] = [];
 
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
 
-          blobParts.push(value);
-          totalLength += value.length;
+          blobParts.push(new Uint8Array(value));
         }
 
         const audioBlob = new Blob(blobParts, {

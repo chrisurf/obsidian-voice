@@ -24,7 +24,7 @@ try {
   let versionsJson = {};
   try {
     versionsJson = JSON.parse(readFileSync("versions.json", "utf8"));
-  } catch (error) {
+  } catch {
     // File doesn't exist yet, that's OK
   }
   

@@ -4,7 +4,15 @@ The Voice Plugin for Obsidian brings a new dimension to your note-taking experie
 
 Whether you want to listen to your documents while multitasking, reinforce your learning through auditory input, or simply enjoy a unique way of interacting with your content, the Voice Plugin delivers a seamless and customizable text-to-speech solution within the Obsidian environment.
 
-## Features
+## Table of Contents
+
+- [What This Plugin Can Do](#features)
+- [Getting Started](#usage)
+- [Setting Up Your AWS Account (Required)](#setting-up-your-aws-account-required)
+  - [What You'll Need](#what-youll-need)
+  - [Create a Safe Login for This Plugin](#step-1-create-a-safe-login-for-this-plugin)
+
+## What This Plugin Can Do
 
 - **Text-to-Speech**: The **Voice Plugin** leverages advanced text-to-speech technology to synthesize natural-sounding human speech, enabling your written content in Obsidian to be read aloud.
 - **Private Communication**: Enjoy a completely private communication experience as the Voice Plugin utilizes your personal AWS account, ensuring you have full control over your data.
@@ -43,7 +51,7 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
 > **Note**: Just a heads up, when it comes to synthesizing large content files, give it a moment to work its magic. You'll know the Voice Plugin is hard at work when you see that refresh Ribbon Icon doing its magic thing. Once the processing is completed, that Ribbon Icon will switch things up and show off a pause icon. So sit back, relax, and let the Voice Plugin do its thing!
 
-## Usage
+## Getting Started
 
 1. Download and install the Voice Plugin for Obsidian.
 2. Enable the Voice Plugin.
@@ -55,20 +63,15 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
 > **Info**: The Voice Plugin is currently in beta, feedback is still appreciated. Keep in mind as in beta version, it may still have limitations. Your suggestions will help shape the future development of the Voice plugin, ensuring its continued improvement and refinement.
 
-## AWS Security and Permissions
+## Setting Up Your AWS Account (Required)
 
-### Required AWS Permissions
+### What You'll Need
 
-The Voice Plugin requires the following specific AWS permissions to function properly:
+The Voice Plugin needs permission to use Amazon's text-to-speech service. Don't worry - we'll walk you through each step!
 
-1. **Amazon Polly Permissions**:
+### Create a Safe Login for This Plugin
 
-- `polly:SynthesizeSpeech` - Core permission to convert text to speech
-- `polly:DescribeVoices` - Optional: only needed if you want to dynamically fetch available voices
-
-### Setting Up a Dedicated IAM User (Recommended)
-
-For optimal security, it's recommend creating a dedicated IAM user for this plugin rather than using your main AWS credentials:
+For your security, we recommend creating a separate login just for this plugin rather than using your main AWS credentials:
 
 1. Log in to the AWS Management Console
 2. Navigate to IAM (Identity and Access Management)
@@ -79,27 +82,27 @@ For optimal security, it's recommend creating a dedicated IAM user for this plug
 
    **Option A: Use AWS Managed Policy (Easiest)**
 
-- Select "Attach existing policies directly"
-- Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
+   - Select "Attach existing policies directly"
+   - Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
 
-**Option B: Create Custom Policy (Most Secure)**
+   **Option B: Create Custom Policy (Most Secure)**
 
-- Select "Create policy"
-- Choose the JSON tab and paste the following:
-  ```json
-  {
-    "Version": "2012-10-17",
-    "Statement": [
-      {
-        "Effect": "Allow",
-        "Action": ["polly:SynthesizeSpeech", "polly:DescribeVoices"],
-        "Resource": "*"
-      }
-    ]
-  }
-  ```
-- Name the policy (e.g., "ObsidianVoiceMinimalAccess") and create it
-- Return to your user creation and attach this new custom policy
+   - Select "Create policy"
+   - Choose the JSON tab and paste the following:
+     ```json
+     {
+       "Version": "2012-10-17",
+       "Statement": [
+         {
+           "Effect": "Allow",
+           "Action": ["polly:SynthesizeSpeech", "polly:DescribeVoices"],
+           "Resource": "*"
+         }
+       ]
+     }
+     ```
+   - Name the policy (e.g., "ObsidianVoiceMinimalAccess") and create it
+   - Return to your user creation and attach this new custom policy
 
 7. Complete the user creation process
 8. Save the Access Key ID and Secret Access Key

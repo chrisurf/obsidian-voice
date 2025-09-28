@@ -7,19 +7,19 @@ export class RegExHelper {
 
   removeHeader() {
     const text = this.content;
-    var result: string = text.replace(/^---[\s\S]*?^---/m, "");
+    const result: string = text.replace(/^---[\s\S]*?^---/m, "");
     this.content = result;
   }
 
   removeCode() {
     const text = this.content;
-    var result: string = text.replace(/```[\s\S]*?```/m, "");
+    const result: string = text.replace(/```[\s\S]*?```/m, "");
     this.content = result;
   }
 
   removeLinks() {
     const text = this.content;
-    var result: string = text.replace(/!/g, "");
+    let result: string = text.replace(/!/g, "");
     result = result.replace(/(?<=\[\[)[^\|\]]+(?=\|.*?\]\])/g, "");
     result = result.replace(/\([^)]*\)/gm, "");
     result = result.replace(/[\[\]]/g, "");
@@ -28,14 +28,14 @@ export class RegExHelper {
 
   removeSpecialCharacters() {
     const text = this.content;
-    var result: string = text.replace(/[*_#><():|"~`'{}]/g, "");
+    const result: string = text.replace(/[*_#><():|"~`'{}]/g, "");
     this.content = result;
   }
 
   removeEmojis() {
     const text = this.content;
     // This regex matches most emoji characters
-    var result: string = text.replace(
+    const result: string = text.replace(
       /[\u{1F000}-\u{1FFFF}]|\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu,
       "",
     );

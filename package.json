@@ -1,6 +1,6 @@
 {
   "name": "voice",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Add a voice to Obsidian (https://obsidian.md). Let your notes talk and speak to you and enhance your Obsidian experience to effortlessly listen to your notes being read aloud and enjoy the power of sound, audio, and speech.",
   "main": "main.js",
   "scripts": {

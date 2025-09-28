@@ -6,11 +6,11 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
 ## Table of Contents
 
-- [What This Plugin Can Do](#features)
-- [Getting Started](#usage)
+- [What This Plugin Can Do](#what-this-plugin-can-do)
+- [Getting Started](#getting-started)
 - [Setting Up Your AWS Account (Required)](#setting-up-your-aws-account-required)
   - [What You'll Need](#what-youll-need)
-  - [Create a Safe Login for This Plugin](#step-1-create-a-safe-login-for-this-plugin)
+  - [Create a Safe Login for This Plugin](#create-a-safe-login-for-this-plugin)
 
 ## What This Plugin Can Do
 

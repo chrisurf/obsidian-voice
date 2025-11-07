@@ -18,5 +18,19 @@ main.js
 # Exclude macOS Finder (System Explorer) View States
 .DS_Store
 
+# Environment files with secrets
+.env.local
+.env.production
+.env.development
+.env.test
+*.env.local
+
+# Test coverage
+coverage/
+*.lcov
+
+# Jest cache
+.jest/
+
 # Plugin config
 data.json

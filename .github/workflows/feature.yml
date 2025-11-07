@@ -1,4 +1,4 @@
-name: Feature Branch CI
+name: Code Quality & Build Validation
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - copilot/*
 
 jobs:
-  test:
+  code-quality-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -22,20 +22,26 @@ jobs:
         with:
           node-version: "18.x"
           cache: "yarn"
+          cache-dependency-path: vault/.obsidian/plugins/voice/yarn.lock
 
       - name: Install dependencies
+        working-directory: vault/.obsidian/plugins/voice
         run: yarn install --frozen-lockfile
 
       - name: Check formatting
-        run: yarn format
+        working-directory: vault/.obsidian/plugins/voice
+        run: yarn format:check
 
       - name: Check Lint
-        run: yarn lint
+        working-directory: vault/.obsidian/plugins/voice
+        run: yarn lint:check
 
       - name: Build plugin
+        working-directory: vault/.obsidian/plugins/voice
         run: yarn build
 
       - name: Verify plugin structure
+        working-directory: vault/.obsidian/plugins/voice
         run: |
           if [ ! -f main.js ]; then
             echo "❌ main.js is missing"

@@ -8,7 +8,7 @@ class SSMLTagger {
    */
   private escapeXmlCharacters(text: string): string {
     return text
-      .replace(/&/g, "&amp;")   // Must be first to avoid double-escaping
+      .replace(/&/g, "&amp;") // Must be first to avoid double-escaping
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")

@@ -81,12 +81,10 @@ For your security, we recommend creating a separate login just for this plugin r
 6. On the permissions page, choose one of these options:
 
    **Option A: Use AWS Managed Policy (Easiest)**
-
    - Select "Attach existing policies directly"
    - Search for and select the "AmazonPollyReadOnlyAccess" AWS managed policy
 
    **Option B: Create Custom Policy (Most Secure)**
-
    - Select "Create policy"
    - Choose the JSON tab and paste the following:
      ```json

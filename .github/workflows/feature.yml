@@ -21,27 +21,22 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18.x"
-          cache: "yarn"
-          cache-dependency-path: vault/.obsidian/plugins/voice/yarn.lock
+          cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: vault/.obsidian/plugins/voice
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Check formatting
-        working-directory: vault/.obsidian/plugins/voice
-        run: yarn format:check
+        run: npm run format:check
 
       - name: Check Lint
-        working-directory: vault/.obsidian/plugins/voice
-        run: yarn lint:check
+        run: npm run lint:check
 
       - name: Build plugin
-        working-directory: vault/.obsidian/plugins/voice
-        run: yarn build
+        run: npm run build
 
       - name: Verify plugin structure
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           if [ ! -f main.js ]; then
             echo "❌ main.js is missing"

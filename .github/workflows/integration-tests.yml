@@ -24,12 +24,10 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: vault/.obsidian/plugins/voice/package-lock.json
+          cache-dependency-path: package-lock.json
       - name: Install
-        working-directory: vault/.obsidian/plugins/voice
         run: npm ci
       - name: Run unit tests
-        working-directory: vault/.obsidian/plugins/voice
         run: npm test -- --testPathPattern=unit.test.ts --verbose
 
   integration-tests:
@@ -54,7 +52,7 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
           cache: npm
-          cache-dependency-path: vault/.obsidian/plugins/voice/package-lock.json
+          cache-dependency-path: package-lock.json
 
       # ✅ Use static AWS credentials from secrets
       - name: Configure AWS (static keys)
@@ -65,11 +63,9 @@ jobs:
           aws-region: ${{ secrets.AWS_REGION }}
 
       - name: Install
-        working-directory: vault/.obsidian/plugins/voice
         run: npm ci
 
       - name: Setup .env.test
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           echo "NODE_ENV=test" > .env.test
           echo "POLLY_TEST_MODE=integration" >> .env.test
@@ -83,7 +79,6 @@ jobs:
           echo "✅ .env.test created with AWS credentials"
 
       - name: Validate AWS credentials
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           node -e "
           const { PollyClient, DescribeVoicesCommand } = require('@aws-sdk/client-polly');
@@ -94,7 +89,6 @@ jobs:
           "
 
       - name: Run integration tests
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           echo "🔗 Starting AWS Polly Integration Tests..."
           echo "📍 Region: ${AWS_REGION}"
@@ -103,7 +97,6 @@ jobs:
 
       - name: Parse test results
         if: always()
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           echo "Parsing integration test results..."
           
@@ -126,7 +119,6 @@ jobs:
 
       - name: Summary
         if: always()
-        working-directory: vault/.obsidian/plugins/voice
         run: |
           echo "## 🧪 AWS Polly Integration Test Results" >> $GITHUB_STEP_SUMMARY
           echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY

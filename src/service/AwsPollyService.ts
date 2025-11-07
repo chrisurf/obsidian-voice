@@ -1,4 +1,4 @@
-import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly";
+import { PollyClient, SynthesizeSpeechCommand, Engine, LanguageCode, TextType, OutputFormat, VoiceId } from "@aws-sdk/client-polly";
 import SSMLTagger from "../utils/SSMLTagger";
 
 interface AwsCredentials {
@@ -10,12 +10,12 @@ interface AwsCredentials {
 }
 
 interface SynthesizeInput {
-  Engine?: string;
-  LanguageCode?: string;
+  Engine?: Engine;
+  LanguageCode?: LanguageCode;
   SampleRate?: string;
-  TextType?: string;
-  OutputFormat?: string;
-  VoiceId?: string;
+  TextType?: TextType;
+  OutputFormat?: OutputFormat;
+  VoiceId?: VoiceId;
   Text: string;
 }
 
@@ -23,12 +23,12 @@ export class AwsPollyService {
   private audio: HTMLAudioElement;
   private speed: number;
   private synthesizeInput: {
-    Engine: string | "neural";
-    LanguageCode: string | "en-US";
-    SampleRate: string | "24000";
-    TextType: string | "text";
-    OutputFormat: string | "mp3";
-    VoiceId: string | "Stephen";
+    Engine: Engine;
+    LanguageCode: LanguageCode;
+    SampleRate: string;
+    TextType: TextType;
+    OutputFormat: OutputFormat;
+    VoiceId: VoiceId;
     Text: string;
   };
   private pollyClient: PollyClient;
@@ -40,12 +40,12 @@ export class AwsPollyService {
     this.audio.src = "";
     this.voiceChanged = false;
     this.synthesizeInput = {
-      Engine: "neural",
+      Engine: "neural" as Engine,
       SampleRate: "24000",
-      TextType: "text",
-      OutputFormat: "mp3",
-      LanguageCode: this.getLanguageCode(voice),
-      VoiceId: voice || "Stephen",
+      TextType: "text" as TextType,
+      OutputFormat: "mp3" as OutputFormat,
+      LanguageCode: this.getLanguageCode(voice) as LanguageCode,
+      VoiceId: (voice || "Stephen") as VoiceId,
       Text: "No document selected.",
     };
     this.pollyClient = new PollyClient({
@@ -79,7 +79,7 @@ export class AwsPollyService {
         Engine: this.synthesizeInput.Engine,
         LanguageCode: this.synthesizeInput.LanguageCode,
         SampleRate: this.synthesizeInput.SampleRate,
-        TextType: "ssml",
+        TextType: "ssml" as TextType,
         OutputFormat: this.synthesizeInput.OutputFormat,
         Text: ssmlText,
         VoiceId: this.synthesizeInput.VoiceId,
@@ -183,12 +183,12 @@ export class AwsPollyService {
   }
 
   setVoice(voice: string) {
-    this.synthesizeInput.VoiceId = voice;
+    this.synthesizeInput.VoiceId = voice as VoiceId;
     this.voiceChanged = true;
   }
 
   setLanguageCode(language: string) {
-    this.synthesizeInput.LanguageCode = language;
+    this.synthesizeInput.LanguageCode = language as LanguageCode;
     this.voiceChanged = true;
   }
 

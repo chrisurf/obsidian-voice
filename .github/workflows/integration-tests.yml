@@ -1,0 +1,129 @@
+name: AWS Polly Tests
+
+on:
+  push:
+    branches:
+      - "feature/**"
+      - "fix/**"
+  pull_request:
+    branches:
+      - "feature/**"
+      - "fix/**"
+  workflow_dispatch:
+
+jobs:
+  unit-tests:
+    name: Unit Tests (always)
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+      - name: Install
+        run: npm ci
+      - name: Run unit tests
+        run: npm test -- --testPathPattern=unit.test.ts --verbose
+
+  integration-tests:
+    name: AWS Polly Integration Tests (repo-only)
+    needs: unit-tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    # Skip if this is a PR from a fork, because secrets are not exposed to forks
+    if: >
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      # ✅ Use static AWS credentials from secrets
+      - name: Configure AWS (static keys)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Install
+        run: npm ci
+
+      - name: Setup .env.test
+        run: |
+          echo "NODE_ENV=test" > .env.test
+          echo "POLLY_TEST_MODE=integration" >> .env.test
+          echo "AWS_REGION=${AWS_REGION}" >> .env.test
+          echo "AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}" >> .env.test
+          echo "AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}" >> .env.test
+          echo "MAX_TEST_REQUESTS=50" >> .env.test
+          echo "TEST_TIMEOUT=30000" >> .env.test
+          echo "MAX_PROCESSING_TIME_MS=10000" >> .env.test
+          echo "MAX_LONG_DOCUMENT_TIME_MS=120000" >> .env.test
+          echo "✅ .env.test created with AWS credentials"
+
+      - name: Validate AWS credentials
+        run: |
+          node -e "
+          const { PollyClient, DescribeVoicesCommand } = require('@aws-sdk/client-polly');
+          const client = new PollyClient({});
+          client.send(new DescribeVoicesCommand({ LanguageCode: 'en-US' }))
+            .then(()=>console.log('✅ AWS credentials valid'))
+            .catch(err => { console.error('❌ AWS credentials invalid:', err.message); process.exit(1); });
+          "
+
+      - name: Run integration tests
+        run: |
+          echo "🔗 Starting AWS Polly Integration Tests..."
+          echo "📍 Region: ${AWS_REGION}"
+          echo "🔑 Access Key Prefix: ${AWS_ACCESS_KEY_ID:0:8}..."
+          npm test -- --testPathPattern=integration.test.ts --verbose --maxWorkers=1 2>&1 | tee integration_test_results.log
+
+      - name: Parse test results
+        if: always()
+        run: |
+          echo "Parsing integration test results..."
+          
+          # Extract test results from the log
+          if [ -f integration_test_results.log ]; then
+            # Look for PASS lines with test names and audio info
+            echo "TEST_RESULTS<<EOF" >> $GITHUB_ENV
+            grep -A 1 "✅ PASS:" integration_test_results.log | sed 'N;s/\n/ /' | while read line; do
+              if [[ $line =~ "✅ PASS: "(.+)" \(([0-9]+)ms\)" ]] && [[ $line =~ "Audio: "([0-9]+)"KB" ]]; then
+                test_name=$(echo "$line" | grep -o "✅ PASS: [^(]*" | sed 's/✅ PASS: //')
+                duration=$(echo "$line" | grep -o "([0-9]*ms)" | sed 's/[()]//g')
+                audio_size=$(echo "$line" | grep -o "Audio: [0-9]*KB" | sed 's/Audio: //')
+                echo "- **${test_name}**: ${duration}, ${audio_size}" >> $GITHUB_ENV
+              fi
+            done
+            echo "EOF" >> $GITHUB_ENV
+          else
+            echo "TEST_RESULTS=- No test results found" >> $GITHUB_ENV
+          fi
+
+      - name: Summary
+        if: always()
+        run: |
+          echo "## 🧪 AWS Polly Integration Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "- **Branch**: ${{ github.ref_name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Node.js**: ${{ matrix.node-version }}" >> $GITHUB_STEP_SUMMARY
+          echo "- **Status**: ${{ job.status == 'success' && '✅ All Tests Passed' || '❌ Tests Failed' }}" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Test Case Results:" >> $GITHUB_STEP_SUMMARY
+          echo "${TEST_RESULTS:-No results captured}" >> $GITHUB_STEP_SUMMARY

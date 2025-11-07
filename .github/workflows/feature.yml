@@ -1,4 +1,4 @@
-name: Feature Branch CI
+name: Code Quality & Build Validation
 
 on:
   push:
@@ -8,7 +8,7 @@ on:
       - copilot/*
 
 jobs:
-  test:
+  code-quality-and-build:
     runs-on: ubuntu-latest
 
     steps:
@@ -21,19 +21,20 @@ jobs:
         uses: actions/setup-node@v3
         with:
           node-version: "18.x"
-          cache: "yarn"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: npm ci
 
       - name: Check formatting
-        run: yarn format
+        run: npm run format:check
 
       - name: Check Lint
-        run: yarn lint
+        run: npm run lint:check
 
       - name: Build plugin
-        run: yarn build
+        run: npm run build
 
       - name: Verify plugin structure
         run: |

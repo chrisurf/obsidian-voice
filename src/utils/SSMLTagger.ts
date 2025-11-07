@@ -2,6 +2,20 @@ class SSMLTagger {
   constructor() {}
 
   /**
+   * Escapes XML special characters to prevent SSML parsing errors
+   * @param text - The input text to escape
+   * @returns Escaped text safe for SSML
+   */
+  private escapeXmlCharacters(text: string): string {
+    return text
+      .replace(/&/g, "&amp;") // Must be first to avoid double-escaping
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&apos;");
+  }
+
+  /**
    * Adds SSML tags to the provided text string.
    * @param text - The input text to be processed.
    * @returns A string with SSML tags added.
@@ -14,6 +28,9 @@ class SSMLTagger {
 
     for (let i = 0; i < words.length; i++) {
       let ssmlWord = words[i];
+
+      // Escape XML characters first to prevent SSML parsing errors
+      ssmlWord = this.escapeXmlCharacters(ssmlWord);
 
       if (/^[A-Z]+$/.test(ssmlWord)) {
         //        ssmlWord = `<emphasis level="strong">${ssmlWord}</emphasis>`;

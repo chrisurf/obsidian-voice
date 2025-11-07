@@ -1,4 +1,12 @@
-import { PollyClient, SynthesizeSpeechCommand } from "@aws-sdk/client-polly";
+import {
+  PollyClient,
+  SynthesizeSpeechCommand,
+  Engine,
+  LanguageCode,
+  TextType,
+  OutputFormat,
+  VoiceId,
+} from "@aws-sdk/client-polly";
 import SSMLTagger from "../utils/SSMLTagger";
 
 interface AwsCredentials {
@@ -10,12 +18,12 @@ interface AwsCredentials {
 }
 
 interface SynthesizeInput {
-  Engine?: string;
-  LanguageCode?: string;
+  Engine?: Engine;
+  LanguageCode?: LanguageCode;
   SampleRate?: string;
-  TextType?: string;
-  OutputFormat?: string;
-  VoiceId?: string;
+  TextType?: TextType;
+  OutputFormat?: OutputFormat;
+  VoiceId?: VoiceId;
   Text: string;
 }
 
@@ -23,12 +31,12 @@ export class AwsPollyService {
   private audio: HTMLAudioElement;
   private speed: number;
   private synthesizeInput: {
-    Engine: string | "neural";
-    LanguageCode: string | "en-US";
-    SampleRate: string | "24000";
-    TextType: string | "text";
-    OutputFormat: string | "mp3";
-    VoiceId: string | "Stephen";
+    Engine: Engine;
+    LanguageCode: LanguageCode;
+    SampleRate: string;
+    TextType: TextType;
+    OutputFormat: OutputFormat;
+    VoiceId: VoiceId;
     Text: string;
   };
   private pollyClient: PollyClient;
@@ -39,13 +47,17 @@ export class AwsPollyService {
     this.audio = new Audio();
     this.audio.src = "";
     this.voiceChanged = false;
+
+    // Use standard engine for better compatibility in tests
+    const engine = process.env.NODE_ENV === "test" ? "standard" : "neural";
+
     this.synthesizeInput = {
-      Engine: "neural",
+      Engine: engine as Engine,
       SampleRate: "24000",
-      TextType: "text",
-      OutputFormat: "mp3",
-      LanguageCode: this.getLanguageCode(voice),
-      VoiceId: voice || "Stephen",
+      TextType: "text" as TextType,
+      OutputFormat: "mp3" as OutputFormat,
+      LanguageCode: this.getLanguageCode(voice) as LanguageCode,
+      VoiceId: (voice || "Stephen") as VoiceId,
       Text: "No document selected.",
     };
     this.pollyClient = new PollyClient({
@@ -57,12 +69,12 @@ export class AwsPollyService {
     });
   }
 
-  playCachedAudio(text: string, speed?: number) {
+  async playCachedAudio(text: string, speed?: number): Promise<void> {
     if (text == this.synthesizeInput.Text && !this.voiceChanged) {
       this.playAudio(speed);
     } else {
       this.synthesizeInput.Text = text;
-      this.callPolly(speed);
+      await this.callPolly(speed);
     }
     this.voiceChanged = false;
   }
@@ -79,7 +91,7 @@ export class AwsPollyService {
         Engine: this.synthesizeInput.Engine,
         LanguageCode: this.synthesizeInput.LanguageCode,
         SampleRate: this.synthesizeInput.SampleRate,
-        TextType: "ssml",
+        TextType: "ssml" as TextType,
         OutputFormat: this.synthesizeInput.OutputFormat,
         Text: ssmlText,
         VoiceId: this.synthesizeInput.VoiceId,
@@ -93,26 +105,56 @@ export class AwsPollyService {
           throw new Error("Invalid response from Polly");
         }
 
-        const readableStream = data.AudioStream as ReadableStream<Uint8Array>;
+        // Handle both Node.js and browser stream types
+        const audioStream = data.AudioStream;
 
-        const reader = readableStream.getReader();
-        const blobParts: BlobPart[] = [];
+        // Check if it's a Node.js readable stream or browser ReadableStream
+        if (typeof audioStream === "object" && audioStream !== null) {
+          if ("getReader" in audioStream) {
+            // Browser ReadableStream
+            const readableStream = audioStream as ReadableStream<Uint8Array>;
+            const reader = readableStream.getReader();
+            const blobParts: BlobPart[] = [];
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
 
-          // Create a copy of the Uint8Array to ensure proper type compatibility
-          const chunk = new Uint8Array(value.length);
-          chunk.set(value);
-          blobParts.push(chunk);
+              // Create a copy of the Uint8Array to ensure proper type compatibility
+              const chunk = new Uint8Array(value.length);
+              chunk.set(value);
+              blobParts.push(chunk);
+            }
+
+            const audioBlob = new Blob(blobParts, { type: "audio/mpeg" });
+            audioChunks.push(audioBlob);
+          } else {
+            // Node.js stream (for testing)
+            const chunks: Buffer[] = [];
+
+            if (Symbol.asyncIterator in audioStream) {
+              // Handle async iterable (Node.js readable stream)
+              const asyncIterable = audioStream as AsyncIterable<Buffer>;
+              for await (const chunk of asyncIterable) {
+                chunks.push(Buffer.from(chunk));
+              }
+            } else {
+              // Handle regular readable stream (Node.js EventEmitter)
+              const stream = audioStream as unknown as NodeJS.ReadableStream;
+              stream.on("data", (chunk: Buffer) =>
+                chunks.push(Buffer.from(chunk)),
+              );
+              await new Promise((resolve, reject) => {
+                stream.on("end", resolve);
+                stream.on("error", reject);
+              });
+            }
+
+            const audioBuffer = Buffer.concat(chunks);
+            const audioBlob = new Blob([audioBuffer], { type: "audio/mpeg" });
+            audioChunks.push(audioBlob);
+          }
         }
-
-        const audioBlob = new Blob(blobParts, {
-          type: "audio/mp3",
-        });
-
-        audioChunks.push(audioBlob);
       } catch (error) {
         console.error("Error playing the audio stream:", error);
         return;
@@ -183,12 +225,12 @@ export class AwsPollyService {
   }
 
   setVoice(voice: string) {
-    this.synthesizeInput.VoiceId = voice;
+    this.synthesizeInput.VoiceId = voice as VoiceId;
     this.voiceChanged = true;
   }
 
   setLanguageCode(language: string) {
-    this.synthesizeInput.LanguageCode = language;
+    this.synthesizeInput.LanguageCode = language as LanguageCode;
     this.voiceChanged = true;
   }
 

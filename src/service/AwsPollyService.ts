@@ -1,6 +1,7 @@
 import {
   PollyClient,
   SynthesizeSpeechCommand,
+  DescribeVoicesCommand,
   Engine,
   LanguageCode,
   TextType,
@@ -41,6 +42,8 @@ export class AwsPollyService {
   };
   private pollyClient: PollyClient;
   private voiceChanged: boolean;
+  private progressCallback?: (progress: number) => void;
+  private errorCallback?: (error: string) => void;
 
   constructor(awsConfig: AwsCredentials, voice: string, speed?: number) {
     this.speed = speed || 1.0;
@@ -69,22 +72,95 @@ export class AwsPollyService {
     });
   }
 
-  async playCachedAudio(text: string, speed?: number): Promise<void> {
-    if (text == this.synthesizeInput.Text && !this.voiceChanged) {
-      this.playAudio(speed);
-    } else {
-      this.synthesizeInput.Text = text;
-      await this.callPolly(speed);
+  /**
+   * Validates AWS credentials by attempting to call DescribeVoices
+   * @returns Promise that resolves to validation result
+   */
+  async validateCredentials(): Promise<{
+    isValid: boolean;
+    error?: string;
+    voiceCount?: number;
+  }> {
+    try {
+      const command = new DescribeVoicesCommand({
+        Engine: "neural",
+        IncludeAdditionalLanguageCodes: false,
+      });
+
+      const response = await this.pollyClient.send(command);
+
+      return {
+        isValid: true,
+        voiceCount: response.Voices?.length || 0,
+      };
+    } catch (error: unknown) {
+      let errorMessage = "Unknown error occurred";
+
+      if (error && typeof error === "object" && "name" in error) {
+        const awsError = error as {
+          name: string;
+          message?: string;
+          code?: string;
+        };
+
+        if (awsError.name === "InvalidSignatureException") {
+          errorMessage =
+            "Invalid AWS credentials - please check your Access Key ID and Secret Access Key";
+        } else if (awsError.name === "SignatureDoesNotMatchException") {
+          errorMessage =
+            "AWS Secret Access Key does not match the Access Key ID";
+        } else if (awsError.name === "AccessDeniedException") {
+          errorMessage =
+            "Access denied - your AWS credentials don't have permission to use Polly";
+        } else if (awsError.name === "UnrecognizedClientException") {
+          errorMessage = "Invalid AWS Access Key ID format";
+        } else if (
+          awsError.name === "NetworkingError" ||
+          awsError.code === "NetworkingError"
+        ) {
+          errorMessage =
+            "Network error - please check your internet connection";
+        } else if (awsError.name === "InvalidParameterValueException") {
+          errorMessage = "Invalid AWS region specified";
+        } else if (awsError.message) {
+          errorMessage = awsError.message;
+        }
+      }
+
+      return {
+        isValid: false,
+        error: errorMessage,
+      };
     }
-    this.voiceChanged = false;
+  }
+
+  async playCachedAudio(text: string, speed?: number): Promise<void> {
+    try {
+      if (text == this.synthesizeInput.Text && !this.voiceChanged) {
+        this.playAudio(speed);
+      } else {
+        this.synthesizeInput.Text = text;
+        await this.callPolly(speed);
+      }
+      this.voiceChanged = false;
+    } catch (error) {
+      console.error("Error in playCachedAudio:", error);
+      this.reportError(error);
+      throw error; // Re-throw so calling code knows it failed
+    }
   }
 
   async callPolly(speed?: number) {
     const chunkedTexts = this.chunkText(this.synthesizeInput.Text, 100);
     const audioChunks: Blob[] = [];
+    const totalChunks = chunkedTexts.length;
     this.setLanguageCode(this.getLanguageCode(this.synthesizeInput.VoiceId));
 
-    for (const chunk of chunkedTexts) {
+    // Report initial progress
+    this.reportProgress(0, totalChunks);
+
+    for (let chunkIndex = 0; chunkIndex < chunkedTexts.length; chunkIndex++) {
+      const chunk = chunkedTexts[chunkIndex];
       const ssmlTagger = new SSMLTagger();
       const ssmlText = ssmlTagger.addSSMLTags(chunk);
       const input = {
@@ -116,6 +192,10 @@ export class AwsPollyService {
             const reader = readableStream.getReader();
             const blobParts: BlobPart[] = [];
 
+            // Add intermediate progress reporting during chunk data reading
+            const baseProgress = chunkIndex / totalChunks;
+            const chunkProgressStep = 1 / totalChunks;
+
             while (true) {
               const { done, value } = await reader.read();
               if (done) break;
@@ -124,6 +204,10 @@ export class AwsPollyService {
               const chunk = new Uint8Array(value.length);
               chunk.set(value);
               blobParts.push(chunk);
+
+              // Report incremental progress within this chunk
+              const currentProgress = baseProgress + chunkProgressStep * 0.8; // Reserve 20% for final processing
+              this.reportProgress(currentProgress * totalChunks, totalChunks);
             }
 
             const audioBlob = new Blob(blobParts, { type: "audio/mpeg" });
@@ -157,8 +241,12 @@ export class AwsPollyService {
         }
       } catch (error) {
         console.error("Error playing the audio stream:", error);
+        this.reportError(error);
         return;
       }
+
+      // Report progress after each chunk is processed
+      this.reportProgress(chunkIndex + 1, totalChunks);
     }
 
     if (audioChunks.length > 0) {
@@ -221,7 +309,65 @@ export class AwsPollyService {
   }
 
   setSpeed(speed: number) {
-    return (this.speed = speed);
+    this.speed = speed;
+    // Update playback rate in real-time if audio is currently playing
+    this.updatePlaybackRate(speed);
+    return this.speed;
+  }
+
+  setProgressCallback(callback: (progress: number) => void) {
+    this.progressCallback = callback;
+  }
+
+  setErrorCallback(callback: (error: string) => void) {
+    this.errorCallback = callback;
+  }
+
+  private reportProgress(current: number, total: number) {
+    if (this.progressCallback) {
+      const progress = total > 0 ? current / total : 0;
+      this.progressCallback(Math.min(1, Math.max(0, progress)));
+    }
+  }
+
+  private reportError(error: unknown) {
+    if (this.errorCallback) {
+      let errorMessage = "Network error. Please try again.";
+
+      if (error && typeof error === "object" && "message" in error) {
+        const errorObj = error as { message: string };
+
+        if (errorObj.message.includes("NetworkingError")) {
+          errorMessage = "Connection failed. Check your internet.";
+        } else if (errorObj.message.includes("InvalidAccessKeyId")) {
+          errorMessage = "Invalid AWS credentials.";
+        } else if (errorObj.message.includes("ThrottlingException")) {
+          errorMessage = "Rate limited. Please wait and try again.";
+        } else if (errorObj.message.includes("TextLengthExceededException")) {
+          errorMessage = "Text too long. Try shorter content.";
+        } else {
+          errorMessage = `AWS Error: ${errorObj.message}`;
+        }
+      }
+
+      this.errorCallback(errorMessage);
+    }
+  }
+
+  updatePlaybackRate(speed: number) {
+    if (this.audio && this.audio.src) {
+      let fSpeed =
+        typeof speed === "number" ? parseFloat(speed.toFixed(2)) : this.speed;
+
+      // Clamp speed to supported range
+      if (fSpeed < 0.5) {
+        fSpeed = 0.5;
+      } else if (fSpeed > 2) {
+        fSpeed = 2;
+      }
+
+      this.audio.playbackRate = fSpeed;
+    }
   }
 
   setVoice(voice: string) {

@@ -12,7 +12,7 @@ export class Voice extends Plugin {
   private markdownHelper: MarkdownHelper;
   private pollyService: AwsPollyService;
   private hotkeySettings: HotkeySettings;
-  private iconEventHandler: IconEventHandler;
+  public iconEventHandler: IconEventHandler;
   private textSpeaker: TextSpeaker;
 
   async onload() {

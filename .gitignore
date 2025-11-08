@@ -34,3 +34,5 @@ coverage/
 
 # Plugin config
 data.json
+
+.devbox/

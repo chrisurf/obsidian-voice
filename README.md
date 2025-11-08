@@ -20,15 +20,19 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
   ![ribbon icon](./assets/ribbon-icon.png)
 
-- **Rewind Fast-Forward**: Repeat or jump over content, to quickly navigate through your notes and focus on information as needed, from the statusbar controlls.
+- **Complete Status Bar Control Suite**: Take full command of your audio experience with our comprehensive status bar controls that put all essential functions at your fingertips. Navigate effortlessly through your content with dedicated rewind and fast-forward buttons to repeat or jump over sections, allowing you to focus on exactly the information you need. Watch your audio preparation unfold in real-time with an intelligent progress bar that shows exactly how your content is being synthesized, so you always know when your notes will be ready to play. Plus, enjoy real-time tempo adjustment directly from the status bar - no need to visit settings to change your listening speed.
 
-  ![rewind / fast-forward](./assets/rewin-fast-forward.png)
+  ![status bar controls](./assets/status-bar-complete.png)
+
+- **Intelligent Error Feedback**: If something goes wrong (like network issues or AWS problems), you'll see red visual feedback, plus the interface automatically resets so you can try again immediately.
+
+  ![error status](./assets/error-status.png)
 
 - **Voice Languages**: Select your preferred pronunciation style from 18 language options (American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi and Mandarin).
 
   ![voice languages](./assets/voices.png)
 
-- **Tempo Control**: Easily adjust the voice speed to suit your listening preference, ranging from a slow pace for relaxed understanding to a faster rate for quick information absorption, all while maintaining clear audio quality.
+- **Tempo Control**: Easily adjust the voice speed to suit your listening preference, ranging from a slow pace for relaxed understanding to a faster rate for quick information absorption, all while maintaining clear audio quality. Plus, you can now change the speed in real-time while audio is playing using the convenient status bar controls.
 
   ![tempo control](./assets/tempo.png)
 

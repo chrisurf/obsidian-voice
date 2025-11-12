@@ -55,9 +55,16 @@ export class IconEventHandler {
     );
 
     // Stop
-    this.createStatusBarIcon("square", "stop", () =>
-      this.pollyService.stopAudio(),
-    );
+    this.createStatusBarIcon("square", "stop", () => {
+      // If loading is in progress, cancel it
+      if (this.pollyService.isLoadingInProgress()) {
+        this.pollyService.cancelLoading();
+        this.resetIconsToPlayState();
+        this.hideProgressBar();
+      } else {
+        this.pollyService.stopAudio();
+      }
+    });
 
     // Speed controls group
     this.addSpeedControls();
@@ -67,6 +74,14 @@ export class IconEventHandler {
       "play",
       "play",
       () => {
+        // If loading is in progress, cancel it
+        if (this.pollyService.isLoadingInProgress()) {
+          this.pollyService.cancelLoading();
+          this.resetIconsToPlayState();
+          this.hideProgressBar();
+          return;
+        }
+
         if (!this.pollyService.isPlaying()) {
           this.playPauseIconEl.addClass("rotating-icon");
           setIcon(this.playPauseIconEl, "refresh-ccw");
@@ -111,8 +126,19 @@ export class IconEventHandler {
   }
 
   private initRibbonIcon(): void {
-    this.ribbonIconEl = this.plugin.addRibbonIcon("play-circle", "Voice", () =>
-      this.voice.speakText(),
+    this.ribbonIconEl = this.plugin.addRibbonIcon(
+      "play-circle",
+      "Voice",
+      () => {
+        // If loading is in progress, cancel it
+        if (this.pollyService.isLoadingInProgress()) {
+          this.pollyService.cancelLoading();
+          this.resetIconsToPlayState();
+          this.hideProgressBar();
+          return;
+        }
+        this.voice.speakText();
+      },
     );
     this.initializeEventListeners();
   }

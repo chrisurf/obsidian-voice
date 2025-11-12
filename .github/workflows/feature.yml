@@ -3,6 +3,7 @@ name: Code Quality & Build Validation
 on:
   push:
     branches:
+      - "release/*"
       - "feature/*"
       - "fix/*"
       - copilot/*

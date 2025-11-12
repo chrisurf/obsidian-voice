@@ -3,10 +3,12 @@ name: AWS Polly Tests
 on:
   push:
     branches:
+      - "release/*"
       - "feature/**"
       - "fix/**"
   pull_request:
     branches:
+      - "release/*"
       - "feature/**"
       - "fix/**"
   workflow_dispatch:

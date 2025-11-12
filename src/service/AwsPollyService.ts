@@ -554,17 +554,41 @@ export class AwsPollyService {
     return this.audio.volume;
   }
 
-  private chunkText(text: string, chunkSize: number): string[] {
-    const words: string[] = text.split(" ");
-    const chunks: string[] = [];
-    let startIndex = 0;
+  private chunkText(text: string, maxWords: number): string[] {
+    // Split text into sentences first to maintain natural boundaries
+    // Match sentences ending with . ! ? followed by space or newline
+    const sentenceRegex = /[^.!?]+[.!?]+(?:\s|$)/g;
+    const sentences = text.match(sentenceRegex) || [text];
 
-    while (startIndex < words.length) {
-      const chunk = words.slice(startIndex, startIndex + chunkSize).join(" ");
-      chunks.push(chunk);
-      startIndex += chunkSize;
+    const chunks: string[] = [];
+    let currentChunk = "";
+    let currentWordCount = 0;
+
+    for (const sentence of sentences) {
+      const sentenceWords = sentence.trim().split(/\s+/);
+      const sentenceWordCount = sentenceWords.length;
+
+      // If adding this sentence would exceed maxWords and we have content, start new chunk
+      if (
+        currentWordCount + sentenceWordCount > maxWords &&
+        currentChunk.length > 0
+      ) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+        currentWordCount = sentenceWordCount;
+      } else {
+        // Add sentence to current chunk
+        currentChunk += (currentChunk.length > 0 ? " " : "") + sentence;
+        currentWordCount += sentenceWordCount;
+      }
     }
 
-    return chunks;
+    // Add the last chunk if it has content
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+
+    // If no chunks were created, return the original text as a single chunk
+    return chunks.length > 0 ? chunks : [text];
   }
 }

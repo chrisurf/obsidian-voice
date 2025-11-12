@@ -13,7 +13,7 @@ export class RegExHelper {
 
   removeCode() {
     const text = this.content;
-    const result: string = text.replace(/```[\s\S]*?```/m, "");
+    const result: string = text.replace(/```[\s\S]*?```/gm, "");
     this.content = result;
   }
 
@@ -28,6 +28,8 @@ export class RegExHelper {
 
   removeSpecialCharacters() {
     const text = this.content;
+    // Remove special characters but preserve punctuation important for speech pauses
+    // Keep: . , ! ? ; : - and newlines
     const result: string = text.replace(/[*_#><():|"~`'{}]/g, "");
     this.content = result;
   }
@@ -42,12 +44,32 @@ export class RegExHelper {
     this.content = result;
   }
 
+  normalizeWhitespace() {
+    // Preserve paragraph breaks (double newlines) but clean up excessive whitespace
+    let result = this.content;
+
+    // First, normalize multiple newlines (3+ newlines) to double newlines (paragraph break)
+    result = result.replace(/\n{3,}/g, "\n\n");
+
+    // Replace multiple spaces with single space, but preserve newlines
+    result = result.replace(/[^\S\n]+/g, " ");
+
+    // Trim spaces at the start and end of each line
+    result = result
+      .split("\n")
+      .map((line) => line.trim())
+      .join("\n");
+
+    this.content = result;
+  }
+
   getcleanContent() {
     this.removeHeader();
     this.removeCode();
     this.removeLinks();
     this.removeSpecialCharacters();
-    this.removeEmojis(); // Add the new emoji removal step
+    this.removeEmojis();
+    this.normalizeWhitespace(); // Add whitespace normalization while preserving structure
     return this.content;
   }
 }

@@ -44,6 +44,8 @@ export class AwsPollyService {
   private voiceChanged: boolean;
   private progressCallback?: (progress: number) => void;
   private errorCallback?: (error: string) => void;
+  private abortController?: AbortController;
+  private isLoading: boolean = false;
 
   constructor(awsConfig: AwsCredentials, voice: string, speed?: number) {
     this.speed = speed || 1.0;
@@ -144,6 +146,11 @@ export class AwsPollyService {
       }
       this.voiceChanged = false;
     } catch (error) {
+      // Don't report error if it was an abort
+      if (error instanceof Error && error.name === "AbortError") {
+        console.log("Audio loading was cancelled by user");
+        return;
+      }
       console.error("Error in playCachedAudio:", error);
       this.reportError(error);
       throw error; // Re-throw so calling code knows it failed
@@ -151,6 +158,15 @@ export class AwsPollyService {
   }
 
   async callPolly(speed?: number) {
+    // Cancel any existing loading process
+    if (this.isLoading) {
+      this.cancelLoading();
+    }
+
+    // Create a new abort controller for this request
+    this.abortController = new AbortController();
+    this.isLoading = true;
+
     const chunkedTexts = this.chunkText(this.synthesizeInput.Text, 100);
     const audioChunks: Blob[] = [];
     const totalChunks = chunkedTexts.length;
@@ -159,102 +175,157 @@ export class AwsPollyService {
     // Report initial progress
     this.reportProgress(0, totalChunks);
 
-    for (let chunkIndex = 0; chunkIndex < chunkedTexts.length; chunkIndex++) {
-      const chunk = chunkedTexts[chunkIndex];
-      const ssmlTagger = new SSMLTagger();
-      const ssmlText = ssmlTagger.addSSMLTags(chunk);
-      const input = {
-        Engine: this.synthesizeInput.Engine,
-        LanguageCode: this.synthesizeInput.LanguageCode,
-        SampleRate: this.synthesizeInput.SampleRate,
-        TextType: "ssml" as TextType,
-        OutputFormat: this.synthesizeInput.OutputFormat,
-        Text: ssmlText,
-        VoiceId: this.synthesizeInput.VoiceId,
-      };
-
-      const command = new SynthesizeSpeechCommand(input);
-
-      try {
-        const data = await this.pollyClient.send(command);
-        if (!data || !data.AudioStream) {
-          throw new Error("Invalid response from Polly");
+    try {
+      for (let chunkIndex = 0; chunkIndex < chunkedTexts.length; chunkIndex++) {
+        // Check if loading was cancelled
+        if (this.abortController.signal.aborted) {
+          throw new Error("AbortError");
         }
 
-        // Handle both Node.js and browser stream types
-        const audioStream = data.AudioStream;
+        const chunk = chunkedTexts[chunkIndex];
+        const ssmlTagger = new SSMLTagger();
+        const ssmlText = ssmlTagger.addSSMLTags(chunk);
+        const input = {
+          Engine: this.synthesizeInput.Engine,
+          LanguageCode: this.synthesizeInput.LanguageCode,
+          SampleRate: this.synthesizeInput.SampleRate,
+          TextType: "ssml" as TextType,
+          OutputFormat: this.synthesizeInput.OutputFormat,
+          Text: ssmlText,
+          VoiceId: this.synthesizeInput.VoiceId,
+        };
 
-        // Check if it's a Node.js readable stream or browser ReadableStream
-        if (typeof audioStream === "object" && audioStream !== null) {
-          if ("getReader" in audioStream) {
-            // Browser ReadableStream
-            const readableStream = audioStream as ReadableStream<Uint8Array>;
-            const reader = readableStream.getReader();
-            const blobParts: BlobPart[] = [];
+        const command = new SynthesizeSpeechCommand(input);
 
-            // Add intermediate progress reporting during chunk data reading
-            const baseProgress = chunkIndex / totalChunks;
-            const chunkProgressStep = 1 / totalChunks;
+        try {
+          const data = await this.pollyClient.send(command, {
+            abortSignal: this.abortController.signal,
+          });
 
-            while (true) {
-              const { done, value } = await reader.read();
-              if (done) break;
-
-              // Create a copy of the Uint8Array to ensure proper type compatibility
-              const chunk = new Uint8Array(value.length);
-              chunk.set(value);
-              blobParts.push(chunk);
-
-              // Report incremental progress within this chunk
-              const currentProgress = baseProgress + chunkProgressStep * 0.8; // Reserve 20% for final processing
-              this.reportProgress(currentProgress * totalChunks, totalChunks);
-            }
-
-            const audioBlob = new Blob(blobParts, { type: "audio/mpeg" });
-            audioChunks.push(audioBlob);
-          } else {
-            // Node.js stream (for testing)
-            const chunks: Buffer[] = [];
-
-            if (Symbol.asyncIterator in audioStream) {
-              // Handle async iterable (Node.js readable stream)
-              const asyncIterable = audioStream as AsyncIterable<Buffer>;
-              for await (const chunk of asyncIterable) {
-                chunks.push(Buffer.from(chunk));
-              }
-            } else {
-              // Handle regular readable stream (Node.js EventEmitter)
-              const stream = audioStream as unknown as NodeJS.ReadableStream;
-              stream.on("data", (chunk: Buffer) =>
-                chunks.push(Buffer.from(chunk)),
-              );
-              await new Promise((resolve, reject) => {
-                stream.on("end", resolve);
-                stream.on("error", reject);
-              });
-            }
-
-            const audioBuffer = Buffer.concat(chunks);
-            const audioBlob = new Blob([audioBuffer], { type: "audio/mpeg" });
-            audioChunks.push(audioBlob);
+          // Check again after async operation
+          if (this.abortController.signal.aborted) {
+            throw new Error("AbortError");
           }
+
+          if (!data || !data.AudioStream) {
+            throw new Error("Invalid response from Polly");
+          }
+
+          // Handle both Node.js and browser stream types
+          const audioStream = data.AudioStream;
+
+          // Check if it's a Node.js readable stream or browser ReadableStream
+          if (typeof audioStream === "object" && audioStream !== null) {
+            if ("getReader" in audioStream) {
+              // Browser ReadableStream
+              const readableStream = audioStream as ReadableStream<Uint8Array>;
+              const reader = readableStream.getReader();
+              const blobParts: BlobPart[] = [];
+
+              // Add intermediate progress reporting during chunk data reading
+              const baseProgress = chunkIndex / totalChunks;
+              const chunkProgressStep = 1 / totalChunks;
+
+              while (true) {
+                // Check if loading was cancelled
+                if (this.abortController.signal.aborted) {
+                  reader.cancel();
+                  throw new Error("AbortError");
+                }
+
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                // Create a copy of the Uint8Array to ensure proper type compatibility
+                const chunk = new Uint8Array(value.length);
+                chunk.set(value);
+                blobParts.push(chunk);
+
+                // Report incremental progress within this chunk
+                const currentProgress = baseProgress + chunkProgressStep * 0.8; // Reserve 20% for final processing
+                this.reportProgress(currentProgress * totalChunks, totalChunks);
+              }
+
+              const audioBlob = new Blob(blobParts, { type: "audio/mpeg" });
+              audioChunks.push(audioBlob);
+            } else {
+              // Node.js stream (for testing)
+              const chunks: Buffer[] = [];
+
+              if (Symbol.asyncIterator in audioStream) {
+                // Handle async iterable (Node.js readable stream)
+                const asyncIterable = audioStream as AsyncIterable<Buffer>;
+                for await (const chunk of asyncIterable) {
+                  // Check if loading was cancelled
+                  if (this.abortController.signal.aborted) {
+                    throw new Error("AbortError");
+                  }
+                  chunks.push(Buffer.from(chunk));
+                }
+              } else {
+                // Handle regular readable stream (Node.js EventEmitter)
+                const stream = audioStream as unknown as NodeJS.ReadableStream;
+                stream.on("data", (chunk: Buffer) => {
+                  // Check if loading was cancelled
+                  if (this.abortController?.signal.aborted) {
+                    if (
+                      "destroy" in stream &&
+                      typeof stream.destroy === "function"
+                    ) {
+                      stream.destroy();
+                    }
+                  }
+                  chunks.push(Buffer.from(chunk));
+                });
+                await new Promise((resolve, reject) => {
+                  stream.on("end", resolve);
+                  stream.on("error", reject);
+                  // Listen for abort signal
+                  this.abortController?.signal.addEventListener("abort", () => {
+                    if (
+                      "destroy" in stream &&
+                      typeof stream.destroy === "function"
+                    ) {
+                      stream.destroy();
+                    }
+                    reject(new Error("AbortError"));
+                  });
+                });
+              }
+
+              const audioBuffer = Buffer.concat(chunks);
+              const audioBlob = new Blob([audioBuffer], { type: "audio/mpeg" });
+              audioChunks.push(audioBlob);
+            }
+          }
+        } catch (error) {
+          // Check if it's an abort error
+          if (
+            error instanceof Error &&
+            (error.name === "AbortError" || error.message === "AbortError")
+          ) {
+            throw error; // Re-throw to be caught by outer try-catch
+          }
+          console.error("Error playing the audio stream:", error);
+          this.reportError(error);
+          this.isLoading = false;
+          return;
         }
-      } catch (error) {
-        console.error("Error playing the audio stream:", error);
-        this.reportError(error);
-        return;
+
+        // Report progress after each chunk is processed
+        this.reportProgress(chunkIndex + 1, totalChunks);
       }
 
-      // Report progress after each chunk is processed
-      this.reportProgress(chunkIndex + 1, totalChunks);
-    }
-
-    if (audioChunks.length > 0) {
-      const concatenatedAudioBlob = new Blob(audioChunks, {
-        type: "audio/mp3",
-      });
-      this.audio.src = URL.createObjectURL(concatenatedAudioBlob);
-      this.playAudio(speed);
+      if (audioChunks.length > 0) {
+        const concatenatedAudioBlob = new Blob(audioChunks, {
+          type: "audio/mp3",
+        });
+        this.audio.src = URL.createObjectURL(concatenatedAudioBlob);
+        this.playAudio(speed);
+      }
+    } finally {
+      this.isLoading = false;
+      this.abortController = undefined;
     }
   }
 
@@ -280,6 +351,20 @@ export class AwsPollyService {
   stopAudio() {
     this.audio.pause();
     this.audio.currentTime = 0;
+  }
+
+  cancelLoading() {
+    if (this.isLoading && this.abortController) {
+      this.abortController.abort();
+      this.isLoading = false;
+      this.abortController = undefined;
+      // Reset progress
+      this.reportProgress(0, 1);
+    }
+  }
+
+  isLoadingInProgress(): boolean {
+    return this.isLoading;
   }
 
   rewindAudio() {
@@ -469,17 +554,41 @@ export class AwsPollyService {
     return this.audio.volume;
   }
 
-  private chunkText(text: string, chunkSize: number): string[] {
-    const words: string[] = text.split(" ");
-    const chunks: string[] = [];
-    let startIndex = 0;
+  private chunkText(text: string, maxWords: number): string[] {
+    // Split text into sentences first to maintain natural boundaries
+    // Match sentences ending with . ! ? followed by space or newline
+    const sentenceRegex = /[^.!?]+[.!?]+(?:\s|$)/g;
+    const sentences = text.match(sentenceRegex) || [text];
 
-    while (startIndex < words.length) {
-      const chunk = words.slice(startIndex, startIndex + chunkSize).join(" ");
-      chunks.push(chunk);
-      startIndex += chunkSize;
+    const chunks: string[] = [];
+    let currentChunk = "";
+    let currentWordCount = 0;
+
+    for (const sentence of sentences) {
+      const sentenceWords = sentence.trim().split(/\s+/);
+      const sentenceWordCount = sentenceWords.length;
+
+      // If adding this sentence would exceed maxWords and we have content, start new chunk
+      if (
+        currentWordCount + sentenceWordCount > maxWords &&
+        currentChunk.length > 0
+      ) {
+        chunks.push(currentChunk.trim());
+        currentChunk = sentence;
+        currentWordCount = sentenceWordCount;
+      } else {
+        // Add sentence to current chunk
+        currentChunk += (currentChunk.length > 0 ? " " : "") + sentence;
+        currentWordCount += sentenceWordCount;
+      }
     }
 
-    return chunks;
+    // Add the last chunk if it has content
+    if (currentChunk.trim().length > 0) {
+      chunks.push(currentChunk.trim());
+    }
+
+    // If no chunks were created, return the original text as a single chunk
+    return chunks.length > 0 ? chunks : [text];
   }
 }

@@ -44,9 +44,17 @@ Whether you want to listen to your documents while multitasking, reinforce your 
 
   ![localisation aws regions](./assets/aws-regions.png)
 
-- **Mobile Support**: Seamlessly integrated into the mobile Obsidian application, it ensures you can enjoy a similar audio experience wherever you are. Works on iPhone and Android.
+- **Mobile Support**: Seamlessly integrated into the mobile Obsidian application, it ensures you can enjoy a similar audio experience wherever you are. Works on iPhone and Android. Launch using the _Voice_ menue item.
 
-  ![mobile](./assets/mobile.jpg)
+  ![mobile](./assets/mobile.png)
+
+- **Mobile Control Bar**: Dedicated mobile control bar provides easy access to essential playback functions, including play/pause, rewind, fast-forward, and tempo adjustment, all optimized for touch interaction. Progress bar shows the synthesis loading status.
+
+  ![mobile control](./assets/mobile-control.png)
+
+- **Mobile Settings**: Access and customize key settings directly from the mobile interface, allowing you to tailor your listening experience on the go. With regional credentials validation and voice availability checking.
+
+  ![mobile settings](./assets/settings.png)
 
 - **Caching**: Each speech is cached until new content will be submitted. Ensuring a seamless experience while keeping your expenses in check.
 - **Hotkey**: Define your custom shortcuts to quickly _start_, _stop_, _pause_, _rewind_ or _fast-forward_ the voice synthesizer and adjust the reading _tempo_.

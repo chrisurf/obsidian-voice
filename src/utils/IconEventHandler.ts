@@ -1,6 +1,7 @@
 import { Plugin, setIcon, Notice } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import { AwsPollyService } from "../service/AwsPollyService";
+import { MobileControlBar } from "./MobileControlBar";
 
 export class IconEventHandler {
   private pollyService: AwsPollyService;
@@ -13,6 +14,7 @@ export class IconEventHandler {
   private progressBarContainer: HTMLElement;
   private progressBar: HTMLElement;
   private isErrorState: boolean = false;
+  private mobileControlBar?: MobileControlBar;
   private onPlayListener = () => this.onPlay();
   private onPauseListener = () => this.onPause();
   private onCanPlayThroughListener = () => this.onCanPlayThrough();
@@ -27,14 +29,31 @@ export class IconEventHandler {
     this.initStatusBarItem();
     this.initRibbonIcon();
 
+    // Initialize mobile control bar if on mobile
+    if (this.voice.isMobile()) {
+      this.mobileControlBar = new MobileControlBar(
+        this.plugin.app,
+        this.voice,
+        this.pollyService,
+      );
+    }
+
     // Set up progress callback for AWS Polly loading
     this.pollyService.setProgressCallback((progress: number) => {
       this.updateProgressBar(progress);
+      // Also update mobile progress bar if on mobile
+      if (this.mobileControlBar) {
+        this.mobileControlBar.updateProgressFromExternal(progress);
+      }
     });
 
     // Set up error callback for AWS Polly errors
     this.pollyService.setErrorCallback((error: string) => {
       this.handleError(error);
+      // Also handle mobile errors if on mobile
+      if (this.mobileControlBar) {
+        this.mobileControlBar.handleErrorFromExternal();
+      }
     });
   }
 
@@ -128,14 +147,22 @@ export class IconEventHandler {
   private initRibbonIcon(): void {
     this.ribbonIconEl = this.plugin.addRibbonIcon(
       "play-circle",
-      "Voice",
+      "Voice read text",
       () => {
         // If loading is in progress, cancel it
         if (this.pollyService.isLoadingInProgress()) {
           this.pollyService.cancelLoading();
           this.resetIconsToPlayState();
           this.hideProgressBar();
+          if (this.mobileControlBar) {
+            this.mobileControlBar.hide();
+          }
           return;
+        }
+
+        // Only trigger loading state if not already playing
+        if (!this.pollyService.isPlaying()) {
+          this.ribbonIconHandler();
         }
         this.voice.speakText();
       },
@@ -155,10 +182,21 @@ export class IconEventHandler {
     audio.removeEventListener("play", this.onPlayListener);
     audio.removeEventListener("pause", this.onPauseListener);
     audio.removeEventListener("canplaythrough", this.onCanPlayThroughListener);
+
+    // Cleanup mobile control bar
+    if (this.mobileControlBar) {
+      this.mobileControlBar.destroy();
+      this.mobileControlBar = undefined;
+    }
   }
 
   public updateSpeedDisplayFromSettings(): void {
     this.updateSpeedDisplay();
+
+    // Update mobile control bar speed display if on mobile
+    if (this.mobileControlBar) {
+      // The mobile control bar will update its own speed display through event listeners
+    }
   }
 
   ribbonIconHandler() {
@@ -176,9 +214,14 @@ export class IconEventHandler {
       setIcon(this.ribbonIconEl, "refresh-ccw");
       setIcon(this.playPauseIconEl, "refresh-ccw");
 
-      // Show progress bar when loading starts
-      this.showProgressBar();
-      this.updateProgressBar(0);
+      // Show mobile overlay when loading starts (mobile only)
+      if (this.mobileControlBar) {
+        this.mobileControlBar.showLoadingStateFromExternal();
+      } else {
+        // Show progress bar for desktop
+        this.showProgressBar();
+        this.updateProgressBar(0);
+      }
     }
   }
 

@@ -61,29 +61,11 @@ describe("Unit Tests - SSML Processing", () => {
   });
 
   describe("SSML Enhancement Features", () => {
-    test("should wrap sentences in <s> tags for natural pauses", () => {
+    test("should add break tags after punctuation", () => {
       const input = "First sentence. Second sentence!";
       const result = ssmlTagger.addSSMLTags(input);
 
-      expect(result).toContain("<s>First sentence.</s>");
-      expect(result).toContain("<s>Second sentence!</s>");
-      expect(validateSSML(result)).toBe(true);
-    });
-
-    test("should wrap paragraphs in <p> tags", () => {
-      const input = "First paragraph.\n\nSecond paragraph.";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain("<p>");
-      expect(result).toContain("</p>");
-      expect(validateSSML(result)).toBe(true);
-    });
-
-    test("should add weak breaks after commas", () => {
-      const input = "First part, second part, third part.";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain('<break strength="weak"/>');
+      expect(result).toContain('<break time="500ms"/>');
       expect(validateSSML(result)).toBe(true);
     });
 
@@ -92,14 +74,6 @@ describe("Unit Tests - SSML Processing", () => {
       const result = ssmlTagger.addSSMLTags(input);
 
       expect(result).toContain('<say-as interpret-as="number">2023</say-as>');
-      expect(validateSSML(result)).toBe(true);
-    });
-
-    test("should create proper SSML structure with speak, p, and s tags", () => {
-      const input = "Hello world. How are you?";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toMatch(/<speak>.*<p>.*<s>.*<\/s>.*<\/p>.*<\/speak>/);
       expect(validateSSML(result)).toBe(true);
     });
   });

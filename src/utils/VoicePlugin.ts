@@ -2,7 +2,7 @@ import { DEFAULT_SETTINGS, VoiceSettings } from "../settings/VoiceSettings";
 import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import { AwsPollyService } from "../service/AwsPollyService";
-import { Plugin } from "obsidian";
+import { Plugin, Platform } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
@@ -45,6 +45,10 @@ export class Voice extends Plugin {
 
   async speakText(speed?: number) {
     await this.textSpeaker.speakText(speed);
+  }
+
+  isMobile(): boolean {
+    return Platform.isMobile;
   }
 
   onunload() {

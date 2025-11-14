@@ -1,7 +1,7 @@
 {
   "name": "voice",
   "version": "1.4.0",
-  "description": "Add a voice to Obsidian (https://obsidian.md). Let your notes talk and speak to you and enhance your Obsidian experience to effortlessly listen to your notes being read aloud and enjoy the power of sound, audio, and speech.",
+  "description": "Add a voice to Obsidian (https://obsidian.md). Sound, audio, speech let your notes talk inside your workspace—now mobile-friendly—so you can listen as they’re read aloud, enjoy an audiobook-like experience, and stay hands-free with your content.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -51,6 +51,7 @@
     "@eslint/js": "9.39.1",
     "@types/jest": "29.5.12",
     "@types/node": "24.10.0",
+    "@types/unist": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "8.46.3",
     "@typescript-eslint/parser": "8.46.3",
     "builtin-modules": "5.0.0",
@@ -66,5 +67,12 @@
     "tslib": "2.8.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.46.3"
+  },
+  "dependencies": {
+    "remark-frontmatter": "^5.0.0",
+    "remark-gfm": "^4.0.1",
+    "remark-parse": "^11.0.0",
+    "unified": "^11.0.5",
+    "unist-util-visit": "^5.0.0"
   }
 }

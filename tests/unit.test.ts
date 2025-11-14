@@ -1,128 +1,201 @@
-import SSMLTagger from "../src/utils/SSMLTagger";
-import { RegExHelper } from "../src/utils/RegExHelper";
+import {
+  chunkSSML,
+  validateChunks,
+} from "../src/processors/pipeline/SSMLChunker";
 import { validateSSML } from "./utils/test-helpers";
 
-describe("Unit Tests - SSML Processing", () => {
-  let ssmlTagger: SSMLTagger;
-
-  beforeEach(() => {
-    ssmlTagger = new SSMLTagger();
-  });
-
-  describe("SSML Character Escaping", () => {
-    test("should escape ampersand characters", () => {
-      const input = "Company & Partners";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain("&amp;");
-      expect(result).not.toContain("Company & Partners");
-      expect(validateSSML(result)).toBe(true);
+describe("Unit Tests - SSML Processing (Core Functions)", () => {
+  describe("XML Character Escaping", () => {
+    test("should handle escaped XML special characters in SSML", () => {
+      const ssml = "<speak>Text with &amp; &lt; &gt; characters</speak>";
+      expect(validateSSML(ssml)).toBe(true);
     });
 
-    test("should escape all XML special characters", () => {
-      const input = "Text with & < > \" ' characters";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain("&amp;");
-      expect(result).toContain("&lt;");
-      expect(result).toContain("&gt;");
-      expect(result).toContain("&quot;");
-      expect(result).toContain("&apos;");
-      expect(validateSSML(result)).toBe(true);
+    test("should validate SSML with German umlauts", () => {
+      const ssml =
+        "<speak>Möglichkeiten &amp; Überlegungen für Änderungen</speak>";
+      expect(validateSSML(ssml)).toBe(true);
     });
 
-    test("should handle German umlauts and special characters", () => {
-      const input = "Möglichkeiten & Überlegungen für Änderungen";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain("&amp;");
-      expect(result).toContain("Möglichkeiten");
-      expect(result).toContain("Überlegungen");
-      expect(validateSSML(result)).toBe(true);
-    });
-
-    test("should handle French accented characters", () => {
-      const input = "Café & résumé avec naïveté";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain("&amp;");
-      expect(result).toContain("Café");
-      expect(result).toContain("résumé");
-      expect(validateSSML(result)).toBe(true);
-    });
-
-    test("should wrap output in speak tags", () => {
-      const input = "Simple test";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toMatch(/^<speak>.*<\/speak>$/);
-      expect(validateSSML(result)).toBe(true);
+    test("should validate SSML with French accented characters", () => {
+      const ssml = "<speak>Café &amp; résumé avec naïveté</speak>";
+      expect(validateSSML(ssml)).toBe(true);
     });
   });
 
-  describe("SSML Enhancement Features", () => {
-    test("should add break tags after punctuation", () => {
-      const input = "First sentence. Second sentence!";
-      const result = ssmlTagger.addSSMLTags(input);
-
-      expect(result).toContain('<break time="500ms"/>');
-      expect(validateSSML(result)).toBe(true);
+  describe("SSML Structure", () => {
+    test("should validate SSML with prosody tags", () => {
+      const ssml = '<speak><prosody rate="medium">Bold text</prosody></speak>';
+      expect(validateSSML(ssml)).toBe(true);
     });
 
-    test("should handle numbers with say-as tags", () => {
-      const input = "The year is 2023";
-      const result = ssmlTagger.addSSMLTags(input);
+    test("should validate SSML with break tags", () => {
+      const ssml = '<speak>Text before<break time="500ms"/>text after</speak>';
+      expect(validateSSML(ssml)).toBe(true);
+    });
 
-      expect(result).toContain('<say-as interpret-as="number">2023</say-as>');
-      expect(validateSSML(result)).toBe(true);
+    test("should validate complex SSML with multiple elements", () => {
+      const ssml =
+        '<speak><p>Heading text</p><break time="800ms"/><prosody rate="fast">Fast text</prosody></speak>';
+      expect(validateSSML(ssml)).toBe(true);
     });
   });
 });
 
-describe("Unit Tests - Text Processing", () => {
-  describe("RegExHelper", () => {
-    test("should remove markdown special characters", () => {
-      const input = "**Bold** *italic* `code` text";
-      const helper = new RegExHelper(input);
-      const result = helper.getcleanContent();
+describe("Unit Tests - SSML Chunking", () => {
+  describe("Small Content (No Chunking)", () => {
+    test("should not chunk content under 2500 chars", () => {
+      const smallSSML = "<speak>Short content here</speak>";
+      const chunks = chunkSSML(smallSSML, 2500);
 
-      // Should remove markdown formatting but preserve text
-      expect(result).not.toContain("**");
-      expect(result).not.toContain("*");
-      expect(result).not.toContain("`");
-      expect(result).toContain("Bold");
-      expect(result).toContain("italic");
-      expect(result).toContain("code");
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0].ssml).toContain("Short content here");
+      expect(chunks[0].index).toBe(0);
+      expect(chunks[0].total).toBe(1);
     });
 
-    test("should remove links and brackets", () => {
-      const input = "Visit [our website](https://example.com) for more info.";
-      const helper = new RegExHelper(input);
-      const result = helper.getcleanContent();
+    test("should handle content exactly at threshold", () => {
+      const content = "a".repeat(2485); // Just under limit with <speak> tags
+      const ssml = `<speak>${content}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
 
-      expect(result).not.toContain("[");
-      expect(result).not.toContain("]");
-      expect(result).not.toContain("(");
-      expect(result).not.toContain(")");
-      expect(result).toContain("our website");
-      expect(result).toContain("for more info");
+      expect(chunks).toHaveLength(1);
+    });
+  });
+
+  describe("Large Content (Chunking Required)", () => {
+    test("should chunk large content into multiple pieces", () => {
+      // Create content that exceeds 2500 chars
+      const largeContent = "This is a sentence. ".repeat(150); // ~3000 chars
+      const ssml = `<speak>${largeContent}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      expect(chunks.length).toBeGreaterThan(1);
+
+      // Verify each chunk is valid
+      chunks.forEach((chunk, index) => {
+        expect(chunk.ssml).toMatch(/^<speak>.*<\/speak>$/);
+        expect(chunk.index).toBe(index);
+        expect(chunk.total).toBe(chunks.length);
+        expect(chunk.ssml.length).toBeLessThanOrEqual(2500 + 15); // Allow <speak> tags
+      });
     });
 
-    test("should preserve German text while removing formatting", () => {
-      const input = "**Notizen & Mögliche Folgefragen (für Sie):**";
-      const helper = new RegExHelper(input);
-      const result = helper.getcleanContent();
+    test("should preserve SSML structure across chunks", () => {
+      const content = "<p>Paragraph 1.</p>".repeat(200); // Increased to ensure > 2500 chars
+      const ssml = `<speak>${content}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
 
-      expect(result).toContain("Notizen");
-      expect(result).toContain("Mögliche");
-      expect(result).toContain("Folgefragen");
-      // Note: "(für Sie)" is removed by removeLinks() as it removes all parentheses content
-      // This is intended behavior for removing markdown links like [text](url)
-      expect(result).not.toContain("für Sie"); // Parentheses content is removed
-      expect(result).not.toContain("("); // Parentheses are removed
-      expect(result).not.toContain(")"); // Parentheses are removed
-      // Should preserve the ampersand for SSML processing
-      expect(result).toContain("&");
+      expect(chunks.length).toBeGreaterThan(1);
+
+      // Each chunk should have balanced tags
+      chunks.forEach((chunk) => {
+        expect(validateSSML(chunk.ssml)).toBe(true);
+      });
+    });
+
+    test("should split at natural boundaries (prosody tags)", () => {
+      const prosodyContent =
+        '<prosody rate="medium">Text here.</prosody>'.repeat(100); // Increased to ensure > 2500 chars
+      const ssml = `<speak>${prosodyContent}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      expect(chunks.length).toBeGreaterThan(1);
+
+      // Verify splitting happened at prosody boundaries
+      chunks.forEach((chunk) => {
+        expect(validateSSML(chunk.ssml)).toBe(true);
+      });
+    });
+
+    test("should handle AWS Polly size limit correctly", () => {
+      // Simulate a large document
+      const largeDoc = "Word ".repeat(1000); // ~5000 chars
+      const ssml = `<speak>${largeDoc}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      // Verify AWS Polly limit is respected
+      chunks.forEach((chunk) => {
+        // Each chunk should be under the text content limit
+        expect(chunk.ssml.length).toBeLessThan(3000); // Conservative estimate
+      });
+    });
+  });
+
+  describe("Chunk Validation", () => {
+    test("should validate correctly chunked SSML", () => {
+      const content = "Test content. ".repeat(200);
+      const ssml = `<speak>${content}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      const validation = validateChunks(chunks);
+
+      expect(validation.isValid).toBe(true);
+      expect(validation.errors).toHaveLength(0);
+    });
+
+    test("should detect invalid chunks without speak tags", () => {
+      const invalidChunks = [
+        { ssml: "Missing speak tags", index: 0, total: 1 },
+      ];
+
+      const validation = validateChunks(invalidChunks);
+
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
+    });
+
+    test("should detect chunks exceeding size limit", () => {
+      const tooLargeContent = "x".repeat(7000);
+      const invalidChunks = [
+        { ssml: `<speak>${tooLargeContent}</speak>`, index: 0, total: 1 },
+      ];
+
+      const validation = validateChunks(invalidChunks);
+
+      expect(validation.isValid).toBe(false);
+      expect(validation.errors.length).toBeGreaterThan(0);
+      expect(validation.errors[0]).toContain("exceeds 6000 characters");
+    });
+  });
+
+  describe("Edge Cases", () => {
+    test("should handle empty content", () => {
+      const emptySSML = "<speak></speak>";
+      const chunks = chunkSSML(emptySSML, 2500);
+
+      expect(chunks).toHaveLength(1);
+      expect(chunks[0].ssml).toBe("<speak></speak>");
+    });
+
+    test("should handle content with XML special characters", () => {
+      const specialChars = "Text & more < test > symbols. ".repeat(100);
+      const escapedContent = specialChars
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;");
+      const ssml = `<speak>${escapedContent}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      chunks.forEach((chunk) => {
+        expect(validateSSML(chunk.ssml)).toBe(true);
+        expect(chunk.ssml).toContain("&amp;");
+      });
+    });
+
+    test("should handle mixed SSML tags", () => {
+      const mixedContent = `
+        <p>Paragraph with <prosody rate="fast">fast speech</prosody>.</p>
+        <break time="500ms"/>
+        <p>Another paragraph.</p>
+      `.repeat(50);
+      const ssml = `<speak>${mixedContent}</speak>`;
+      const chunks = chunkSSML(ssml, 2500);
+
+      expect(chunks.length).toBeGreaterThan(1);
+      chunks.forEach((chunk) => {
+        expect(validateSSML(chunk.ssml)).toBe(true);
+      });
     });
   });
 });

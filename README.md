@@ -1,8 +1,8 @@
 # Obsidian Voice Plugin 🔊
 
-The Voice Plugin for Obsidian brings a new dimension to your note-taking experience by adding a voice feature to your Obsidian workspace. This plugin allows you to listen to your written content within Obsidian, offering a hands-free and convenient way to consume your notes and documents.
+The Voice Plugin for Obsidian brings a new dimension to your note-taking by adding a voice feature directly to your workspace. It lets you listen to your written content with a mobile-friendly audiobook-like experience, offering a hands-free and convenient way to consume your notes and documents.
 
-Whether you want to listen to your documents while multitasking, reinforce your learning through auditory input, or simply enjoy a unique way of interacting with your content, the Voice Plugin delivers a seamless and customizable text-to-speech solution within the Obsidian environment.
+Whether you want to listen while multitasking, reinforce learning through auditory input, or simply enjoy a new way of engaging with your content, the Voice Plugin delivers a seamless and customizable text-to-speech solution within the Obsidian environment.
 
 ## Table of Contents
 

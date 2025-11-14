@@ -1,3 +1,15 @@
+/**
+ * RegExHelper - DEPRECATED PLACEHOLDER
+ *
+ * This class has been stripped of all content manipulation logic.
+ * It now serves as a pass-through to maintain backward compatibility
+ * while the new Markdown-to-SSML pipeline is implemented.
+ *
+ * See: MARKDOWN_TO_SSML_ARCHITECTURE.md for the new design
+ * See: CONTENT_MANIPULATION_ANALYSIS.md for issues with old approach
+ *
+ * TODO: Replace with MarkdownToSSMLProcessor once pipeline is complete
+ */
 export class RegExHelper {
   private content: string;
 
@@ -5,49 +17,55 @@ export class RegExHelper {
     this.content = input;
   }
 
+  /**
+   * DEPRECATED: This method is now a no-op
+   * Content cleaning will be handled by the new pipeline processor
+   */
   removeHeader() {
-    const text = this.content;
-    const result: string = text.replace(/^---[\s\S]*?^---/m, "");
-    this.content = result;
+    // No-op: Will be handled by new pipeline
   }
 
+  /**
+   * DEPRECATED: This method is now a no-op
+   * Content cleaning will be handled by the new pipeline processor
+   */
   removeCode() {
-    const text = this.content;
-    const result: string = text.replace(/```[\s\S]*?```/m, "");
-    this.content = result;
+    // No-op: Will be handled by new pipeline
   }
 
+  /**
+   * DEPRECATED: This method is now a no-op
+   * Content cleaning will be handled by the new pipeline processor
+   */
   removeLinks() {
-    const text = this.content;
-    let result: string = text.replace(/!/g, "");
-    result = result.replace(/(?<=\[\[)[^\|\]]+(?=\|.*?\]\])/g, "");
-    result = result.replace(/\([^)]*\)/gm, "");
-    result = result.replace(/[\[\]]/g, "");
-    this.content = result;
+    // No-op: Will be handled by new pipeline
   }
 
+  /**
+   * DEPRECATED: This method is now a no-op
+   * Content cleaning will be handled by the new pipeline processor
+   */
   removeSpecialCharacters() {
-    const text = this.content;
-    const result: string = text.replace(/[*_#><():|"~`'{}]/g, "");
-    this.content = result;
+    // No-op: Will be handled by new pipeline
   }
 
+  /**
+   * DEPRECATED: This method is now a no-op
+   * Content cleaning will be handled by the new pipeline processor
+   */
   removeEmojis() {
-    const text = this.content;
-    // This regex matches most emoji characters
-    const result: string = text.replace(
-      /[\u{1F000}-\u{1FFFF}]|\p{Emoji_Presentation}|\p{Extended_Pictographic}/gu,
-      "",
-    );
-    this.content = result;
+    // No-op: Will be handled by new pipeline
   }
 
+  /**
+   * Returns the content without any processing
+   * This maintains backward compatibility while new pipeline is built
+   *
+   * @returns Raw content as-is (no manipulation)
+   */
   getcleanContent() {
-    this.removeHeader();
-    this.removeCode();
-    this.removeLinks();
-    this.removeSpecialCharacters();
-    this.removeEmojis(); // Add the new emoji removal step
+    // Pass through raw content
+    // New pipeline will handle all cleaning
     return this.content;
   }
 }

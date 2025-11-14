@@ -1,8 +1,26 @@
+/**
+ * SSMLTagger - DEPRECATED PLACEHOLDER
+ *
+ * This class has been stripped of all SSML generation logic.
+ * It now provides minimal SSML wrapping to maintain backward compatibility
+ * while the new Markdown-to-SSML pipeline is implemented.
+ *
+ * See: MARKDOWN_TO_SSML_ARCHITECTURE.md for the new design
+ * See: CONTENT_MANIPULATION_ANALYSIS.md for issues with old approach
+ *
+ * Current behavior:
+ * - Escapes XML special characters (required for AWS Polly)
+ * - Wraps content in <speak> tags (required SSML root element)
+ * - No other processing (all removed)
+ *
+ * TODO: Replace with new SSMLSerializer once pipeline is complete
+ */
 class SSMLTagger {
   constructor() {}
 
   /**
    * Escapes XML special characters to prevent SSML parsing errors
+   * This is the ONLY remaining manipulation - it's critical for AWS Polly
    * @param text - The input text to escape
    * @returns Escaped text safe for SSML
    */
@@ -16,34 +34,28 @@ class SSMLTagger {
   }
 
   /**
-   * Adds SSML tags to the provided text string.
-   * @param text - The input text to be processed.
-   * @returns A string with SSML tags added.
+   * Wraps text in minimal SSML tags
+   *
+   * Previous behavior (removed):
+   * - Word-by-word processing
+   * - ALL CAPS detection (commented out)
+   * - Number detection with <say-as>
+   * - Punctuation detection with <break>
+   *
+   * Current behavior:
+   * - XML escape only
+   * - Wrap in <speak> tags
+   *
+   * @param text - The input text to be processed
+   * @returns Minimal valid SSML string
    */
   addSSMLTags(text: string): string {
-    let ssmlText = "";
+    // Escape XML characters for safety
+    const escapedText = this.escapeXmlCharacters(text);
 
-    // Split the text into words
-    const words = text.split(" ");
-
-    for (let i = 0; i < words.length; i++) {
-      let ssmlWord = words[i];
-
-      // Escape XML characters first to prevent SSML parsing errors
-      ssmlWord = this.escapeXmlCharacters(ssmlWord);
-
-      if (/^[A-Z]+$/.test(ssmlWord)) {
-        //        ssmlWord = `<emphasis level="strong">${ssmlWord}</emphasis>`;
-      } else if (/^\d+$/.test(ssmlWord)) {
-        ssmlWord = `<say-as interpret-as="number">${ssmlWord}</say-as>`;
-      } else if (/[.!?]/.test(ssmlWord)) {
-        ssmlWord += `<break time="500ms"/>`;
-      }
-
-      ssmlText += `${ssmlWord} `;
-    }
-
-    return `<speak>${ssmlText}</speak>`;
+    // Return minimal valid SSML
+    // New pipeline will handle all enhancement
+    return `<speak>${escapedText}</speak>`;
   }
 }
 

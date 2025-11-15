@@ -25,10 +25,21 @@ src/
 ├── utils/
 │   ├── VoicePlugin.ts        # Main plugin class
 │   ├── TextSpeaker.ts        # Audio control logic
-│   ├── SSMLTagger.ts         # SSML formatting
 │   ├── MarkdownHelper.ts     # Markdown processing
-│   ├── RegExHelper.ts        # Text utilities
-│   └── IconEventHandler.ts   # UI interactions
+│   ├── AudioFileManager.ts   # MP3 download and embed management
+│   ├── IconEventHandler.ts   # UI interactions
+│   └── MobileControlBar.ts   # Mobile audio controls
+├── processors/
+│   ├── MarkdownToSSMLProcessor.ts  # Main pipeline orchestrator
+│   ├── pipeline/
+│   │   ├── CleanProcessor.ts       # Remove unwanted elements
+│   │   ├── EnhanceProcessor.ts     # Add SSML structure
+│   │   ├── XmlEscapeProcessor.ts   # XML character safety
+│   │   ├── SSMLSerializer.ts       # AST to SSML conversion
+│   │   ├── SSMLValidator.ts        # SSML validation
+│   │   └── SSMLChunker.ts          # AWS size limit handling
+│   └── config/
+│       └── DefaultConfig.ts        # Default processor settings
 └── tests/
     ├── unit.test.ts          # Unit tests
     ├── integration.test.ts   # AWS Polly integration tests
@@ -52,14 +63,30 @@ src/
 - Text-to-speech with 25+ voices and 18 languages
 - Audio controls: play, pause, rewind, fast-forward
 - Tempo adjustment (0.5x to 2x speed)
-- SSML tagging for enhanced speech synthesis
+- Markdown-to-SSML processing pipeline with AST transformations
+- Automatic SSML chunking for large documents
+- MP3 download with auto-embed functionality
+- Audio embed filtering (prevents reading ![[audio.mp3]] aloud)
 - Caching mechanism for audio content
-- Mobile support (iOS/Android)
+- Mobile support (iOS/Android) with dedicated control bar
 - Hotkey integration for all audio controls
+
+## Content Processing Pipeline
+
+The plugin uses a sophisticated Markdown-to-SSML pipeline:
+
+1. **Parse** - unified/remark converts markdown to AST
+2. **Clean** - Remove code blocks, images, audio embeds, HTML, wikilinks
+3. **Enhance** - Add SSML prosody tags for headings, emphasis
+4. **Escape** - XML character safety for AWS Polly
+5. **Serialize** - Convert AST back to SSML string
+6. **Validate** - Structure verification
+7. **Chunk** - Split into AWS-compatible sizes (<3000 chars)
 
 ## AWS Integration
 
 - Uses AWS Polly neural engine with 24kHz sample rate
+- SSML-based synthesis with automatic chunking
 - Supports chunked text processing for large documents
 - Requires user AWS credentials (Access Key ID, Secret Access Key, Region)
 - Implements proper error handling for AWS service calls

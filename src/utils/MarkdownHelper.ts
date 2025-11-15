@@ -39,4 +39,9 @@ export class MarkdownHelper {
     // If no active file is found, return the error message
     return "No active file found.";
   }
+
+  getActiveFilePath(): string | null {
+    const activeFile = this.app.workspace.getActiveFile();
+    return activeFile?.path || null;
+  }
 }

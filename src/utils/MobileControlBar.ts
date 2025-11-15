@@ -1,6 +1,7 @@
-import { App, setIcon } from "obsidian";
+import { App, setIcon, Notice } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import { AwsPollyService } from "../service/AwsPollyService";
+import { AudioFileManager } from "./AudioFileManager";
 
 export class MobileControlBar {
   private app: App;
@@ -9,17 +10,25 @@ export class MobileControlBar {
   private containerEl: HTMLElement | null = null;
   private isVisible: boolean = false;
   private playPauseIconEl: HTMLElement | null = null;
+  private downloadIconEl: HTMLElement | null = null;
   private speedDisplayEl: HTMLElement | null = null;
   private progressBarContainer: HTMLElement | null = null;
   private progressBar: HTMLElement | null = null;
   private isErrorState: boolean = false;
+  private audioFileManager: AudioFileManager;
 
   constructor(app: App, plugin: Voice, pollyService: AwsPollyService) {
     this.app = app;
     this.plugin = plugin;
     this.pollyService = pollyService;
+    this.audioFileManager = new AudioFileManager(app);
     this.createOverlayBar();
     this.initializeEventListeners();
+
+    // Listen for file changes to update download button visibility
+    this.app.workspace.on("active-leaf-change", () => {
+      this.updateDownloadButtonVisibility();
+    });
   }
 
   private createOverlayBar(): void {
@@ -56,13 +65,15 @@ export class MobileControlBar {
 
     // Stop button
     this.createControlButton(controlsWrapper, "square", "Stop", () => {
-      if (this.pollyService.isLoadingInProgress()) {
-        this.pollyService.cancelLoading();
+      if (this.pollyService.isOperationInProgress()) {
+        this.pollyService.cancelOperation();
         this.resetToPlayState();
         this.hideProgressBar();
-      } else {
-        this.pollyService.stopAudio();
+        // Hide overlay after stop
+        setTimeout(() => this.hide(), 100);
+        return; // EXIT - don't do anything else
       }
+      this.pollyService.stopAudio();
       // Hide overlay after stop
       setTimeout(() => this.hide(), 100);
     });
@@ -94,11 +105,11 @@ export class MobileControlBar {
       "play",
       "Play/Pause",
       () => {
-        if (this.pollyService.isLoadingInProgress()) {
-          this.pollyService.cancelLoading();
+        if (this.pollyService.isOperationInProgress()) {
+          this.pollyService.cancelOperation();
           this.resetToPlayState();
           this.hideProgressBar();
-          return;
+          return; // CRITICAL: EXIT - don't start new request
         }
 
         if (!this.pollyService.isPlaying()) {
@@ -116,6 +127,15 @@ export class MobileControlBar {
       "Fast Forward",
       () => this.pollyService.fastForwardAudio(),
     );
+
+    // Download MP3 button (initially hidden)
+    this.downloadIconEl = this.createControlButton(
+      controlsWrapper,
+      "download",
+      "Download Audio",
+      () => this.handleDownloadAudio(),
+    );
+    this.downloadIconEl.style.display = "none"; // Initially hidden
   }
 
   private createControlButton(
@@ -246,6 +266,8 @@ export class MobileControlBar {
     }
     this.hideProgressBar();
     this.show(); // Keep overlay visible during playback
+    // Show download button when audio is successfully generated
+    this.showDownloadButton();
   }
 
   private onPause(): void {
@@ -313,6 +335,75 @@ export class MobileControlBar {
   public handleErrorFromExternal(): void {
     // Mobile implementation focuses on visual feedback rather than error messages
     this.handleError();
+  }
+
+  /**
+   * Show the download button
+   */
+  private showDownloadButton(): void {
+    if (this.downloadIconEl) {
+      this.downloadIconEl.style.display = "";
+    }
+  }
+
+  /**
+   * Hide the download button
+   */
+  private hideDownloadButton(): void {
+    if (this.downloadIconEl) {
+      this.downloadIconEl.style.display = "none";
+    }
+  }
+
+  /**
+   * Update download button visibility based on cached audio
+   */
+  public updateDownloadButtonVisibility(): void {
+    const activeFile = this.app.workspace.getActiveFile();
+    if (!activeFile) {
+      this.hideDownloadButton();
+      return;
+    }
+
+    // Check if cached audio exists for this file
+    const audioBlob = this.pollyService.getLastGeneratedAudio(activeFile.path);
+    if (audioBlob) {
+      this.showDownloadButton();
+    } else {
+      this.hideDownloadButton();
+    }
+  }
+
+  /**
+   * Handle download audio button click
+   */
+  private async handleDownloadAudio(): Promise<void> {
+    try {
+      // Get current file path for validation
+      const activeFile = this.app.workspace.getActiveFile();
+      if (!activeFile) {
+        new Notice("No active file found");
+        return;
+      }
+
+      // Get the cached audio blob from Polly service with file path validation
+      const audioBlob = this.pollyService.getLastGeneratedAudio(
+        activeFile.path,
+      );
+
+      if (!audioBlob) {
+        new Notice(
+          "No audio available for this file. Please generate audio first.",
+        );
+        return;
+      }
+
+      // Use AudioFileManager to save and embed
+      await this.audioFileManager.downloadAndEmbed(audioBlob);
+    } catch (error) {
+      console.error("Error downloading audio:", error);
+      new Notice(`Failed to download audio: ${error.message}`);
+    }
   }
 
   private addMobileOverlayStyles(): void {

@@ -2,6 +2,7 @@ import { Plugin, setIcon, Notice } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import { AwsPollyService } from "../service/AwsPollyService";
 import { MobileControlBar } from "./MobileControlBar";
+import { AudioFileManager } from "./AudioFileManager";
 
 export class IconEventHandler {
   private pollyService: AwsPollyService;
@@ -10,11 +11,13 @@ export class IconEventHandler {
   private statusBarItem: HTMLElement;
   private ribbonIconEl: HTMLElement;
   private playPauseIconEl: HTMLElement;
+  private downloadIconEl: HTMLElement;
   private speedDisplayEl: HTMLElement;
   private progressBarContainer: HTMLElement;
   private progressBar: HTMLElement;
   private isErrorState: boolean = false;
   private mobileControlBar?: MobileControlBar;
+  private audioFileManager: AudioFileManager;
   private onPlayListener = () => this.onPlay();
   private onPauseListener = () => this.onPause();
   private onCanPlayThroughListener = () => this.onCanPlayThrough();
@@ -23,6 +26,7 @@ export class IconEventHandler {
     this.plugin = plugin;
     this.voice = voice;
     this.pollyService = pollyService;
+    this.audioFileManager = new AudioFileManager(plugin.app);
 
     this.addSpeedControlStyles();
     this.addProgressBarStyles();
@@ -55,6 +59,13 @@ export class IconEventHandler {
         this.mobileControlBar.handleErrorFromExternal();
       }
     });
+
+    // Listen for file changes to update download button visibility
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on("active-leaf-change", () => {
+        this.updateDownloadButtonVisibility();
+      }),
+    );
   }
 
   private initStatusBarItem(): void {
@@ -69,21 +80,32 @@ export class IconEventHandler {
     // Order: rewind, stop, slower, current speed, faster, play, fast-forward
 
     // Rewind
-    this.createStatusBarIcon("rewind", "rewind", () =>
-      this.pollyService.rewindAudio(),
+    this.createStatusBarIcon(
+      "rewind",
+      "rewind",
+      () => this.pollyService.rewindAudio(),
+      false,
+      "Rewind 3 seconds",
     );
 
     // Stop
-    this.createStatusBarIcon("square", "stop", () => {
-      // If loading is in progress, cancel it
-      if (this.pollyService.isLoadingInProgress()) {
-        this.pollyService.cancelLoading();
-        this.resetIconsToPlayState();
-        this.hideProgressBar();
-      } else {
+    this.createStatusBarIcon(
+      "square",
+      "stop",
+      () => {
+        // If operation is in progress, cancel it
+        if (this.pollyService.isOperationInProgress()) {
+          this.pollyService.cancelOperation();
+          this.resetIconsToPlayState();
+          this.hideProgressBar();
+          return; // EXIT - don't do anything else
+        }
+        // Otherwise just stop audio playback
         this.pollyService.stopAudio();
-      }
-    });
+      },
+      false,
+      "Stop audio",
+    );
 
     // Speed controls group
     this.addSpeedControls();
@@ -93,12 +115,12 @@ export class IconEventHandler {
       "play",
       "play",
       () => {
-        // If loading is in progress, cancel it
-        if (this.pollyService.isLoadingInProgress()) {
-          this.pollyService.cancelLoading();
+        // If operation is in progress, cancel it
+        if (this.pollyService.isOperationInProgress()) {
+          this.pollyService.cancelOperation();
           this.resetIconsToPlayState();
           this.hideProgressBar();
-          return;
+          return; // CRITICAL: EXIT - don't start new request
         }
 
         if (!this.pollyService.isPlaying()) {
@@ -108,12 +130,27 @@ export class IconEventHandler {
         this.voice.speakText();
       },
       true,
+      "Play / Pause",
     );
 
     // Fast-forward
-    this.createStatusBarIcon("fast-forward", "fast-forward", () =>
-      this.pollyService.fastForwardAudio(),
+    this.createStatusBarIcon(
+      "fast-forward",
+      "fast-forward",
+      () => this.pollyService.fastForwardAudio(),
+      false,
+      "Fast-forward 3 seconds",
     );
+
+    // Download MP3 (initially hidden)
+    this.downloadIconEl = this.createStatusBarIcon(
+      "download",
+      "download-audio",
+      () => this.handleDownloadAudio(),
+      false,
+      "Download audio as MP3",
+    );
+    this.downloadIconEl.style.display = "none"; // Initially hidden
 
     // Add separator after all voice controls to separate from other plugins
     this.addVoiceControlsSeparator();
@@ -129,6 +166,7 @@ export class IconEventHandler {
     cls: string,
     onClick: () => void,
     isPlayPauseIcon: boolean = false,
+    tooltip?: string,
   ): HTMLElement {
     const iconEl = this.statusBarItem.createEl("span", {
       cls: "status-bar-icon " + cls,
@@ -136,6 +174,12 @@ export class IconEventHandler {
     iconEl.style.marginRight = "5px";
     setIcon(iconEl, icon);
     iconEl.addEventListener("click", onClick);
+
+    // Use native browser tooltip (title) - it can escape container boundaries
+    // Unlike Obsidian's tooltips which get clipped by status bar overflow
+    if (tooltip) {
+      iconEl.title = tooltip;
+    }
 
     if (isPlayPauseIcon) {
       this.playPauseIconEl = iconEl;
@@ -149,15 +193,15 @@ export class IconEventHandler {
       "play-circle",
       "Voice read text",
       () => {
-        // If loading is in progress, cancel it
-        if (this.pollyService.isLoadingInProgress()) {
-          this.pollyService.cancelLoading();
+        // If operation is in progress, cancel it
+        if (this.pollyService.isOperationInProgress()) {
+          this.pollyService.cancelOperation();
           this.resetIconsToPlayState();
           this.hideProgressBar();
           if (this.mobileControlBar) {
             this.mobileControlBar.hide();
           }
-          return;
+          return; // CRITICAL: EXIT - don't start new request
         }
 
         // Only trigger loading state if not already playing
@@ -236,6 +280,8 @@ export class IconEventHandler {
     }
     // Hide progress bar when audio starts playing
     this.hideProgressBar();
+    // Show download button when audio is successfully generated
+    this.showDownloadButton();
   }
 
   private onPause(): void {
@@ -253,8 +299,12 @@ export class IconEventHandler {
 
   private addSpeedControls(): void {
     // Add decrease speed button (slower)
-    this.createStatusBarIcon("minus", "speed-decrease", () =>
-      this.decreaseSpeed(),
+    this.createStatusBarIcon(
+      "minus",
+      "speed-decrease",
+      () => this.decreaseSpeed(),
+      false,
+      "Decrease speed",
     );
 
     // Add speed display
@@ -271,8 +321,12 @@ export class IconEventHandler {
     this.updateSpeedDisplay();
 
     // Add increase speed button (faster)
-    this.createStatusBarIcon("plus", "speed-increase", () =>
-      this.increaseSpeed(),
+    this.createStatusBarIcon(
+      "plus",
+      "speed-increase",
+      () => this.increaseSpeed(),
+      false,
+      "Increase speed",
     );
   }
 
@@ -476,5 +530,75 @@ export class IconEventHandler {
   private onCanPlayThrough(): void {
     // Hide progress bar when audio is ready to play
     this.hideProgressBar();
+  }
+
+  /**
+   * Show the download button
+   */
+  private showDownloadButton(): void {
+    if (this.downloadIconEl) {
+      this.downloadIconEl.style.display = "";
+    }
+  }
+
+  /**
+   * Hide the download button
+   */
+  private hideDownloadButton(): void {
+    if (this.downloadIconEl) {
+      this.downloadIconEl.style.display = "none";
+    }
+  }
+
+  /**
+   * Update download button visibility based on whether cached audio exists for current file
+   */
+  private updateDownloadButtonVisibility(): void {
+    const activeFile = this.plugin.app.workspace.getActiveFile();
+    if (!activeFile) {
+      this.hideDownloadButton();
+      return;
+    }
+
+    // Check if cached audio exists for this file
+    const audioBlob = this.pollyService.getLastGeneratedAudio(activeFile.path);
+    if (audioBlob) {
+      this.showDownloadButton();
+    } else {
+      this.hideDownloadButton();
+    }
+  }
+
+  /**
+   * Handle download audio button click
+   * Retrieves cached audio blob and saves it as MP3 file
+   */
+  private async handleDownloadAudio(): Promise<void> {
+    try {
+      // Get current file path for validation
+      const activeFile = this.plugin.app.workspace.getActiveFile();
+      if (!activeFile) {
+        new Notice("No active file found");
+        return;
+      }
+
+      // Get the cached audio blob from Polly service with file path validation
+      const audioBlob = this.pollyService.getLastGeneratedAudio(
+        activeFile.path,
+      );
+
+      if (!audioBlob) {
+        new Notice(
+          "No audio available for this file. Please generate audio first.",
+        );
+        return;
+      }
+
+      // Use AudioFileManager to save and embed
+      await this.audioFileManager.downloadAndEmbed(audioBlob);
+    } catch (error) {
+      console.error("Error downloading audio:", error);
+      new Notice(`Failed to download audio: ${error.message}`);
+    }
   }
 }

@@ -3,7 +3,7 @@
   "name": "Voice",
   "version": "1.5.0",
   "minAppVersion": "0.15.0",
-  "description": "Sound, audio, speech let your notes talk inside your workspace—now mobile-friendly—so you can listen as they’re read aloud, enjoy an audiobook-like experience, and stay hands-free with your content.",
+  "description": "Text-to-speech adds sound, audio, and speech to your notes, letting them talk in your workspace, mobile-friendly, perfect for learning or reinforcing ideas as you listen hands-free in an audiobook-like experience.",
   "author": "Chris Oguntolu",
   "authorUrl": "https://github.com/chrisurf",
   "isDesktopOnly": false

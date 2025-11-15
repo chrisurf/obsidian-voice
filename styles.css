@@ -10,3 +10,6 @@
 .rotating-icon {
   animation: rotateCounterClockwise 2s linear infinite;
 }
+
+/* Native browser tooltips (title attribute) work best for status bar */
+/* They can escape container overflow constraints unlike CSS-based tooltips */

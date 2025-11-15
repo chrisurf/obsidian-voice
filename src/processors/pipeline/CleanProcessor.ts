@@ -107,9 +107,10 @@ export function cleanProcessor(options: CleanProcessorOptions) {
       }
 
       // Handle Obsidian-specific wikilinks [[page]] or [[page|alias]]
-      // Also remove emojis from text
+      // Also remove audio embeds and emojis from text
       if (node.type === "text") {
         const textNode = node as { type: "text"; value: string };
+        textNode.value = removeAudioEmbeds(textNode.value);
         textNode.value = cleanWikiLinks(textNode.value);
         textNode.value = removeEmojis(textNode.value);
       }
@@ -146,6 +147,20 @@ function cleanWikiLinks(text: string): string {
       .replace(/\[\[([^\]|]+)#([^\]]+)\]\]/g, "$1 $2")
       // Handle simple links: [[page]] -> page
       .replace(/\[\[([^\]]+)\]\]/g, "$1")
+  );
+}
+
+/**
+ * Remove audio embeds from text
+ * ![[filename.mp3]] -> (removed)
+ * ![[path/to/file.wav]] -> (removed)
+ */
+function removeAudioEmbeds(text: string): string {
+  // Match audio embed syntax: ![[filename.ext]] where ext is an audio format
+  // Requires at least one character in the filename to prevent matching empty embeds
+  return text.replace(
+    /!\[\[([^\]]+)\.(mp3|wav|ogg|m4a|flac|aac|wma)\]\]/gi,
+    "",
   );
 }
 

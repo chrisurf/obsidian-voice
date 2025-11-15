@@ -29,9 +29,9 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
   ![error status](./assets/error-status.png)
 
-### Save & Share Your Audio
+### Save & Play Audio Offline
 
-- While playback is running, hit the control bar download button to grab an MP3 named after your note; the plugin automatically embeds it right after the front matter.
+- While playback is running, hit the control bar download button to grab an MP3 named after your note; the plugin automatically embeds it right after the front matter to be played at your convenience and offline.
 
   ![voice download](./assets/voice-download.png)
 

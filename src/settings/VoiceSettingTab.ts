@@ -1,5 +1,6 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
+import { VOICES } from "./VoiceSettings";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -68,33 +69,11 @@ export class VoiceSettingTab extends PluginSettingTab {
       .setDesc(
         "Choose a voice tone, gender, and language for a personalized audio experience.",
       )
-      .addDropdown((dropdown) =>
+      .addDropdown((dropdown) => {
+        VOICES.forEach((voice) => {
+          dropdown.addOption(voice.id, voice.label);
+        });
         dropdown
-          .addOption("Stephen", "Stephen (American)")
-          .addOption("Joanna", "Joanna (American)")
-          .addOption("Brian", "Brian (British)")
-          .addOption("Emma", "Emma (British)")
-          .addOption("Daniel", "Daniel (German)")
-          .addOption("Vicki", "Vicki (German)")
-          .addOption("Remi", "Rémi (French)")
-          .addOption("Lea", "Léa (French)")
-          .addOption("Sergio", "Sergio (Spanish)")
-          .addOption("Lucia", "Lucia (Spanish)")
-          .addOption("Adriano", "Adriano (Italian)")
-          .addOption("Bianca", "Bianca (Italian)")
-          .addOption("Ola", "Ola (Polish)")
-          .addOption("Laura", "Laura (Dutch)")
-          .addOption("Ines", "Ines (Portuguese)")
-          .addOption("Arlet", "Arlet (Catalan)")
-          .addOption("Elin", "Elin (Swedish)")
-          .addOption("Sofie", "Sofie (Danish)")
-          .addOption("Ida", "Ida (Norwegian)")
-          .addOption("Suvi", "Suvi (Finnish)")
-          .addOption("Takumi", "Takumi (Japanese)")
-          .addOption("Tomoko", "Tomoko (Japanese)")
-          .addOption("Seoyeon", "Seoyeon (Korean)")
-          .addOption("Kajal", "Kajal (Hindi)")
-          .addOption("Zhiyu", "Zhiyu (Mandarin)")
           .setValue(
             this.plugin.getPollyService().getVoice() ||
               this.plugin.settings.VOICE,
@@ -103,8 +82,9 @@ export class VoiceSettingTab extends PluginSettingTab {
             this.plugin.settings.VOICE = value;
             await this.plugin.saveSettings();
             this.plugin.getPollyService().setVoice(value);
-          }),
-      );
+            this.plugin.iconEventHandler.updateVoiceDisplay();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Tempo")

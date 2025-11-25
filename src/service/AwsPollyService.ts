@@ -8,6 +8,7 @@ import {
   OutputFormat,
   VoiceId,
 } from "@aws-sdk/client-polly";
+import { VOICES } from "../settings/VoiceSettings";
 
 /**
  * AwsPollyService - AWS Polly integration for text-to-speech
@@ -612,6 +613,9 @@ export class AwsPollyService {
 
   setVoice(voice: string) {
     this.synthesizeInput.VoiceId = voice as VoiceId;
+    this.synthesizeInput.LanguageCode = this.getLanguageCode(
+      voice,
+    ) as LanguageCode;
     this.voiceChanged = true;
   }
 
@@ -629,56 +633,8 @@ export class AwsPollyService {
   }
 
   getLanguageCode(voice: string) {
-    switch (voice) {
-      case "Brian":
-        return "en-GB";
-      case "Emma":
-        return "en-GB";
-      case "Daniel":
-        return "de-DE";
-      case "Vicki":
-        return "de-DE";
-      case "Remi":
-        return "fr-FR";
-      case "Lea":
-        return "fr-FR";
-      case "Sergio":
-        return "es-ES";
-      case "Lucia":
-        return "es-ES";
-      case "Adriano":
-        return "it-IT";
-      case "Bianca":
-        return "it-IT";
-      case "Ola":
-        return "pl-PL";
-      case "Laura":
-        return "nl-NL";
-      case "Ines":
-        return "pt-PT";
-      case "Arlet":
-        return "ca-ES";
-      case "Elin":
-        return "sv-SE";
-      case "Sofie":
-        return "da-DK";
-      case "Ida":
-        return "nb-NO";
-      case "Suvi":
-        return "fi-FI";
-      case "Takumi":
-        return "ja-JP";
-      case "Tomoko":
-        return "ja-JP";
-      case "Kajal":
-        return "hi-IN";
-      case "Seoyeon":
-        return "ko-KR";
-      case "Zhiyu":
-        return "cmn-CN";
-      default:
-        return "en-US";
-    }
+    const voiceOption = VOICES.find((v) => v.id === voice);
+    return voiceOption ? voiceOption.lang : "en-US";
   }
 
   getContent() {

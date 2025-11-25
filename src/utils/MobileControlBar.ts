@@ -1,7 +1,8 @@
-import { App, setIcon, Notice } from "obsidian";
+import { App, setIcon, Notice, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import { AwsPollyService } from "../service/AwsPollyService";
 import { AudioFileManager } from "./AudioFileManager";
+import { VOICES } from "../settings/VoiceSettings";
 
 export class MobileControlBar {
   private app: App;
@@ -57,6 +58,32 @@ export class MobileControlBar {
     const controlsWrapper = this.containerEl.createDiv({
       cls: "voice-mobile-controls",
     });
+
+    // Voice Switcher
+    this.createControlButton(
+      controlsWrapper,
+      "mic",
+      "Change Voice",
+      (event: MouseEvent) => {
+        const menu = new Menu();
+
+        VOICES.forEach((voice) => {
+          menu.addItem((item) =>
+            item
+              .setTitle(voice.label)
+              .setChecked(voice.id === this.pollyService.getVoice())
+              .onClick(async () => {
+                this.plugin.settings.VOICE = voice.id;
+                await this.plugin.saveSettings();
+                this.pollyService.setVoice(voice.id);
+                this.plugin.iconEventHandler.updateVoiceDisplay();
+              }),
+          );
+        });
+
+        menu.showAtMouseEvent(event);
+      },
+    );
 
     // Rewind button
     this.createControlButton(controlsWrapper, "rewind", "Rewind", () =>
@@ -142,7 +169,7 @@ export class MobileControlBar {
     parent: HTMLElement,
     icon: string,
     title: string,
-    onClick: () => void,
+    onClick: (e: MouseEvent) => void,
   ): HTMLElement {
     const button = parent.createEl("button", {
       cls: "voice-mobile-control-btn",

@@ -1,14 +1,16 @@
-import { Plugin, setIcon, Notice } from "obsidian";
+import { Plugin, setIcon, Notice, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import { AwsPollyService } from "../service/AwsPollyService";
 import { MobileControlBar } from "./MobileControlBar";
 import { AudioFileManager } from "./AudioFileManager";
+import { VOICES } from "../settings/VoiceSettings";
 
 export class IconEventHandler {
   private pollyService: AwsPollyService;
   private plugin: Plugin;
   private voice: Voice;
   private statusBarItem: HTMLElement;
+  private voiceDisplayEl: HTMLElement;
   private ribbonIconEl: HTMLElement;
   private playPauseIconEl: HTMLElement;
   private downloadIconEl: HTMLElement;
@@ -68,11 +70,54 @@ export class IconEventHandler {
     );
   }
 
+  private createVoiceSwitcher(): void {
+    this.voiceDisplayEl = this.statusBarItem.createEl("span", {
+      cls: "voice-statusbar-voice-switcher",
+    });
+    this.voiceDisplayEl.style.marginRight = "10px";
+    this.voiceDisplayEl.style.cursor = "pointer";
+    this.voiceDisplayEl.style.fontWeight = "bold";
+    this.voiceDisplayEl.style.fontSize = "0.9em";
+    this.voiceDisplayEl.setAttribute("aria-label", "Change Voice");
+    this.voiceDisplayEl.setAttribute("aria-label-position", "top");
+
+    this.updateVoiceDisplay();
+
+    this.voiceDisplayEl.addEventListener("click", (event) => {
+      const menu = new Menu();
+
+      VOICES.forEach((voice) => {
+        menu.addItem((item) =>
+          item
+            .setTitle(voice.label)
+            .setChecked(voice.id === this.pollyService.getVoice())
+            .onClick(async () => {
+              this.voice.settings.VOICE = voice.id;
+              await this.voice.saveSettings();
+              this.pollyService.setVoice(voice.id);
+              this.updateVoiceDisplay();
+            }),
+        );
+      });
+
+      menu.showAtMouseEvent(event);
+    });
+  }
+
+  public updateVoiceDisplay(): void {
+    if (this.voiceDisplayEl) {
+      this.voiceDisplayEl.setText(this.pollyService.getVoice() || "Stephen");
+    }
+  }
+
   private initStatusBarItem(): void {
     this.statusBarItem = this.plugin.addStatusBarItem();
 
     // Add separator before voice controls to separate from other plugins
     this.addVoiceControlsSeparator();
+
+    // Voice Switcher
+    this.createVoiceSwitcher();
 
     // Progress bar (initially hidden)
     this.createProgressBar();

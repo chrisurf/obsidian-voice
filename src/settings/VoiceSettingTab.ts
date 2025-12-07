@@ -170,21 +170,48 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.AWS_REGION = value;
             await this.plugin.saveSettings();
+            // Reinitialize PollyService with new region
+            this.plugin.reinitializePollyService();
           });
       });
+
+    // Track visibility state for Access Key ID (default: masked for security)
+    let isAccessKeyVisible = false;
 
     new Setting(containerEl)
       .setName("AWS Access Key ID")
       .setDesc("The AWS Access Key ID for the Polly service.")
-      .addText((text) =>
+      .addText((text) => {
         text
           .setPlaceholder("Enter your AWS Access Key ID")
           .setValue(this.plugin.settings.AWS_ACCESS_KEY_ID)
           .onChange(async (value) => {
             this.plugin.settings.AWS_ACCESS_KEY_ID = value;
             await this.plugin.saveSettings();
-          }),
-      );
+            // Reinitialize PollyService with new credentials
+            this.plugin.reinitializePollyService();
+          });
+        // Start with masked input for security
+        text.inputEl.type = "password";
+      })
+      .addExtraButton((button) => {
+        button
+          .setIcon("eye") // eye icon = show (field is currently masked)
+          .setTooltip("Show")
+          .onClick(() => {
+            isAccessKeyVisible = !isAccessKeyVisible;
+            const inputEl =
+              button.extraSettingsEl.parentElement?.querySelector("input");
+            if (inputEl) {
+              inputEl.type = isAccessKeyVisible ? "text" : "password";
+              button.setIcon(isAccessKeyVisible ? "eye-off" : "eye");
+              button.setTooltip(isAccessKeyVisible ? "Hide" : "Show");
+            }
+          });
+      });
+
+    // Track visibility state for Secret Access Key (default: masked for security)
+    let isSecretKeyVisible = false;
 
     new Setting(containerEl)
       .setName("AWS Secret Access Key")
@@ -196,8 +223,25 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.AWS_SECRET_ACCESS_KEY = value;
             await this.plugin.saveSettings();
+            // Reinitialize PollyService with new credentials
+            this.plugin.reinitializePollyService();
           });
         text.inputEl.type = "password";
+      })
+      .addExtraButton((button) => {
+        button
+          .setIcon("eye") // eye icon = show (field is currently masked)
+          .setTooltip("Show")
+          .onClick(() => {
+            isSecretKeyVisible = !isSecretKeyVisible;
+            const inputEl =
+              button.extraSettingsEl.parentElement?.querySelector("input");
+            if (inputEl) {
+              inputEl.type = isSecretKeyVisible ? "text" : "password";
+              button.setIcon(isSecretKeyVisible ? "eye-off" : "eye");
+              button.setTooltip(isSecretKeyVisible ? "Hide" : "Show");
+            }
+          });
       });
 
     // AWS Credential Validation Section

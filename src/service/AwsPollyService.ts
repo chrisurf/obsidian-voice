@@ -61,12 +61,27 @@ export class AwsPollyService {
   private lastGeneratedAudioFilePath: string | null = null;
   // Request lock mechanism - prevents concurrent operations
   private currentRequestId: string | null = null;
+  // Store current credentials for provider function
+  private currentCredentials: {
+    accessKeyId: string;
+    secretAccessKey: string;
+    region: string;
+  };
+  // Flag to track if PollyClient has been initialized with valid credentials
+  private pollyClientInitialized: boolean = false;
 
   constructor(awsConfig: AwsCredentials, voice: string, speed?: number) {
     this.speed = speed || 1.0;
     this.audio = new Audio();
     this.audio.src = "";
     this.voiceChanged = false;
+
+    // Store credentials for provider function to reference
+    this.currentCredentials = {
+      accessKeyId: awsConfig.credentials.accessKeyId,
+      secretAccessKey: awsConfig.credentials.secretAccessKey,
+      region: awsConfig.region,
+    };
 
     // Use standard engine for better compatibility in tests
     const engine = process.env.NODE_ENV === "test" ? "standard" : "neural";
@@ -80,13 +95,41 @@ export class AwsPollyService {
       VoiceId: (voice || "Stephen") as VoiceId,
       Text: "No document selected.",
     };
+
+    // Only create PollyClient if credentials are non-empty
+    // This prevents AWS SDK from caching empty credential failures on fresh install
+    if (this.hasValidCredentials()) {
+      this.initializePollyClient();
+    }
+  }
+
+  /**
+   * Check if credentials are non-empty and valid
+   */
+  private hasValidCredentials(): boolean {
+    return (
+      this.currentCredentials.accessKeyId !== "" &&
+      this.currentCredentials.secretAccessKey !== "" &&
+      this.currentCredentials.region !== ""
+    );
+  }
+
+  /**
+   * Initialize or reinitialize the PollyClient with credential provider function
+   */
+  private initializePollyClient(): void {
+    // Use credential PROVIDER FUNCTION instead of static credentials
+    // This allows credentials to be updated dynamically without restart
     this.pollyClient = new PollyClient({
-      credentials: {
-        accessKeyId: awsConfig.credentials.accessKeyId,
-        secretAccessKey: awsConfig.credentials.secretAccessKey,
+      credentials: async () => {
+        return {
+          accessKeyId: this.currentCredentials.accessKeyId,
+          secretAccessKey: this.currentCredentials.secretAccessKey,
+        };
       },
-      region: awsConfig.region,
+      region: this.currentCredentials.region,
     });
+    this.pollyClientInitialized = true;
   }
 
   /**
@@ -148,6 +191,26 @@ export class AwsPollyService {
         isValid: false,
         error: errorMessage,
       };
+    }
+  }
+
+  /**
+   * Update AWS credentials and reinitialize the Polly client
+   * Allows updating credentials without restarting the plugin
+   * Uses credential provider function to avoid AWS SDK credential caching issues
+   */
+  updateCredentials(awsConfig: AwsCredentials): void {
+    // Update stored credentials - provider function will reference these
+    this.currentCredentials = {
+      accessKeyId: awsConfig.credentials.accessKeyId,
+      secretAccessKey: awsConfig.credentials.secretAccessKey,
+      region: awsConfig.region,
+    };
+
+    // Always (re)initialize the PollyClient when credentials are updated
+    // This ensures a fresh client with no cached credential failures
+    if (this.hasValidCredentials()) {
+      this.initializePollyClient();
     }
   }
 

@@ -65,6 +65,23 @@ export class Voice extends Plugin {
     await this.saveData(this.settings);
   }
 
+  public reinitializePollyService(): void {
+    // Only reinitialize if all credentials are present
+    if (
+      this.settings.AWS_ACCESS_KEY_ID &&
+      this.settings.AWS_SECRET_ACCESS_KEY &&
+      this.settings.AWS_REGION
+    ) {
+      this.pollyService.updateCredentials({
+        credentials: {
+          accessKeyId: String(this.settings.AWS_ACCESS_KEY_ID),
+          secretAccessKey: String(this.settings.AWS_SECRET_ACCESS_KEY),
+        },
+        region: String(this.settings.AWS_REGION),
+      });
+    }
+  }
+
   public getPollyService(): AwsPollyService {
     return this.pollyService;
   }

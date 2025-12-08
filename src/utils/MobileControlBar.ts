@@ -85,6 +85,15 @@ export class MobileControlBar {
       },
     );
 
+    // Download MP3 button (initially hidden)
+    this.downloadIconEl = this.createControlButton(
+      controlsWrapper,
+      "download",
+      "Download Audio",
+      () => this.handleDownloadAudio(),
+    );
+    this.downloadIconEl.style.display = "none"; // Initially hidden
+
     // Rewind button
     this.createControlButton(controlsWrapper, "rewind", "Rewind", () =>
       this.pollyService.rewindAudio(),
@@ -97,12 +106,12 @@ export class MobileControlBar {
         this.resetToPlayState();
         this.hideProgressBar();
         // Hide overlay after stop
-        setTimeout(() => this.hide(), 100);
+        setTimeout(() => this.hide(), 3000);
         return; // EXIT - don't do anything else
       }
       this.pollyService.stopAudio();
       // Hide overlay after stop
-      setTimeout(() => this.hide(), 100);
+      setTimeout(() => this.hide(), 3000);
     });
 
     // Speed controls group
@@ -154,15 +163,6 @@ export class MobileControlBar {
       "Fast Forward",
       () => this.pollyService.fastForwardAudio(),
     );
-
-    // Download MP3 button (initially hidden)
-    this.downloadIconEl = this.createControlButton(
-      controlsWrapper,
-      "download",
-      "Download Audio",
-      () => this.handleDownloadAudio(),
-    );
-    this.downloadIconEl.style.display = "none"; // Initially hidden
   }
 
   private createControlButton(
@@ -323,7 +323,7 @@ export class MobileControlBar {
     }
     this.hideProgressBar();
     // Hide overlay when audio ends
-    setTimeout(() => this.hide(), 500);
+    setTimeout(() => this.hide(), 3000);
   }
 
   private handleError(): void {

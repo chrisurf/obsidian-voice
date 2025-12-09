@@ -90,8 +90,8 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 1. Install the Voice plugin inside Obsidian (Community Plugins → Browse → Voice).
 2. Toggle the plugin on.
 3. Open **Settings → Voice** and enter your AWS region, Access Key ID, and Secret Access Key.
-4. Restart Obsidian so the credentials load correctly.
-5. Open any note and press the Voice ribbon icon or your preferred hotkey to start listening.
+4. Open any note and press the Voice ribbon icon or your preferred hotkey to start listening.
+5. If not working, try to restart Obsidian.
 
 > **No AWS account yet?** Create one free at [aws.amazon.com](https://aws.amazon.com/). The AWS Free Tier includes 1 million neural characters per month for the first 12 months.
 

@@ -37,6 +37,7 @@ export class Voice extends Plugin {
       this.pollyService,
       this.markdownHelper,
       this.iconEventHandler,
+      this.settings.spellOutAcronyms,
     );
 
     this.hotkeySettings = new HotkeySettings(this, this.pollyService);
@@ -80,6 +81,16 @@ export class Voice extends Plugin {
         region: String(this.settings.AWS_REGION),
       });
     }
+  }
+
+  public reinitializeTextSpeaker(): void {
+    // Recreate TextSpeaker with updated settings
+    this.textSpeaker = new TextSpeaker(
+      this.pollyService,
+      this.markdownHelper,
+      this.iconEventHandler,
+      this.settings.spellOutAcronyms,
+    );
   }
 
   public getPollyService(): AwsPollyService {

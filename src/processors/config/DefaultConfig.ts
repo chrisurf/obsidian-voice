@@ -29,7 +29,7 @@ export const DEFAULT_CONFIG: ProcessorConfig = {
 
   // Special handling
   expandAbbreviations: true, // Convert "Dr." to "Doctor", etc.
-  spellOutAcronyms: false, // Spell out "NASA", "FBI", etc.
+  spellOutAcronyms: true, // Spell out "NASA", "FBI", etc.
   formatNumbers: true, // Format numbers for proper pronunciation
 
   // Validation

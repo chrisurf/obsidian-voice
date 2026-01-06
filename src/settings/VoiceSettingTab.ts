@@ -132,6 +132,22 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Spell Out Acronyms")
+      .setDesc(
+        "When enabled, uppercase words like NASA or API are spelled out letter by letter. Disable this if you want uppercase words to be pronounced normally.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.spellOutAcronyms)
+          .onChange(async (value) => {
+            this.plugin.settings.spellOutAcronyms = value;
+            await this.plugin.saveSettings();
+            // Reinitialize TextSpeaker to apply the new setting
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
     containerEl.createEl("h2", { text: "AWS" });
 
     new Setting(containerEl)

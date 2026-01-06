@@ -14,19 +14,23 @@ export class TextSpeaker {
   private markdownHelper: MarkdownHelper;
   private iconEventHandler: IconEventHandler;
   private ssmlProcessor: MarkdownToSSMLProcessor;
+  private spellOutAcronyms: boolean;
 
   constructor(
     pollyService: AwsPollyService,
     markdownHelper: MarkdownHelper,
     iconEventHandler: IconEventHandler,
+    spellOutAcronyms: boolean = true,
   ) {
     this.pollyService = pollyService;
     this.markdownHelper = markdownHelper;
     this.iconEventHandler = iconEventHandler;
+    this.spellOutAcronyms = spellOutAcronyms;
 
     // Initialize the new SSML processor
     this.ssmlProcessor = new MarkdownToSSMLProcessor({
       voiceType: "neural", // TODO: Make this configurable from settings
+      spellOutAcronyms: this.spellOutAcronyms,
     });
   }
 

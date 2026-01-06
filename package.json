@@ -1,6 +1,6 @@
 {
   "name": "voice",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "Add a voice to Obsidian (https://obsidian.md). Text-to-speech adds sound, audio, and speech to your notes, letting them talk in your workspace, mobile-friendly, perfect for learning or reinforcing ideas as you listen hands-free in an audiobook-like experience.",
   "main": "main.js",
   "scripts": {

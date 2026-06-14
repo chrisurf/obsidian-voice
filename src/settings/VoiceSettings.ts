@@ -5,6 +5,7 @@ export interface VoiceSettings {
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
   spellOutAcronyms: boolean;
+  readCodeBlocks: boolean;
 }
 
 export interface VoiceOption {
@@ -47,5 +48,6 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   AWS_REGION: "eu-central-1",
   AWS_ACCESS_KEY_ID: "",
   AWS_SECRET_ACCESS_KEY: "",
-  spellOutAcronyms: true,
+  spellOutAcronyms: false,
+  readCodeBlocks: false,
 };

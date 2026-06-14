@@ -15,22 +15,28 @@ export class TextSpeaker {
   private iconEventHandler: IconEventHandler;
   private ssmlProcessor: MarkdownToSSMLProcessor;
   private spellOutAcronyms: boolean;
+  private readCodeBlocks: boolean;
 
   constructor(
     pollyService: AwsPollyService,
     markdownHelper: MarkdownHelper,
     iconEventHandler: IconEventHandler,
-    spellOutAcronyms: boolean = true,
+    spellOutAcronyms: boolean = false,
+    readCodeBlocks: boolean = false,
   ) {
     this.pollyService = pollyService;
     this.markdownHelper = markdownHelper;
     this.iconEventHandler = iconEventHandler;
     this.spellOutAcronyms = spellOutAcronyms;
+    this.readCodeBlocks = readCodeBlocks;
 
     // Initialize the new SSML processor
     this.ssmlProcessor = new MarkdownToSSMLProcessor({
       voiceType: "neural", // TODO: Make this configurable from settings
       spellOutAcronyms: this.spellOutAcronyms,
+      // When code blocks should be read, keep them in the spoken output;
+      // otherwise the cleaner replaces them with a short placeholder.
+      removeCodeBlocks: !this.readCodeBlocks,
     });
   }
 

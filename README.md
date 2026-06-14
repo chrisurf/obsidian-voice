@@ -55,6 +55,11 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
   ![tempo control](./assets/tempo.png)
 
+### Fine-Tune What Gets Spoken
+
+- **Spell Out Acronyms** – Off by default, so uppercase words like `NASA` or `API` are pronounced naturally. Enable it if you prefer them read letter by letter.
+- **Read Code Blocks** – Off by default, so fenced code blocks (Mermaid, YAML, and other code) are announced with a short placeholder. Enable it to have the code content read aloud.
+
 ### Built for Mobile
 
 - Launch playback on the Obsidian mobile app via the dedicated Voice menu item.

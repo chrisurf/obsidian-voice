@@ -38,6 +38,7 @@ export class Voice extends Plugin {
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
+      this.settings.readCodeBlocks,
     );
 
     this.hotkeySettings = new HotkeySettings(this, this.pollyService);
@@ -90,6 +91,7 @@ export class Voice extends Plugin {
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
+      this.settings.readCodeBlocks,
     );
   }
 

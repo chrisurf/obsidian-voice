@@ -148,6 +148,22 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Read Code Blocks")
+      .setDesc(
+        "When enabled, fenced code blocks (such as Mermaid, YAML, or other code) are read aloud. Disable this to skip code blocks and announce them as a short placeholder instead.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.readCodeBlocks)
+          .onChange(async (value) => {
+            this.plugin.settings.readCodeBlocks = value;
+            await this.plugin.saveSettings();
+            // Reinitialize TextSpeaker to apply the new setting
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
     containerEl.createEl("h2", { text: "AWS" });
 
     new Setting(containerEl)

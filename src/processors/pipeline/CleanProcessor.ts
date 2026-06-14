@@ -12,7 +12,7 @@
  */
 
 import { visit, SKIP } from "unist-util-visit";
-import type { Root, Link, InlineCode, Html, Text } from "mdast";
+import type { Root, Link, Code, InlineCode, Html, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
 
@@ -26,20 +26,22 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         return;
       }
 
-      // Replace code blocks with "Code snippet" placeholder
-      if (options.removeCodeBlocks && node.type === "code") {
-        const placeholderNode: Text = {
-          type: "text",
-          value: "Code snippet.",
-        };
-        (parent as Parent).children[index] = placeholderNode;
+      // Handle fenced code blocks
+      if (node.type === "code") {
+        const codeNode = node as Code;
+        // When code blocks should be read, speak their raw content;
+        // otherwise announce them with a short placeholder.
+        const replacement: Text = options.removeCodeBlocks
+          ? { type: "text", value: "Code snippet." }
+          : { type: "text", value: codeNode.value };
+        (parent as Parent).children[index] = replacement;
         return SKIP;
       }
 
-      // Remove inline code backticks but keep the text
-      if (options.removeCodeBlocks && node.type === "inlineCode") {
+      // Remove inline code backticks but keep the text content so it is
+      // never silently dropped by the serializer
+      if (node.type === "inlineCode") {
         const inlineCodeNode = node as InlineCode;
-        // Replace with plain text node
         const textNode: Text = {
           type: "text",
           value: inlineCodeNode.value,

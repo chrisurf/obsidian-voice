@@ -165,6 +165,22 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName("Skip Website URLs")
+      .setDesc(
+        "When enabled, website URLs (such as https://example.com or www.example.com) are removed and not read aloud. Disabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.skipUrls)
+          .onChange(async (value) => {
+            this.plugin.settings.skipUrls = value;
+            await this.plugin.saveSettings();
+            // Reinitialize TextSpeaker to apply the new setting
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName("Auto-Save Audio to Note")
       .setDesc(
         "When enabled, the generated MP3 is automatically saved next to the note and embedded in it after each successful playback—no need to press the download button. Disabled by default.",

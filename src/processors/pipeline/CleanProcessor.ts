@@ -31,9 +31,13 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         const codeNode = node as Code;
         // When code blocks should be read, speak their raw content;
         // otherwise announce them with a short placeholder.
+        let codeValue = codeNode.value;
+        if (options.skipUrls) {
+          codeValue = removeUrls(codeValue);
+        }
         const replacement: Text = options.removeCodeBlocks
           ? { type: "text", value: "Code snippet." }
-          : { type: "text", value: codeNode.value };
+          : { type: "text", value: codeValue };
         (parent as Parent).children[index] = replacement;
         return SKIP;
       }
@@ -44,7 +48,9 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         const inlineCodeNode = node as InlineCode;
         const textNode: Text = {
           type: "text",
-          value: inlineCodeNode.value,
+          value: options.skipUrls
+            ? removeUrls(inlineCodeNode.value)
+            : inlineCodeNode.value,
         };
         (parent as Parent).children[index] = textNode;
         return SKIP;
@@ -115,6 +121,9 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         textNode.value = removeAudioEmbeds(textNode.value);
         textNode.value = cleanWikiLinks(textNode.value);
         textNode.value = removeEmojis(textNode.value);
+        if (options.skipUrls) {
+          textNode.value = removeUrls(textNode.value);
+        }
       }
     });
   };
@@ -164,6 +173,23 @@ function removeAudioEmbeds(text: string): string {
     /!\[\[([^\]]+)\.(mp3|wav|ogg|m4a|flac|aac|wma)\]\]/gi,
     "",
   );
+}
+
+/**
+ * Remove website URLs from text so they are not read aloud
+ * Strips http(s):// links as well as bare "www." links up to the next
+ * whitespace. Collapses any double spaces left behind by the removal.
+ * Examples:
+ *   "Visit https://example.com today" -> "Visit today"
+ *   "See www.example.com/path for more" -> "See for more"
+ */
+function removeUrls(text: string): string {
+  // Strip the URL, then collapse any double spaces it leaves behind. Leading
+  // and trailing spaces are kept so words stay separated from adjacent inline
+  // nodes (e.g. "A normal " + link + " link").
+  return text
+    .replace(/(?:https?:\/\/|www\.)[^\s]+/gi, "")
+    .replace(/[ \t]{2,}/g, " ");
 }
 
 /**

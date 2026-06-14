@@ -7,6 +7,7 @@ export interface VoiceSettings {
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
   autoDownloadAudio: boolean;
+  skipUrls: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
 }
@@ -54,5 +55,6 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   spellOutAcronyms: false,
   readCodeBlocks: false,
   autoDownloadAudio: false,
+  skipUrls: false,
   acronymDefaultMigrated: false,
 };

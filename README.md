@@ -61,6 +61,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
 - **Spell Out Acronyms** – Off by default, so uppercase words like `NASA` or `API` are pronounced naturally. Enable it if you prefer them read letter by letter.
 - **Read Code Blocks** – Off by default, so fenced code blocks (Mermaid, YAML, and other code) are announced with a short placeholder. Enable it to have the code content read aloud.
+- **Skip Website URLs** – Off by default, so URLs are read aloud as written. Enable it to strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact.
 
 ### Built for Mobile
 

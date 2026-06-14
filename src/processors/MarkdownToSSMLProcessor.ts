@@ -60,6 +60,7 @@ export class MarkdownToSSMLProcessor {
         preserveLinkText: this.config.preserveLinkText,
         removeFrontmatter: this.config.removeFrontmatter,
         removeHTML: this.config.removeHTML,
+        skipUrls: this.config.skipUrls,
       };
       cleanProcessor(cleanOptions)(ast);
 

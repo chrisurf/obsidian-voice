@@ -16,6 +16,7 @@ export class TextSpeaker {
   private ssmlProcessor: MarkdownToSSMLProcessor;
   private spellOutAcronyms: boolean;
   private readCodeBlocks: boolean;
+  private skipUrls: boolean;
 
   constructor(
     pollyService: AwsPollyService,
@@ -23,12 +24,14 @@ export class TextSpeaker {
     iconEventHandler: IconEventHandler,
     spellOutAcronyms: boolean = false,
     readCodeBlocks: boolean = false,
+    skipUrls: boolean = false,
   ) {
     this.pollyService = pollyService;
     this.markdownHelper = markdownHelper;
     this.iconEventHandler = iconEventHandler;
     this.spellOutAcronyms = spellOutAcronyms;
     this.readCodeBlocks = readCodeBlocks;
+    this.skipUrls = skipUrls;
 
     // Initialize the new SSML processor
     this.ssmlProcessor = new MarkdownToSSMLProcessor({
@@ -37,6 +40,8 @@ export class TextSpeaker {
       // When code blocks should be read, keep them in the spoken output;
       // otherwise the cleaner replaces them with a short placeholder.
       removeCodeBlocks: !this.readCodeBlocks,
+      // When enabled, website URLs are stripped from the spoken output.
+      skipUrls: this.skipUrls,
     });
   }
 

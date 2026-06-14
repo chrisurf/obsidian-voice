@@ -102,6 +102,9 @@ export class TextSpeaker {
         speed,
         activeFilePath || undefined,
       );
+
+      // Auto-save the generated audio to the note if the user enabled it
+      await this.iconEventHandler.maybeAutoDownloadAudio();
     } catch (error) {
       // Check if it was a cancellation
       if (error instanceof Error && error.name === "AbortError") {

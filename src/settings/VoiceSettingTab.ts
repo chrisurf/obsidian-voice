@@ -164,6 +164,20 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Auto-Save Audio to Note")
+      .setDesc(
+        "When enabled, the generated MP3 is automatically saved next to the note and embedded in it after each successful playback—no need to press the download button. Disabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoDownloadAudio)
+          .onChange(async (value) => {
+            this.plugin.settings.autoDownloadAudio = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
     containerEl.createEl("h2", { text: "AWS" });
 
     new Setting(containerEl)

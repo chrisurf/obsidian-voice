@@ -6,6 +6,7 @@ export interface VoiceSettings {
   AWS_SECRET_ACCESS_KEY: string;
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
+  autoDownloadAudio: boolean;
 }
 
 export interface VoiceOption {
@@ -50,4 +51,5 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   AWS_SECRET_ACCESS_KEY: "",
   spellOutAcronyms: false,
   readCodeBlocks: false,
+  autoDownloadAudio: false,
 };

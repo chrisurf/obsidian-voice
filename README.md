@@ -35,6 +35,8 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
   ![voice download](./assets/voice-download.png)
 
+- Prefer a hands-off workflow? Enable **Auto-Save Audio to Note** in the settings to save and embed the MP3 automatically after every successful playback—no manual download click required. It stays off by default.
+
 - Cached audio prevents repeat synth costs until your note content changes.
 
 ### Precision Playback Controls

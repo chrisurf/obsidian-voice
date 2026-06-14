@@ -615,6 +615,30 @@ export class IconEventHandler {
   }
 
   /**
+   * Automatically save the generated audio and embed it in the note.
+   * Called after a successful synthesis; only acts when the user enabled
+   * the auto-download setting. Stays silent on edge cases (no active file
+   * or no cached audio) to avoid noisy notices during automatic playback.
+   */
+  public async maybeAutoDownloadAudio(): Promise<void> {
+    if (!this.voice.settings.autoDownloadAudio) {
+      return;
+    }
+
+    const activeFile = this.plugin.app.workspace.getActiveFile();
+    if (!activeFile) {
+      return;
+    }
+
+    const audioBlob = this.pollyService.getLastGeneratedAudio(activeFile.path);
+    if (!audioBlob) {
+      return;
+    }
+
+    await this.audioFileManager.downloadAndEmbed(audioBlob);
+  }
+
+  /**
    * Handle download audio button click
    * Retrieves cached audio blob and saves it as MP3 file
    */

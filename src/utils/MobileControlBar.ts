@@ -1,13 +1,12 @@
 import { App, setIcon, Notice, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
-import { AwsPollyService } from "../service/AwsPollyService";
+import type { SpeechProvider } from "../service/SpeechProvider";
 import { AudioFileManager } from "./AudioFileManager";
-import { VOICES } from "../settings/VoiceSettings";
 
 export class MobileControlBar {
   private app: App;
   private plugin: Voice;
-  private pollyService: AwsPollyService;
+  private pollyService: SpeechProvider;
   private containerEl: HTMLElement | null = null;
   private isVisible: boolean = false;
   private playPauseIconEl: HTMLElement | null = null;
@@ -18,7 +17,7 @@ export class MobileControlBar {
   private isErrorState: boolean = false;
   private audioFileManager: AudioFileManager;
 
-  constructor(app: App, plugin: Voice, pollyService: AwsPollyService) {
+  constructor(app: App, plugin: Voice, pollyService: SpeechProvider) {
     this.app = app;
     this.plugin = plugin;
     this.pollyService = pollyService;
@@ -67,16 +66,13 @@ export class MobileControlBar {
       (event: MouseEvent) => {
         const menu = new Menu();
 
-        VOICES.forEach((voice) => {
+        this.pollyService.getVoiceOptions().forEach((voice) => {
           menu.addItem((item) =>
             item
               .setTitle(voice.label)
               .setChecked(voice.id === this.pollyService.getVoice())
               .onClick(async () => {
-                this.plugin.settings.VOICE = voice.id;
-                await this.plugin.saveSettings();
-                this.pollyService.setVoice(voice.id);
-                this.plugin.iconEventHandler.updateVoiceDisplay();
+                await this.plugin.persistActiveVoice(voice.id);
               }),
           );
         });

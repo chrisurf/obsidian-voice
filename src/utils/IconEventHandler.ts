@@ -1,12 +1,11 @@
 import { Plugin, setIcon, Notice, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
-import { AwsPollyService } from "../service/AwsPollyService";
+import type { SpeechProvider } from "../service/SpeechProvider";
 import { MobileControlBar } from "./MobileControlBar";
 import { AudioFileManager } from "./AudioFileManager";
-import { VOICES } from "../settings/VoiceSettings";
 
 export class IconEventHandler {
-  private pollyService: AwsPollyService;
+  private pollyService: SpeechProvider;
   private plugin: Plugin;
   private voice: Voice;
   private statusBarItem: HTMLElement;
@@ -24,7 +23,7 @@ export class IconEventHandler {
   private onPauseListener = () => this.onPause();
   private onCanPlayThroughListener = () => this.onCanPlayThrough();
 
-  constructor(plugin: Plugin, voice: Voice, pollyService: AwsPollyService) {
+  constructor(plugin: Plugin, voice: Voice, pollyService: SpeechProvider) {
     this.plugin = plugin;
     this.voice = voice;
     this.pollyService = pollyService;
@@ -44,7 +43,22 @@ export class IconEventHandler {
       );
     }
 
-    // Set up progress callback for AWS Polly loading
+    // Wire progress/error callbacks to the active provider
+    this.registerProviderCallbacks();
+
+    // Listen for file changes to update download button visibility
+    this.plugin.registerEvent(
+      this.plugin.app.workspace.on("active-leaf-change", () => {
+        this.updateDownloadButtonVisibility();
+      }),
+    );
+  }
+
+  /**
+   * Register progress and error callbacks on the active provider. Called on
+   * construction and whenever the provider is swapped.
+   */
+  private registerProviderCallbacks(): void {
     this.pollyService.setProgressCallback((progress: number) => {
       this.updateProgressBar(progress);
       // Also update mobile progress bar if on mobile
@@ -53,7 +67,6 @@ export class IconEventHandler {
       }
     });
 
-    // Set up error callback for AWS Polly errors
     this.pollyService.setErrorCallback((error: string) => {
       this.handleError(error);
       // Also handle mobile errors if on mobile
@@ -61,13 +74,29 @@ export class IconEventHandler {
         this.mobileControlBar.handleErrorFromExternal();
       }
     });
+  }
 
-    // Listen for file changes to update download button visibility
-    this.plugin.registerEvent(
-      this.plugin.app.workspace.on("active-leaf-change", () => {
-        this.updateDownloadButtonVisibility();
-      }),
-    );
+  /**
+   * Swap the active speech provider (e.g. when the user changes the TTS
+   * provider in settings). Re-attaches audio listeners, callbacks, and the
+   * mobile control bar to the new provider's audio element.
+   */
+  public setProvider(provider: SpeechProvider): void {
+    // Detach from the previous provider's audio element + mobile bar
+    this.removeEventListeners();
+    this.pollyService = provider;
+    // Re-attach audio listeners to the new provider's audio element
+    this.initializeEventListeners();
+    this.registerProviderCallbacks();
+    // Recreate the mobile control bar bound to the new provider
+    if (this.voice.isMobile()) {
+      this.mobileControlBar = new MobileControlBar(
+        this.plugin.app,
+        this.voice,
+        this.pollyService,
+      );
+    }
+    this.updateVoiceDisplay();
   }
 
   private createVoiceSwitcher(): void {
@@ -86,16 +115,13 @@ export class IconEventHandler {
     this.voiceDisplayEl.addEventListener("click", (event) => {
       const menu = new Menu();
 
-      VOICES.forEach((voice) => {
+      this.pollyService.getVoiceOptions().forEach((voice) => {
         menu.addItem((item) =>
           item
             .setTitle(voice.label)
             .setChecked(voice.id === this.pollyService.getVoice())
             .onClick(async () => {
-              this.voice.settings.VOICE = voice.id;
-              await this.voice.saveSettings();
-              this.pollyService.setVoice(voice.id);
-              this.updateVoiceDisplay();
+              await this.voice.persistActiveVoice(voice.id);
             }),
         );
       });
@@ -106,8 +132,21 @@ export class IconEventHandler {
 
   public updateVoiceDisplay(): void {
     if (this.voiceDisplayEl) {
-      this.voiceDisplayEl.setText(this.pollyService.getVoice() || "Stephen");
+      this.voiceDisplayEl.setText(this.getActiveVoiceLabel());
     }
+  }
+
+  /**
+   * Short display name for the current voice (provider-aware). Falls back to
+   * the raw voice id when no catalog label is available.
+   */
+  private getActiveVoiceLabel(): string {
+    const id = this.pollyService.getVoice();
+    const option = this.pollyService.getVoiceOptions().find((v) => v.id === id);
+    if (option) {
+      return option.label.split(" (")[0];
+    }
+    return id || "";
   }
 
   private initStatusBarItem(): void {

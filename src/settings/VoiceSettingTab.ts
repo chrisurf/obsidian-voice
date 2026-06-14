@@ -1,6 +1,7 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
-import { VOICES } from "./VoiceSettings";
+import { ELEVENLABS_MODELS } from "./VoiceSettings";
+import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -64,26 +65,42 @@ export class VoiceSettingTab extends PluginSettingTab {
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
+
+    // Provider selection
+    new Setting(containerEl)
+      .setName("Speech Provider")
+      .setDesc(
+        "Choose which text-to-speech engine to use. AWS Polly and ElevenLabs offer the same plugin features; each uses its own credentials and voices.",
+      )
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("polly", "AWS Polly")
+          .addOption("elevenlabs", "ElevenLabs")
+          .setValue(this.plugin.settings.TTS_PROVIDER)
+          .onChange(async (value) => {
+            this.plugin.settings.TTS_PROVIDER = value as "polly" | "elevenlabs";
+            await this.plugin.saveSettings();
+            // Swap the active provider and rewire the UI/orchestration
+            this.plugin.reinitializeProvider();
+            // Re-render so provider-specific fields and voices update
+            this.display();
+          });
+      });
+
+    // Voice (provider-aware)
+    const provider = this.plugin.getSpeechProvider();
     new Setting(containerEl)
       .setName("Voice")
       .setDesc(
         "Choose a voice tone, gender, and language for a personalized audio experience.",
       )
       .addDropdown((dropdown) => {
-        VOICES.forEach((voice) => {
+        provider.getVoiceOptions().forEach((voice) => {
           dropdown.addOption(voice.id, voice.label);
         });
-        dropdown
-          .setValue(
-            this.plugin.getPollyService().getVoice() ||
-              this.plugin.settings.VOICE,
-          )
-          .onChange(async (value) => {
-            this.plugin.settings.VOICE = value;
-            await this.plugin.saveSettings();
-            this.plugin.getPollyService().setVoice(value);
-            this.plugin.iconEventHandler.updateVoiceDisplay();
-          });
+        dropdown.setValue(provider.getVoice()).onChange(async (value) => {
+          await this.plugin.persistActiveVoice(value);
+        });
       });
 
     new Setting(containerEl)
@@ -96,7 +113,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .setLimits(0.5, 1.9, 0.1)
           .setValue(
             this.plugin.settings.SPEED ||
-              this.plugin.getPollyService().getSpeed(),
+              this.plugin.getSpeechProvider().getSpeed(),
           )
           .setDynamicTooltip()
           .onChange(async (value) => {
@@ -104,7 +121,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             const roundedValue = Math.round(value * 10) / 10;
             this.plugin.settings.SPEED = roundedValue;
             await this.plugin.saveSettings();
-            this.plugin.getPollyService().setSpeed(roundedValue);
+            this.plugin.getSpeechProvider().setSpeed(roundedValue);
 
             // Update the status bar speed display
             this.plugin.iconEventHandler.updateSpeedDisplayFromSettings();
@@ -120,7 +137,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             // Set initial tooltip text
             const currentSpeed =
               this.plugin.settings.SPEED ||
-              this.plugin.getPollyService().getSpeed();
+              this.plugin.getSpeechProvider().getSpeed();
             const speedText = this.formatSpeedText(currentSpeed);
             slider.sliderEl.setAttribute(
               "title",
@@ -135,7 +152,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Spell Out Acronyms")
       .setDesc(
-        "When enabled, uppercase words like NASA or API are spelled out letter by letter. Disable this if you want uppercase words to be pronounced normally.",
+        "When enabled, uppercase words like NASA or API are spelled out letter by letter. Disable this if you want uppercase words to be pronounced normally. (Applies to AWS Polly.)",
       )
       .addToggle((toggle) =>
         toggle
@@ -194,6 +211,26 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    // Provider-specific credentials
+    if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
+      this.displayElevenLabsSettings(containerEl);
+    } else {
+      this.displayPollySettings(containerEl);
+    }
+
+    // Add CSS for pulse animation (used by the validation indicator)
+    const style = document.createElement("style");
+    style.textContent = `
+      @keyframes pulse {
+        0% { opacity: 1; }
+        50% { opacity: 0.5; }
+        100% { opacity: 1; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  private displayPollySettings(containerEl: HTMLElement): void {
     containerEl.createEl("h2", { text: "AWS" });
 
     new Setting(containerEl)
@@ -232,81 +269,148 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.AWS_REGION = value;
             await this.plugin.saveSettings();
-            // Reinitialize PollyService with new region
-            this.plugin.reinitializePollyService();
+            this.plugin.reinitializeProviderCredentials();
           });
       });
 
-    // Track visibility state for Access Key ID (default: masked for security)
-    let isAccessKeyVisible = false;
+    this.addPasswordSetting(
+      containerEl,
+      "AWS Access Key ID",
+      "The AWS Access Key ID for the Polly service.",
+      "Enter your AWS Access Key ID",
+      this.plugin.settings.AWS_ACCESS_KEY_ID,
+      async (value) => {
+        this.plugin.settings.AWS_ACCESS_KEY_ID = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.addPasswordSetting(
+      containerEl,
+      "AWS Secret Access Key",
+      "The AWS Secret Access Key for the Polly service.",
+      "Enter your AWS Secret Access Key",
+      this.plugin.settings.AWS_SECRET_ACCESS_KEY,
+      async (value) => {
+        this.plugin.settings.AWS_SECRET_ACCESS_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "AWS",
+      isConfigured: () =>
+        !!this.plugin.settings.AWS_ACCESS_KEY_ID &&
+        !!this.plugin.settings.AWS_SECRET_ACCESS_KEY &&
+        !!this.plugin.settings.AWS_REGION,
+      missingMessage:
+        "Please fill in all AWS credentials (Access Key ID, Secret Access Key, and Region) before testing.",
+      promptMessage:
+        "Enter your AWS credentials above, then click 'Test Credentials' to validate",
+      helpText: "Need help with creating AWS credentials? ",
+      helpUrl:
+        "https://github.com/chrisurf/obsidian-voice?tab=readme-ov-file#setting-up-your-aws-account-required",
+    });
+  }
+
+  private displayElevenLabsSettings(containerEl: HTMLElement): void {
+    containerEl.createEl("h2", { text: "ElevenLabs" });
 
     new Setting(containerEl)
-      .setName("AWS Access Key ID")
-      .setDesc("The AWS Access Key ID for the Polly service.")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter your AWS Access Key ID")
-          .setValue(this.plugin.settings.AWS_ACCESS_KEY_ID)
+      .setName("Model")
+      .setDesc(
+        "The ElevenLabs model used for synthesis. Multilingual v2 offers the best quality; Flash v2.5 is the fastest.",
+      )
+      .addDropdown((dropdown) => {
+        ELEVENLABS_MODELS.forEach((model) => {
+          dropdown.addOption(model.id, model.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.ELEVENLABS_MODEL)
           .onChange(async (value) => {
-            this.plugin.settings.AWS_ACCESS_KEY_ID = value;
+            this.plugin.settings.ELEVENLABS_MODEL = value;
             await this.plugin.saveSettings();
-            // Reinitialize PollyService with new credentials
-            this.plugin.reinitializePollyService();
+            this.plugin.reinitializeProviderCredentials();
           });
-        // Start with masked input for security
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "ElevenLabs API Key",
+      "Your ElevenLabs API key (from the ElevenLabs dashboard).",
+      "Enter your ElevenLabs API key",
+      this.plugin.settings.ELEVENLABS_API_KEY,
+      async (value) => {
+        this.plugin.settings.ELEVENLABS_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "ElevenLabs",
+      isConfigured: () => !!this.plugin.settings.ELEVENLABS_API_KEY,
+      missingMessage: "Please enter your ElevenLabs API key before testing.",
+      promptMessage:
+        "Enter your ElevenLabs API key above, then click 'Test Credentials' to validate",
+      helpText: "Need an ElevenLabs API key? ",
+      helpUrl: "https://elevenlabs.io/app/settings/api-keys",
+    });
+  }
+
+  /**
+   * Render a password text setting with a show/hide toggle button.
+   */
+  private addPasswordSetting(
+    containerEl: HTMLElement,
+    name: string,
+    desc: string,
+    placeholder: string,
+    value: string,
+    onChange: (value: string) => Promise<void>,
+  ): void {
+    let isVisible = false;
+    new Setting(containerEl)
+      .setName(name)
+      .setDesc(desc)
+      .addText((text) => {
+        text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
         text.inputEl.type = "password";
       })
       .addExtraButton((button) => {
         button
-          .setIcon("eye") // eye icon = show (field is currently masked)
+          .setIcon("eye")
           .setTooltip("Show")
           .onClick(() => {
-            isAccessKeyVisible = !isAccessKeyVisible;
+            isVisible = !isVisible;
             const inputEl =
               button.extraSettingsEl.parentElement?.querySelector("input");
             if (inputEl) {
-              inputEl.type = isAccessKeyVisible ? "text" : "password";
-              button.setIcon(isAccessKeyVisible ? "eye-off" : "eye");
-              button.setTooltip(isAccessKeyVisible ? "Hide" : "Show");
+              inputEl.type = isVisible ? "text" : "password";
+              button.setIcon(isVisible ? "eye-off" : "eye");
+              button.setTooltip(isVisible ? "Hide" : "Show");
             }
           });
       });
+  }
 
-    // Track visibility state for Secret Access Key (default: masked for security)
-    let isSecretKeyVisible = false;
-
-    new Setting(containerEl)
-      .setName("AWS Secret Access Key")
-      .setDesc("The AWS Secret Access Key for the Polly service.")
-      .addText((text) => {
-        text
-          .setPlaceholder("Enter your AWS Secret Access Key")
-          .setValue(this.plugin.settings.AWS_SECRET_ACCESS_KEY)
-          .onChange(async (value) => {
-            this.plugin.settings.AWS_SECRET_ACCESS_KEY = value;
-            await this.plugin.saveSettings();
-            // Reinitialize PollyService with new credentials
-            this.plugin.reinitializePollyService();
-          });
-        text.inputEl.type = "password";
-      })
-      .addExtraButton((button) => {
-        button
-          .setIcon("eye") // eye icon = show (field is currently masked)
-          .setTooltip("Show")
-          .onClick(() => {
-            isSecretKeyVisible = !isSecretKeyVisible;
-            const inputEl =
-              button.extraSettingsEl.parentElement?.querySelector("input");
-            if (inputEl) {
-              inputEl.type = isSecretKeyVisible ? "text" : "password";
-              button.setIcon(isSecretKeyVisible ? "eye-off" : "eye");
-              button.setTooltip(isSecretKeyVisible ? "Hide" : "Show");
-            }
-          });
-      });
-
-    // AWS Credential Validation Section
+  /**
+   * Render the credential validation panel for the active provider. Uses the
+   * provider factory to build a temporary instance and call validateCredentials.
+   */
+  private renderCredentialValidation(
+    containerEl: HTMLElement,
+    opts: {
+      providerName: string;
+      isConfigured: () => boolean;
+      missingMessage: string;
+      promptMessage: string;
+      helpText: string;
+      helpUrl: string;
+    },
+  ): void {
     const validationContainer = containerEl.createDiv();
     validationContainer.style.marginTop = "16px";
     validationContainer.style.padding = "12px 16px";
@@ -315,7 +419,6 @@ export class VoiceSettingTab extends PluginSettingTab {
     validationContainer.style.border =
       "1px solid var(--background-modifier-border)";
 
-    // Header and button row
     const headerRow = validationContainer.createDiv();
     headerRow.style.display = "flex";
     headerRow.style.alignItems = "center";
@@ -355,26 +458,23 @@ export class VoiceSettingTab extends PluginSettingTab {
     statusIndicator.style.flexShrink = "0";
 
     const statusText = statusContainer.createSpan();
-    statusText.textContent =
-      "Click 'Test Credentials' to verify your AWS setup";
+    statusText.textContent = `Click 'Test Credentials' to verify your ${opts.providerName} setup`;
     statusText.style.color = "var(--text-muted)";
     statusText.style.fontSize = "12px";
     statusText.style.lineHeight = "1.3";
 
-    // Help link for AWS setup (only shown when credentials are invalid)
     const helpContainer = validationContainer.createDiv();
     helpContainer.style.marginTop = "8px";
-    helpContainer.style.display = "none"; // Hidden by default
+    helpContainer.style.display = "none";
 
-    const helpText = helpContainer.createSpan();
-    helpText.textContent = "Need help with creating AWS credentials? ";
-    helpText.style.color = "var(--text-muted)";
-    helpText.style.fontSize = "11px";
+    const helpTextEl = helpContainer.createSpan();
+    helpTextEl.textContent = opts.helpText;
+    helpTextEl.style.color = "var(--text-muted)";
+    helpTextEl.style.fontSize = "11px";
 
     const helpLink = helpContainer.createEl("a");
     helpLink.textContent = "View setup guide";
-    helpLink.href =
-      "https://github.com/chrisurf/obsidian-voice?tab=readme-ov-file#setting-up-your-aws-account-required";
+    helpLink.href = opts.helpUrl;
     helpLink.style.color = "var(--link-color)";
     helpLink.style.fontSize = "11px";
     helpLink.style.textDecoration = "none";
@@ -401,7 +501,7 @@ export class VoiceSettingTab extends PluginSettingTab {
         testButton.textContent = "Testing...";
         testButton.style.opacity = "0.6";
         testButton.style.cursor = "not-allowed";
-        helpContainer.style.display = "none"; // Hide help during loading
+        helpContainer.style.display = "none";
       } else {
         statusIndicator.style.animation = "none";
         testButton.disabled = false;
@@ -415,53 +515,33 @@ export class VoiceSettingTab extends PluginSettingTab {
             ? `✓ Credentials valid! Found ${voiceCount} voices available.`
             : "✓ Credentials are valid!";
           statusText.style.color = "var(--color-green)";
-          helpContainer.style.display = "none"; // Hide help when valid
+          helpContainer.style.display = "none";
         } else if (isValid === false) {
           statusIndicator.style.backgroundColor = "var(--color-red)";
           statusText.textContent = `✗ ${message}`;
           statusText.style.color = "var(--color-red)";
-          helpContainer.style.display = "block"; // Show help when invalid
+          helpContainer.style.display = "block";
         } else {
           statusIndicator.style.backgroundColor = "var(--text-muted)";
           statusText.textContent = message;
           statusText.style.color = "var(--text-muted)";
-          helpContainer.style.display = "none"; // Hide help for neutral state
+          helpContainer.style.display = "none";
         }
       }
     };
 
     const validateCredentials = async () => {
-      const accessKeyId = this.plugin.settings.AWS_ACCESS_KEY_ID;
-      const secretAccessKey = this.plugin.settings.AWS_SECRET_ACCESS_KEY;
-      const region = this.plugin.settings.AWS_REGION;
-
-      if (!accessKeyId || !secretAccessKey || !region) {
-        updateStatus(
-          false,
-          "Please fill in all AWS credentials (Access Key ID, Secret Access Key, and Region) before testing.",
-        );
+      if (!opts.isConfigured()) {
+        updateStatus(false, opts.missingMessage);
         return;
       }
 
       updateStatus(null, "", true);
 
       try {
-        // Create a temporary service instance for validation
-        const tempService = new (
-          await import("../service/AwsPollyService")
-        ).AwsPollyService(
-          {
-            credentials: {
-              accessKeyId: accessKeyId,
-              secretAccessKey: secretAccessKey,
-            },
-            region: region,
-          },
-          this.plugin.settings.VOICE,
-          this.plugin.settings.SPEED,
-        );
-
-        const result = await tempService.validateCredentials();
+        // Build a temporary provider from the current settings for validation
+        const tempProvider = createSpeechProvider(this.plugin.settings);
+        const result = await tempProvider.validateCredentials();
 
         if (result.isValid) {
           updateStatus(true, "", false, result.voiceCount);
@@ -477,41 +557,15 @@ export class VoiceSettingTab extends PluginSettingTab {
       }
     };
 
-    // Automatically validate credentials when settings page opens
-    const performAutoValidation = async () => {
-      const accessKeyId = this.plugin.settings.AWS_ACCESS_KEY_ID;
-      const secretAccessKey = this.plugin.settings.AWS_SECRET_ACCESS_KEY;
-      const region = this.plugin.settings.AWS_REGION;
-
-      // Only auto-validate if all credentials are present
-      if (accessKeyId && secretAccessKey && region) {
-        // Add a small delay to let the UI render first
-        setTimeout(() => {
-          validateCredentials();
-        }, 100);
-      } else {
-        // Show helpful message if credentials are missing
-        updateStatus(
-          null,
-          "Enter your AWS credentials above, then click 'Test Credentials' to validate",
-        );
-      }
-    };
-
     testButton.addEventListener("click", validateCredentials);
 
-    // Perform automatic validation
-    performAutoValidation();
-
-    // Add CSS for pulse animation
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
+    // Auto-validate on open if configured
+    if (opts.isConfigured()) {
+      setTimeout(() => {
+        validateCredentials();
+      }, 100);
+    } else {
+      updateStatus(null, opts.promptMessage);
+    }
   }
 }

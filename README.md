@@ -12,9 +12,16 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 ## Quick Overview
 
 - **Listen in seconds**: Convert any note—or a highlighted selection—into lifelike speech using your own AWS account for full privacy.
+- **Choose your engine**: Use **AWS Polly** or **ElevenLabs**—both with the same controls, downloads, and content options.
 - **Designed for every device**: Enjoy the same experience on desktop, iOS, and Android with dedicated mobile controls.
 - **Own your audio**: Download MP3 files, auto-embed them back into your note, and keep an offline archive.
 - **Stay in control**: Adjust tempo on the fly, jump forward or back, and watch synthesis progress in real time.
+
+### Choose Your Speech Provider
+
+- Pick **AWS Polly** or **ElevenLabs** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else (tempo, downloads, auto-save, skip URLs, read code blocks) works the same for both.
+- **AWS Polly** uses SSML for natural pauses and emphasis (louder headings/bold, softer italics).
+- **ElevenLabs** uses its expressive models for emphasis and inserts natural `<break>` pauses at headings, paragraphs, and lists. Enter your ElevenLabs API key, choose a model (Multilingual v2 for quality, Flash v2.5 for speed) and a voice, then press **Test Credentials**.
 
 ## Feature Tour
 

@@ -15,22 +15,33 @@ export class TextSpeaker {
   private iconEventHandler: IconEventHandler;
   private ssmlProcessor: MarkdownToSSMLProcessor;
   private spellOutAcronyms: boolean;
+  private readCodeBlocks: boolean;
+  private skipUrls: boolean;
 
   constructor(
     pollyService: AwsPollyService,
     markdownHelper: MarkdownHelper,
     iconEventHandler: IconEventHandler,
-    spellOutAcronyms: boolean = true,
+    spellOutAcronyms: boolean = false,
+    readCodeBlocks: boolean = false,
+    skipUrls: boolean = false,
   ) {
     this.pollyService = pollyService;
     this.markdownHelper = markdownHelper;
     this.iconEventHandler = iconEventHandler;
     this.spellOutAcronyms = spellOutAcronyms;
+    this.readCodeBlocks = readCodeBlocks;
+    this.skipUrls = skipUrls;
 
     // Initialize the new SSML processor
     this.ssmlProcessor = new MarkdownToSSMLProcessor({
       voiceType: "neural", // TODO: Make this configurable from settings
       spellOutAcronyms: this.spellOutAcronyms,
+      // When code blocks should be read, keep them in the spoken output;
+      // otherwise the cleaner replaces them with a short placeholder.
+      removeCodeBlocks: !this.readCodeBlocks,
+      // When enabled, website URLs are stripped from the spoken output.
+      skipUrls: this.skipUrls,
     });
   }
 
@@ -96,6 +107,9 @@ export class TextSpeaker {
         speed,
         activeFilePath || undefined,
       );
+
+      // Auto-save the generated audio to the note if the user enabled it
+      await this.iconEventHandler.maybeAutoDownloadAudio();
     } catch (error) {
       // Check if it was a cancellation
       if (error instanceof Error && error.name === "AbortError") {

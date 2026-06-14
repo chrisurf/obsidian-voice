@@ -148,6 +148,52 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Read Code Blocks")
+      .setDesc(
+        "When enabled, fenced code blocks (such as Mermaid, YAML, or other code) are read aloud. Disable this to skip code blocks and announce them as a short placeholder instead.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.readCodeBlocks)
+          .onChange(async (value) => {
+            this.plugin.settings.readCodeBlocks = value;
+            await this.plugin.saveSettings();
+            // Reinitialize TextSpeaker to apply the new setting
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Skip Website URLs")
+      .setDesc(
+        "When enabled, website URLs (such as https://example.com or www.example.com) are removed and not read aloud. Disabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.skipUrls)
+          .onChange(async (value) => {
+            this.plugin.settings.skipUrls = value;
+            await this.plugin.saveSettings();
+            // Reinitialize TextSpeaker to apply the new setting
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Auto-Save Audio to Note")
+      .setDesc(
+        "When enabled, the generated MP3 is automatically saved next to the note and embedded in it after each successful playback—no need to press the download button. Disabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoDownloadAudio)
+          .onChange(async (value) => {
+            this.plugin.settings.autoDownloadAudio = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
     containerEl.createEl("h2", { text: "AWS" });
 
     new Setting(containerEl)

@@ -38,6 +38,8 @@ export class Voice extends Plugin {
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
+      this.settings.readCodeBlocks,
+      this.settings.skipUrls,
     );
 
     this.hotkeySettings = new HotkeySettings(this, this.pollyService);
@@ -60,6 +62,17 @@ export class Voice extends Plugin {
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
+
+    // One-time migration: versions up to 1.7.3 shipped spellOutAcronyms with a
+    // stale `true` default that got persisted on any settings change. Reset it
+    // to `false` once so acronyms are pronounced naturally by default, then
+    // remember we did so—this way users can still re-enable it deliberately
+    // without it being reset again on the next load.
+    if (!this.settings.acronymDefaultMigrated) {
+      this.settings.spellOutAcronyms = false;
+      this.settings.acronymDefaultMigrated = true;
+      await this.saveSettings();
+    }
   }
 
   async saveSettings() {
@@ -90,6 +103,8 @@ export class Voice extends Plugin {
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
+      this.settings.readCodeBlocks,
+      this.settings.skipUrls,
     );
   }
 

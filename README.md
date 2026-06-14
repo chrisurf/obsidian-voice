@@ -35,6 +35,8 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
   ![voice download](./assets/voice-download.png)
 
+- Prefer a hands-off workflow? Enable **Auto-Save Audio to Note** in the settings to save and embed the MP3 automatically after every successful playback—no manual download click required. It stays off by default.
+
 - Cached audio prevents repeat synth costs until your note content changes.
 
 ### Precision Playback Controls
@@ -54,6 +56,12 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - Adjust speech speed from 0.5x to 2x without leaving the status bar.
 
   ![tempo control](./assets/tempo.png)
+
+### Fine-Tune What Gets Spoken
+
+- **Spell Out Acronyms** – Off by default, so uppercase words like `NASA` or `API` are pronounced naturally. Enable it if you prefer them read letter by letter.
+- **Read Code Blocks** – Off by default, so fenced code blocks (Mermaid, YAML, and other code) are announced with a short placeholder. Enable it to have the code content read aloud.
+- **Skip Website URLs** – Off by default, so URLs are read aloud as written. Enable it to strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact.
 
 ### Built for Mobile
 

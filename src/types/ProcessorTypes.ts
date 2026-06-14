@@ -15,6 +15,7 @@ export interface ProcessorConfig {
   preserveLinkText: boolean;
   removeFrontmatter: boolean;
   removeHTML: boolean;
+  skipUrls: boolean;
 
   // Enhancement options
   addHeadingEmphasis: boolean;
@@ -85,6 +86,7 @@ export interface CleanProcessorOptions {
   preserveLinkText: boolean;
   removeFrontmatter: boolean;
   removeHTML: boolean;
+  skipUrls: boolean;
 }
 
 /**

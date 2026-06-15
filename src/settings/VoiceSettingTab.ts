@@ -24,42 +24,28 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   private addSliderDirectionalIndicators(sliderEl: HTMLElement): void {
-    // Create container for the enhanced slider with indicators
+    // Wrap the slider with directional indicators (styling lives in styles.css)
     const sliderContainer = sliderEl.parentElement;
     if (!sliderContainer) return;
 
-    // Create wrapper div for slider with indicators
-    const sliderWrapper = sliderContainer.createDiv();
-    sliderWrapper.style.display = "flex";
-    sliderWrapper.style.alignItems = "center";
-    sliderWrapper.style.gap = "8px";
-    sliderWrapper.style.width = "100%";
+    const sliderWrapper = sliderContainer.createDiv({
+      cls: "voice-slider-wrapper",
+    });
 
-    // Create left indicator (slower/minus)
-    const leftIndicator = sliderWrapper.createSpan();
-    leftIndicator.style.fontSize = "12px";
-    leftIndicator.style.color = "var(--text-muted)";
-    leftIndicator.style.fontWeight = "500";
-    leftIndicator.style.minWidth = "50px";
-    leftIndicator.style.textAlign = "right";
+    const leftIndicator = sliderWrapper.createSpan({
+      cls: "voice-slider-indicator left",
+    });
     leftIndicator.textContent = "− slower";
     leftIndicator.title = "Move left to decrease speed (slower playback)";
 
     // Move the slider into the wrapper
     sliderWrapper.appendChild(sliderEl);
 
-    // Create right indicator (faster/plus)
-    const rightIndicator = sliderWrapper.createSpan();
-    rightIndicator.style.fontSize = "12px";
-    rightIndicator.style.color = "var(--text-muted)";
-    rightIndicator.style.fontWeight = "500";
-    rightIndicator.style.minWidth = "50px";
-    rightIndicator.style.textAlign = "left";
+    const rightIndicator = sliderWrapper.createSpan({
+      cls: "voice-slider-indicator right",
+    });
     rightIndicator.textContent = "faster +";
     rightIndicator.title = "Move right to increase speed (faster playback)";
-
-    // Style the slider to take up remaining space
-    sliderEl.style.flex = "1";
   }
 
   display(): void {
@@ -176,7 +162,6 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.readCodeBlocks = value;
             await this.plugin.saveSettings();
-            // Reinitialize TextSpeaker to apply the new setting
             this.plugin.reinitializeTextSpeaker();
           }),
       );
@@ -192,7 +177,6 @@ export class VoiceSettingTab extends PluginSettingTab {
           .onChange(async (value) => {
             this.plugin.settings.skipUrls = value;
             await this.plugin.saveSettings();
-            // Reinitialize TextSpeaker to apply the new setting
             this.plugin.reinitializeTextSpeaker();
           }),
       );
@@ -217,21 +201,10 @@ export class VoiceSettingTab extends PluginSettingTab {
     } else {
       this.displayPollySettings(containerEl);
     }
-
-    // Add CSS for pulse animation (used by the validation indicator)
-    const style = document.createElement("style");
-    style.textContent = `
-      @keyframes pulse {
-        0% { opacity: 1; }
-        50% { opacity: 0.5; }
-        100% { opacity: 1; }
-      }
-    `;
-    document.head.appendChild(style);
   }
 
   private displayPollySettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h2", { text: "AWS" });
+    new Setting(containerEl).setName("AWS").setHeading();
 
     new Setting(containerEl)
       .setName("AWS Region")
@@ -316,7 +289,7 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   private displayElevenLabsSettings(containerEl: HTMLElement): void {
-    containerEl.createEl("h2", { text: "ElevenLabs" });
+    new Setting(containerEl).setName("ElevenLabs").setHeading();
 
     new Setting(containerEl)
       .setName("Model")
@@ -397,8 +370,9 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   /**
-   * Render the credential validation panel for the active provider. Uses the
-   * provider factory to build a temporary instance and call validateCredentials.
+   * Render the credential validation panel for the active provider (styling
+   * lives in styles.css). Uses the provider factory to build a temporary
+   * instance and call validateCredentials.
    */
   private renderCredentialValidation(
     containerEl: HTMLElement,
@@ -411,80 +385,54 @@ export class VoiceSettingTab extends PluginSettingTab {
       helpUrl: string;
     },
   ): void {
-    const validationContainer = containerEl.createDiv();
-    validationContainer.style.marginTop = "16px";
-    validationContainer.style.padding = "12px 16px";
-    validationContainer.style.backgroundColor = "var(--background-secondary)";
-    validationContainer.style.borderRadius = "6px";
-    validationContainer.style.border =
-      "1px solid var(--background-modifier-border)";
+    const validationContainer = containerEl.createDiv({
+      cls: "voice-validation-container",
+    });
 
-    const headerRow = validationContainer.createDiv();
-    headerRow.style.display = "flex";
-    headerRow.style.alignItems = "center";
-    headerRow.style.justifyContent = "space-between";
-    headerRow.style.marginBottom = "8px";
+    const headerRow = validationContainer.createDiv({
+      cls: "voice-validation-header-row",
+    });
 
-    const validationHeader = headerRow.createEl("h3", {
+    headerRow.createDiv({
+      cls: "voice-validation-title",
       text: "Credential Validation",
     });
-    validationHeader.style.margin = "0";
-    validationHeader.style.color = "var(--text-normal)";
-    validationHeader.style.fontSize = "13px";
-    validationHeader.style.fontWeight = "600";
 
     const testButton = headerRow.createEl("button", {
+      cls: "voice-validation-test-button",
       text: "Test Credentials",
     });
-    testButton.style.padding = "6px 12px";
-    testButton.style.backgroundColor = "var(--interactive-accent)";
-    testButton.style.color = "var(--text-on-accent)";
-    testButton.style.border = "none";
-    testButton.style.borderRadius = "4px";
-    testButton.style.cursor = "pointer";
-    testButton.style.fontSize = "12px";
-    testButton.style.fontWeight = "500";
 
-    const statusContainer = validationContainer.createDiv();
-    statusContainer.style.display = "flex";
-    statusContainer.style.alignItems = "center";
-    statusContainer.style.gap = "10px";
+    const statusContainer = validationContainer.createDiv({
+      cls: "voice-validation-status",
+    });
 
-    const statusIndicator = statusContainer.createSpan();
-    statusIndicator.style.width = "10px";
-    statusIndicator.style.height = "10px";
-    statusIndicator.style.borderRadius = "50%";
-    statusIndicator.style.backgroundColor = "var(--text-muted)";
-    statusIndicator.style.flexShrink = "0";
+    const statusIndicator = statusContainer.createSpan({
+      cls: "voice-validation-indicator",
+    });
 
-    const statusText = statusContainer.createSpan();
+    const statusText = statusContainer.createSpan({
+      cls: "voice-validation-text",
+    });
     statusText.textContent = `Click 'Test Credentials' to verify your ${opts.providerName} setup`;
-    statusText.style.color = "var(--text-muted)";
-    statusText.style.fontSize = "12px";
-    statusText.style.lineHeight = "1.3";
 
-    const helpContainer = validationContainer.createDiv();
-    helpContainer.style.marginTop = "8px";
-    helpContainer.style.display = "none";
+    const helpContainer = validationContainer.createDiv({
+      cls: "voice-validation-help",
+    });
 
-    const helpTextEl = helpContainer.createSpan();
-    helpTextEl.textContent = opts.helpText;
-    helpTextEl.style.color = "var(--text-muted)";
-    helpTextEl.style.fontSize = "11px";
+    helpContainer.createSpan({
+      cls: "voice-validation-help-text",
+      text: opts.helpText,
+    });
 
-    const helpLink = helpContainer.createEl("a");
-    helpLink.textContent = "View setup guide";
+    const helpLink = helpContainer.createEl("a", {
+      cls: "voice-validation-help-link",
+      text: "View setup guide",
+    });
     helpLink.href = opts.helpUrl;
-    helpLink.style.color = "var(--link-color)";
-    helpLink.style.fontSize = "11px";
-    helpLink.style.textDecoration = "none";
     helpLink.target = "_blank";
-    helpLink.addEventListener("mouseover", () => {
-      helpLink.style.textDecoration = "underline";
-    });
-    helpLink.addEventListener("mouseout", () => {
-      helpLink.style.textDecoration = "none";
-    });
+
+    const stateClasses = ["is-loading", "is-valid", "is-invalid"];
 
     const updateStatus = (
       isValid: boolean | null,
@@ -492,41 +440,37 @@ export class VoiceSettingTab extends PluginSettingTab {
       isLoading = false,
       voiceCount?: number,
     ) => {
+      statusIndicator.removeClass(...stateClasses);
+      statusText.removeClass(...stateClasses);
+
       if (isLoading) {
-        statusIndicator.style.backgroundColor = "var(--color-orange)";
-        statusIndicator.style.animation = "pulse 1.5s ease-in-out infinite";
+        statusIndicator.addClass("is-loading");
+        statusText.addClass("is-loading");
         statusText.textContent = "Testing credentials...";
-        statusText.style.color = "var(--color-orange)";
         testButton.disabled = true;
         testButton.textContent = "Testing...";
-        testButton.style.opacity = "0.6";
-        testButton.style.cursor = "not-allowed";
-        helpContainer.style.display = "none";
-      } else {
-        statusIndicator.style.animation = "none";
-        testButton.disabled = false;
-        testButton.textContent = "Test Credentials";
-        testButton.style.opacity = "1";
-        testButton.style.cursor = "pointer";
+        helpContainer.removeClass("is-visible");
+        return;
+      }
 
-        if (isValid === true) {
-          statusIndicator.style.backgroundColor = "var(--color-green)";
-          statusText.textContent = voiceCount
-            ? `✓ Credentials valid! Found ${voiceCount} voices available.`
-            : "✓ Credentials are valid!";
-          statusText.style.color = "var(--color-green)";
-          helpContainer.style.display = "none";
-        } else if (isValid === false) {
-          statusIndicator.style.backgroundColor = "var(--color-red)";
-          statusText.textContent = `✗ ${message}`;
-          statusText.style.color = "var(--color-red)";
-          helpContainer.style.display = "block";
-        } else {
-          statusIndicator.style.backgroundColor = "var(--text-muted)";
-          statusText.textContent = message;
-          statusText.style.color = "var(--text-muted)";
-          helpContainer.style.display = "none";
-        }
+      testButton.disabled = false;
+      testButton.textContent = "Test Credentials";
+
+      if (isValid === true) {
+        statusIndicator.addClass("is-valid");
+        statusText.addClass("is-valid");
+        statusText.textContent = voiceCount
+          ? `✓ Credentials valid! Found ${voiceCount} voices available.`
+          : "✓ Credentials are valid!";
+        helpContainer.removeClass("is-visible");
+      } else if (isValid === false) {
+        statusIndicator.addClass("is-invalid");
+        statusText.addClass("is-invalid");
+        statusText.textContent = `✗ ${message}`;
+        helpContainer.addClass("is-visible");
+      } else {
+        statusText.textContent = message;
+        helpContainer.removeClass("is-visible");
       }
     };
 
@@ -557,12 +501,12 @@ export class VoiceSettingTab extends PluginSettingTab {
       }
     };
 
-    testButton.addEventListener("click", validateCredentials);
+    testButton.addEventListener("click", () => void validateCredentials());
 
     // Auto-validate on open if configured
     if (opts.isConfigured()) {
-      setTimeout(() => {
-        validateCredentials();
+      activeWindow.setTimeout(() => {
+        void validateCredentials();
       }, 100);
     } else {
       updateStatus(null, opts.promptMessage);

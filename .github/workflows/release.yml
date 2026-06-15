@@ -156,10 +156,11 @@ jobs:
           echo "### What's Changed" >> release_notes.md
           git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md
 
-          # Create GitHub release with required files
+          # Create GitHub release with the supported plugin files only
+          # (versions.json stays in the repo but must not be a release asset)
           gh release create "$TAG" \
             --title="$TAG" \
             --notes-file="release_notes.md" \
-            main.js manifest.json styles.css versions.json
+            main.js manifest.json styles.css
 
           echo "✅ Release created successfully"

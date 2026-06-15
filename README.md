@@ -24,12 +24,12 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
 Pick **AWS Polly** or **ElevenLabs** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else—tempo, downloads, auto-save, and the content toggles—works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-| | **AWS Polly** | **ElevenLabs** |
-| --- | --- | --- |
-| **Voices** | 28 neural voices across 19 languages | 7 premade voices, multilingual models speak 29 languages |
-| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key |
-| **Emphasis** | SSML pauses and emphasis (louder headings/bold, softer italics) | Expressive models with natural `<break>` pauses at headings, paragraphs, and lists |
-| **Models** | Neural engine | Multilingual v2 (quality), Flash v2.5 (fastest), Turbo v2.5 (balanced) |
+|                 | **AWS Polly**                                                   | **ElevenLabs**                                                                     |
+| --------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
+| **Voices**      | 28 neural voices across 19 languages                            | 7 premade voices, multilingual models speak 29 languages                           |
+| **Credentials** | AWS region + Access Key ID & Secret                             | ElevenLabs API key                                                                 |
+| **Emphasis**    | SSML pauses and emphasis (louder headings/bold, softer italics) | Expressive models with natural `<break>` pauses at headings, paragraphs, and lists |
+| **Models**      | Neural engine                                                   | Multilingual v2 (quality), Flash v2.5 (fastest), Turbo v2.5 (balanced)             |
 
 ## Feature Tour
 

@@ -86,8 +86,11 @@ export class MobileControlBar {
     this.downloadIconEl.addClass("voice-hidden"); // Initially hidden
 
     // Rewind button
-    this.createControlButton(controlsWrapper, "rewind", "Rewind", () =>
-      this.pollyService.rewindAudio(),
+    this.createControlButton(
+      controlsWrapper,
+      "rewind",
+      `Rewind ${this.plugin.settings.rewindSeconds} seconds`,
+      () => this.pollyService.rewindAudio(),
     );
 
     // Stop button
@@ -151,7 +154,7 @@ export class MobileControlBar {
     this.createControlButton(
       controlsWrapper,
       "fast-forward",
-      "Fast Forward",
+      `Fast-forward ${this.plugin.settings.forwardSeconds} seconds`,
       () => this.pollyService.fastForwardAudio(),
     );
   }

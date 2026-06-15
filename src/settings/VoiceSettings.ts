@@ -24,9 +24,19 @@ export interface VoiceSettings {
   readCodeBlocks: boolean;
   autoDownloadAudio: boolean;
   skipUrls: boolean;
+  // Playback: how many seconds the rewind/fast-forward controls jump
+  rewindSeconds: number;
+  forwardSeconds: number;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
 }
+
+/**
+ * Bounds and default for the rewind/fast-forward skip interval (seconds)
+ */
+export const MIN_SKIP_SECONDS = 1;
+export const MAX_SKIP_SECONDS = 60;
+export const DEFAULT_SKIP_SECONDS = 3;
 
 export interface VoiceOption {
   id: string;
@@ -115,5 +125,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   readCodeBlocks: false,
   autoDownloadAudio: false,
   skipUrls: false,
+  rewindSeconds: DEFAULT_SKIP_SECONDS,
+  forwardSeconds: DEFAULT_SKIP_SECONDS,
   acronymDefaultMigrated: false,
 };

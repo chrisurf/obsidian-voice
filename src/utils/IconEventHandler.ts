@@ -13,6 +13,8 @@ export class IconEventHandler {
   private ribbonIconEl: HTMLElement;
   private playPauseIconEl: HTMLElement;
   private downloadIconEl: HTMLElement;
+  private rewindIconEl: HTMLElement;
+  private fastForwardIconEl: HTMLElement;
   private speedDisplayEl: HTMLElement;
   private progressBarContainer: HTMLElement;
   private progressBar: HTMLElement;
@@ -129,6 +131,19 @@ export class IconEventHandler {
   }
 
   /**
+   * Refresh the rewind/fast-forward control tooltips to reflect the currently
+   * configured skip intervals.
+   */
+  public updateSkipTooltips(): void {
+    if (this.rewindIconEl) {
+      this.rewindIconEl.title = `Rewind ${this.voice.settings.rewindSeconds} seconds`;
+    }
+    if (this.fastForwardIconEl) {
+      this.fastForwardIconEl.title = `Fast-forward ${this.voice.settings.forwardSeconds} seconds`;
+    }
+  }
+
+  /**
    * Short display name for the current voice (provider-aware). Falls back to
    * the raw voice id when no catalog label is available.
    */
@@ -156,12 +171,12 @@ export class IconEventHandler {
     // Order: rewind, stop, slower, current speed, faster, play, fast-forward
 
     // Rewind
-    this.createStatusBarIcon(
+    this.rewindIconEl = this.createStatusBarIcon(
       "rewind",
       "rewind",
       () => this.pollyService.rewindAudio(),
       false,
-      "Rewind 3 seconds",
+      `Rewind ${this.voice.settings.rewindSeconds} seconds`,
     );
 
     // Stop
@@ -210,12 +225,12 @@ export class IconEventHandler {
     );
 
     // Fast-forward
-    this.createStatusBarIcon(
+    this.fastForwardIconEl = this.createStatusBarIcon(
       "fast-forward",
       "fast-forward",
       () => this.pollyService.fastForwardAudio(),
       false,
-      "Fast-forward 3 seconds",
+      `Fast-forward ${this.voice.settings.forwardSeconds} seconds`,
     );
 
     // Download MP3 (initially hidden)

@@ -1,6 +1,10 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
-import { ELEVENLABS_MODELS } from "./VoiceSettings";
+import {
+  ELEVENLABS_MODELS,
+  MIN_SKIP_SECONDS,
+  MAX_SKIP_SECONDS,
+} from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
 export class VoiceSettingTab extends PluginSettingTab {
@@ -136,6 +140,38 @@ export class VoiceSettingTab extends PluginSettingTab {
 
             // Add directional indicators
             this.addSliderDirectionalIndicators(slider.sliderEl);
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Rewind interval")
+      .setDesc(
+        `How many seconds the rewind control jumps back (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+      )
+      .addSlider((slider) =>
+        slider
+          .setLimits(MIN_SKIP_SECONDS, MAX_SKIP_SECONDS, 1)
+          .setValue(this.plugin.settings.rewindSeconds)
+          .onChange(async (value) => {
+            this.plugin.settings.rewindSeconds = value;
+            await this.plugin.saveSettings();
+            this.plugin.updateSkipIntervals();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Fast-forward interval")
+      .setDesc(
+        `How many seconds the fast-forward control jumps ahead (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+      )
+      .addSlider((slider) =>
+        slider
+          .setLimits(MIN_SKIP_SECONDS, MAX_SKIP_SECONDS, 1)
+          .setValue(this.plugin.settings.forwardSeconds)
+          .onChange(async (value) => {
+            this.plugin.settings.forwardSeconds = value;
+            await this.plugin.saveSettings();
+            this.plugin.updateSkipIntervals();
           }),
       );
 

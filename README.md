@@ -61,6 +61,7 @@ Pick **AWS Polly** or **ElevenLabs** from the **Speech Provider** dropdown in se
   ![status bar controls](./assets/status-bar-complete.png)
 
 - Use rewind/fast-forward controls and on-the-fly tempo changes for quick navigation.
+- Set how far the rewind and fast-forward controls jump—configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
 
 ### Personalize the Voice
 

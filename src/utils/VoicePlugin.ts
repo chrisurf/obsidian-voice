@@ -128,6 +128,17 @@ export class Voice extends Plugin {
     this.iconEventHandler.updateVoiceDisplay();
   }
 
+  /**
+   * Apply the configured rewind/fast-forward skip intervals to the running
+   * provider and refresh the control tooltips. Called when the user changes
+   * the interval in settings (no audio interruption).
+   */
+  public updateSkipIntervals(): void {
+    this.speechProvider.setRewindSeconds(this.settings.rewindSeconds);
+    this.speechProvider.setForwardSeconds(this.settings.forwardSeconds);
+    this.iconEventHandler.updateSkipTooltips();
+  }
+
   public getSpeechProvider(): SpeechProvider {
     return this.speechProvider;
   }

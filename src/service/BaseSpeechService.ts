@@ -14,6 +14,11 @@ import type {
   CredentialValidationResult,
 } from "./SpeechProvider";
 import type { VoiceSettings, VoiceOption } from "../settings/VoiceSettings";
+import {
+  DEFAULT_SKIP_SECONDS,
+  MIN_SKIP_SECONDS,
+  MAX_SKIP_SECONDS,
+} from "../settings/VoiceSettings";
 
 export abstract class BaseSpeechService implements SpeechProvider {
   protected audio: HTMLAudioElement;
@@ -27,6 +32,9 @@ export abstract class BaseSpeechService implements SpeechProvider {
   protected lastGeneratedAudioFilePath: string | null = null;
   // Request lock mechanism - prevents concurrent operations
   protected currentRequestId: string | null = null;
+  // How many seconds the rewind / fast-forward controls jump
+  protected rewindSeconds: number = DEFAULT_SKIP_SECONDS;
+  protected forwardSeconds: number = DEFAULT_SKIP_SECONDS;
 
   constructor(voice: string, speed?: number) {
     this.voice = voice;
@@ -109,7 +117,10 @@ export abstract class BaseSpeechService implements SpeechProvider {
 
   rewindAudio(): void {
     if (this.audio && !isNaN(this.audio.duration)) {
-      this.audio.currentTime = Math.max(0, this.audio.currentTime - 3);
+      this.audio.currentTime = Math.max(
+        0,
+        this.audio.currentTime - this.rewindSeconds,
+      );
     }
   }
 
@@ -117,9 +128,37 @@ export abstract class BaseSpeechService implements SpeechProvider {
     if (this.audio && !isNaN(this.audio.duration)) {
       this.audio.currentTime = Math.min(
         this.audio.duration,
-        this.audio.currentTime + 3,
+        this.audio.currentTime + this.forwardSeconds,
       );
     }
+  }
+
+  // --- Skip interval (rewind / fast-forward) ---
+
+  setRewindSeconds(seconds: number): void {
+    this.rewindSeconds = this.clampSkipSeconds(seconds);
+  }
+
+  setForwardSeconds(seconds: number): void {
+    this.forwardSeconds = this.clampSkipSeconds(seconds);
+  }
+
+  getRewindSeconds(): number {
+    return this.rewindSeconds;
+  }
+
+  getForwardSeconds(): number {
+    return this.forwardSeconds;
+  }
+
+  private clampSkipSeconds(seconds: number): number {
+    if (!Number.isFinite(seconds)) {
+      return DEFAULT_SKIP_SECONDS;
+    }
+    return Math.min(
+      MAX_SKIP_SECONDS,
+      Math.max(MIN_SKIP_SECONDS, Math.round(seconds)),
+    );
   }
 
   // --- Speed ---

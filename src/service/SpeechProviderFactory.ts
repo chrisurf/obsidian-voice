@@ -11,24 +11,32 @@ import { ElevenLabsService } from "./ElevenLabsService";
  * Create the speech provider selected in settings.
  */
 export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
+  let provider: SpeechProvider;
+
   if (settings.TTS_PROVIDER === "elevenlabs") {
-    return new ElevenLabsService(
+    provider = new ElevenLabsService(
       settings.ELEVENLABS_API_KEY,
       settings.ELEVENLABS_VOICE,
       settings.ELEVENLABS_MODEL,
       Number(settings.SPEED),
     );
+  } else {
+    provider = new AwsPollyService(
+      {
+        credentials: {
+          accessKeyId: String(settings.AWS_ACCESS_KEY_ID),
+          secretAccessKey: String(settings.AWS_SECRET_ACCESS_KEY),
+        },
+        region: String(settings.AWS_REGION),
+      },
+      settings.VOICE,
+      Number(settings.SPEED),
+    );
   }
 
-  return new AwsPollyService(
-    {
-      credentials: {
-        accessKeyId: String(settings.AWS_ACCESS_KEY_ID),
-        secretAccessKey: String(settings.AWS_SECRET_ACCESS_KEY),
-      },
-      region: String(settings.AWS_REGION),
-    },
-    settings.VOICE,
-    Number(settings.SPEED),
-  );
+  // Apply playback preferences that aren't part of the constructor
+  provider.setRewindSeconds(settings.rewindSeconds);
+  provider.setForwardSeconds(settings.forwardSeconds);
+
+  return provider;
 }

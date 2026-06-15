@@ -1,12 +1,44 @@
-import * as dotenv from "dotenv";
+import * as fs from "fs";
 import * as path from "path";
 
-// Load test environment variables first
-const testEnvPath = path.join(__dirname, "..", ".env.test");
-dotenv.config({ path: testEnvPath });
+/**
+ * Minimal .env loader (replaces the dotenv dependency for tests).
+ * Mirrors dotenv's default behavior: parse KEY=VALUE lines, ignore comments
+ * and blanks, strip surrounding quotes, and do NOT override variables that are
+ * already set in the environment.
+ */
+function loadEnvFile(filePath: string): void {
+  if (!fs.existsSync(filePath)) {
+    return;
+  }
+  const content = fs.readFileSync(filePath, "utf8");
+  for (const rawLine of content.split("\n")) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) {
+      continue;
+    }
+    const eq = line.indexOf("=");
+    if (eq === -1) {
+      continue;
+    }
+    const key = line.slice(0, eq).trim();
+    if (!key || key in process.env) {
+      continue;
+    }
+    let value = line.slice(eq + 1).trim();
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+    process.env[key] = value;
+  }
+}
 
-// Also load default .env if it exists
-dotenv.config();
+// Load test environment variables first, then any default .env
+loadEnvFile(path.join(__dirname, "..", ".env.test"));
+loadEnvFile(path.join(__dirname, "..", ".env"));
 
 // Set up test environment
 process.env.NODE_ENV = "test";

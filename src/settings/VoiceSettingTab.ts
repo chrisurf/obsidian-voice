@@ -1,6 +1,10 @@
 import { App, PluginSettingTab, Setting } from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
-import { ELEVENLABS_MODELS } from "./VoiceSettings";
+import {
+  ELEVENLABS_MODELS,
+  MIN_SKIP_SECONDS,
+  MAX_SKIP_SECONDS,
+} from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
 export class VoiceSettingTab extends PluginSettingTab {
@@ -21,6 +25,24 @@ export class VoiceSettingTab extends PluginSettingTab {
       const percentage = Math.round((1 - speed) * 100);
       return `${percentage}% slower`;
     }
+  }
+
+  /** Human-readable tempo label, e.g. "1.0× · normal" or "1.3× · 30% faster". */
+  private formatTempoValue(speed: number): string {
+    const rounded = Math.round(speed * 10) / 10;
+    return `${rounded.toFixed(1)}× · ${this.formatSpeedText(rounded)}`;
+  }
+
+  /** Seconds label, e.g. "3s". */
+  private formatSecondsValue(seconds: number): string {
+    return `${seconds}s`;
+  }
+
+  /** Append a live value readout to a slider setting's control row. */
+  private appendSliderValue(setting: Setting, text: string): HTMLElement {
+    const valueEl = setting.controlEl.createSpan({ cls: "voice-slider-value" });
+    valueEl.setText(text);
+    return valueEl;
   }
 
   private addSliderDirectionalIndicators(sliderEl: HTMLElement): void {
@@ -94,50 +116,87 @@ export class VoiceSettingTab extends PluginSettingTab {
         });
       });
 
-    new Setting(containerEl)
+    const tempoSetting = new Setting(containerEl)
       .setName("Tempo")
       .setDesc(
         "Set a preferred reading tempo for pleasant and comfortable audio playback.",
-      )
-      .addSlider((slider) =>
-        slider
-          .setLimits(0.5, 1.9, 0.1)
-          .setValue(
-            this.plugin.settings.SPEED ||
-              this.plugin.getSpeechProvider().getSpeed(),
-          )
-          .onChange(async (value) => {
-            // Round to nearest 0.1 for clean values
-            const roundedValue = Math.round(value * 10) / 10;
-            this.plugin.settings.SPEED = roundedValue;
-            await this.plugin.saveSettings();
-            this.plugin.getSpeechProvider().setSpeed(roundedValue);
-
-            // Update the status bar speed display
-            this.plugin.iconEventHandler.updateSpeedDisplayFromSettings();
-
-            // Update the tooltip text with speed description
-            const speedText = this.formatSpeedText(roundedValue);
-            slider.sliderEl.setAttribute(
-              "title",
-              `${roundedValue}x - ${speedText}`,
-            );
-          })
-          .then((slider) => {
-            // Set initial tooltip text
-            const currentSpeed =
-              this.plugin.settings.SPEED ||
-              this.plugin.getSpeechProvider().getSpeed();
-            const speedText = this.formatSpeedText(currentSpeed);
-            slider.sliderEl.setAttribute(
-              "title",
-              `${currentSpeed}x - ${speedText}`,
-            );
-
-            // Add directional indicators
-            this.addSliderDirectionalIndicators(slider.sliderEl);
-          }),
       );
+    let tempoValueEl: HTMLElement;
+    tempoSetting.addSlider((slider) =>
+      slider
+        .setLimits(0.5, 1.9, 0.1)
+        .setValue(
+          this.plugin.settings.SPEED ||
+            this.plugin.getSpeechProvider().getSpeed(),
+        )
+        .onChange(async (value) => {
+          // Round to nearest 0.1 for clean values
+          const roundedValue = Math.round(value * 10) / 10;
+          this.plugin.settings.SPEED = roundedValue;
+          await this.plugin.saveSettings();
+          this.plugin.getSpeechProvider().setSpeed(roundedValue);
+
+          // Update the status bar speed display
+          this.plugin.iconEventHandler.updateSpeedDisplayFromSettings();
+
+          tempoValueEl.setText(this.formatTempoValue(roundedValue));
+        })
+        .then((slider) => {
+          // Add directional indicators
+          this.addSliderDirectionalIndicators(slider.sliderEl);
+        }),
+    );
+    tempoValueEl = this.appendSliderValue(
+      tempoSetting,
+      this.formatTempoValue(
+        this.plugin.settings.SPEED ||
+          this.plugin.getSpeechProvider().getSpeed(),
+      ),
+    );
+
+    const rewindSetting = new Setting(containerEl)
+      .setName("Rewind interval")
+      .setDesc(
+        `How many seconds the rewind control jumps back (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+      );
+    let rewindValueEl: HTMLElement;
+    rewindSetting.addSlider((slider) =>
+      slider
+        .setLimits(MIN_SKIP_SECONDS, MAX_SKIP_SECONDS, 1)
+        .setValue(this.plugin.settings.rewindSeconds)
+        .onChange(async (value) => {
+          this.plugin.settings.rewindSeconds = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateSkipIntervals();
+          rewindValueEl.setText(this.formatSecondsValue(value));
+        }),
+    );
+    rewindValueEl = this.appendSliderValue(
+      rewindSetting,
+      this.formatSecondsValue(this.plugin.settings.rewindSeconds),
+    );
+
+    const forwardSetting = new Setting(containerEl)
+      .setName("Fast-forward interval")
+      .setDesc(
+        `How many seconds the fast-forward control jumps ahead (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+      );
+    let forwardValueEl: HTMLElement;
+    forwardSetting.addSlider((slider) =>
+      slider
+        .setLimits(MIN_SKIP_SECONDS, MAX_SKIP_SECONDS, 1)
+        .setValue(this.plugin.settings.forwardSeconds)
+        .onChange(async (value) => {
+          this.plugin.settings.forwardSeconds = value;
+          await this.plugin.saveSettings();
+          this.plugin.updateSkipIntervals();
+          forwardValueEl.setText(this.formatSecondsValue(value));
+        }),
+    );
+    forwardValueEl = this.appendSliderValue(
+      forwardSetting,
+      this.formatSecondsValue(this.plugin.settings.forwardSeconds),
+    );
 
     new Setting(containerEl)
       .setName("Spell Out Acronyms")

@@ -43,6 +43,12 @@ export interface SpeechProvider {
   rewindAudio(): void;
   fastForwardAudio(): void;
 
+  // Skip interval (seconds) for rewind / fast-forward
+  setRewindSeconds(seconds: number): void;
+  setForwardSeconds(seconds: number): void;
+  getRewindSeconds(): number;
+  getForwardSeconds(): number;
+
   // Speed
   setSpeed(speed: number): number;
   getSpeed(): number;

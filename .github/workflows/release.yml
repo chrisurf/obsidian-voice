@@ -9,6 +9,10 @@ jobs:
   create_release:
     name: Create Release
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      attestations: write
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -143,6 +147,15 @@ jobs:
 
           echo "✅ Plugin structure is valid"
           echo "artifact_ready=true" >> $GITHUB_ENV
+
+      - name: Attest build provenance for release assets
+        if: env.tag_exists == 'false' && env.artifact_ready == 'true'
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create GitHub release
         if: env.tag_exists == 'false' && env.artifact_ready == 'true'

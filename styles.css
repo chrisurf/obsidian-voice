@@ -30,9 +30,10 @@
   animation: rotateCounterClockwise 2s linear infinite;
 }
 
-/* Utility */
-.voice-hidden {
-  display: none !important;
+/* Utility — doubled class raises specificity to win over component
+   display rules (e.g. flex buttons) via specificity rather than overrides. */
+.voice-hidden.voice-hidden {
+  display: none;
 }
 
 /* Native browser tooltips (title attribute) work best for status bar */
@@ -129,7 +130,7 @@
 
 .voice-progress-bar-container.error .voice-progress-bar {
   background: var(--text-error);
-  width: 100% !important;
+  width: 100%;
 }
 
 /* --- Settings: tempo slider indicators --- */
@@ -137,7 +138,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .voice-slider-wrapper .slider {
@@ -157,6 +159,17 @@
 
 .voice-slider-indicator.right {
   text-align: left;
+}
+
+/* Live numeric readout shown next to a slider */
+.voice-slider-value {
+  margin-left: 10px;
+  min-width: 88px;
+  text-align: right;
+  color: var(--text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
 /* --- Settings: credential validation panel --- */
@@ -306,13 +319,10 @@
   align-items: center;
   gap: 2px;
   background: var(--nav-item-background);
-  border: none !important;
   padding: 1px;
 }
 
 .voice-mobile-control-btn {
-  background: var(--background-primary) !important;
-  background-color: var(--background-primary) !important;
   border: none;
   color: var(--interactive-accent);
   padding: 6px;
@@ -334,10 +344,23 @@
 }
 
 .voice-mobile-control-btn:hover {
-  background: var(--background-modifier-hover) !important;
   color: var(--interactive-accent);
   opacity: 1;
   transform: scale(1.05);
+}
+
+/* Doubled-class overrides: raise specificity above theme button styles
+   (e.g. ".some-container button") through specificity alone. */
+.voice-mobile-speed-group.voice-mobile-speed-group {
+  border: none;
+}
+
+.voice-mobile-control-btn.voice-mobile-control-btn {
+  background-color: var(--background-primary);
+}
+
+.voice-mobile-control-btn.voice-mobile-control-btn:hover {
+  background-color: var(--background-modifier-hover);
 }
 
 .voice-mobile-control-btn:hover svg {
@@ -427,7 +450,7 @@
 
 .voice-mobile-progress-container.error .voice-mobile-progress-bar {
   background: var(--text-error);
-  width: 100% !important;
+  width: 100%;
 }
 
 /* Responsive adjustments for smaller screens */

@@ -46,25 +46,25 @@
     ]
   ],
   "devDependencies": {
-    "@aws-sdk/client-polly": "3.926.0",
-    "@aws-sdk/credential-providers": "3.926.0",
+    "@aws-sdk/client-polly": "3.1068.0",
+    "@aws-sdk/credential-providers": "3.1068.0",
     "@eslint/js": "9.39.1",
     "@types/jest": "29.5.12",
-    "@types/node": "24.10.0",
+    "@types/node": "25.9.3",
     "@types/unist": "^3.0.3",
     "@typescript-eslint/eslint-plugin": "8.46.3",
     "@typescript-eslint/parser": "8.46.3",
-    "builtin-modules": "5.0.0",
-    "dotenv": "17.2.3",
-    "esbuild": "0.25.12",
+    "builtin-modules": "5.2.0",
+    "dotenv": "17.4.2",
+    "esbuild": "0.28.1",
     "eslint": "9.39.1",
     "eslint-plugin-obsidianmd": "^0.3.0",
-    "globals": "16.5.0",
+    "globals": "17.6.0",
     "jest": "29.7.0",
     "jest-environment-node": "29.7.0",
-    "obsidian": "latest",
-    "prettier": "3.6.2",
-    "ts-jest": "29.1.5",
+    "obsidian": "1.13.1",
+    "prettier": "3.8.4",
+    "ts-jest": "29.4.11",
     "tslib": "2.8.1",
     "typescript": "5.9.3",
     "typescript-eslint": "8.46.3"
@@ -74,6 +74,6 @@
     "remark-gfm": "^4.0.1",
     "remark-parse": "^11.0.0",
     "unified": "^11.0.5",
-    "unist-util-visit": "^5.0.0"
+    "unist-util-visit": "^5.1.0"
   }
 }

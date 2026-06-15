@@ -225,9 +225,8 @@ export class AwsPollyService extends BaseSpeechService {
   ): Promise<void> {
     try {
       // Import chunker dynamically to avoid circular dependencies
-      const { chunkSSML, validateChunks } = await import(
-        "../processors/pipeline/SSMLChunker"
-      );
+      const { chunkSSML, validateChunks } =
+        await import("../processors/pipeline/SSMLChunker");
 
       // Check if SSML needs chunking (AWS limit is ~3000 chars of text content)
       if (ssml.length > 2500) {

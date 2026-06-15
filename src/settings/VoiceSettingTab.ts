@@ -68,7 +68,12 @@ export class VoiceSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
-            // Re-render so provider-specific fields and voices update
+            // Re-render so provider-specific fields and voices update.
+            // display() is the settings-tab refresh hook; the 1.13
+            // getSettingDefinitions API cannot express this tab's custom
+            // credential-validation panel and dynamic provider switching, so
+            // we intentionally keep using it.
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
             this.display();
           });
       });
@@ -101,7 +106,6 @@ export class VoiceSettingTab extends PluginSettingTab {
             this.plugin.settings.SPEED ||
               this.plugin.getSpeechProvider().getSpeed(),
           )
-          .setDynamicTooltip()
           .onChange(async (value) => {
             // Round to nearest 0.1 for clean values
             const roundedValue = Math.round(value * 10) / 10;

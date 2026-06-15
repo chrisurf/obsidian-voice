@@ -16,6 +16,7 @@ module.exports = {
   collectCoverageFrom: ["src/**/*.{ts,tsx}", "!src/**/*.d.ts"],
   moduleNameMapper: {
     "^@/(.*)$": "<rootDir>/src/$1",
+    "^obsidian$": "<rootDir>/tests/mocks/obsidian.ts",
   },
   setupFilesAfterEnv: ["<rootDir>/tests/setup.ts"],
   testTimeout: 30000, // 30 seconds for AWS integration tests

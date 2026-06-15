@@ -1,7 +1,8 @@
 import { DEFAULT_SETTINGS, VoiceSettings } from "../settings/VoiceSettings";
 import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
-import { AwsPollyService } from "../service/AwsPollyService";
+import type { SpeechProvider } from "../service/SpeechProvider";
+import { createSpeechProvider } from "../service/SpeechProviderFactory";
 import { Plugin, Platform } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
@@ -10,7 +11,7 @@ import { TextSpeaker } from "./TextSpeaker";
 export class Voice extends Plugin {
   settings: VoiceSettings;
   private markdownHelper: MarkdownHelper;
-  private pollyService: AwsPollyService;
+  private speechProvider: SpeechProvider;
   private hotkeySettings: HotkeySettings;
   public iconEventHandler: IconEventHandler;
   private textSpeaker: TextSpeaker;
@@ -20,21 +21,15 @@ export class Voice extends Plugin {
     this.addSettingTab(new VoiceSettingTab(this.app, this));
     this.markdownHelper = new MarkdownHelper(this.app);
 
-    this.pollyService = new AwsPollyService(
-      {
-        credentials: {
-          accessKeyId: String(this.settings.AWS_ACCESS_KEY_ID),
-          secretAccessKey: String(this.settings.AWS_SECRET_ACCESS_KEY),
-        },
-        region: String(this.settings.AWS_REGION),
-      },
-      this.settings.VOICE,
-      Number(this.settings.SPEED),
-    );
+    this.speechProvider = createSpeechProvider(this.settings);
 
-    this.iconEventHandler = new IconEventHandler(this, this, this.pollyService);
+    this.iconEventHandler = new IconEventHandler(
+      this,
+      this,
+      this.speechProvider,
+    );
     this.textSpeaker = new TextSpeaker(
-      this.pollyService,
+      this.speechProvider,
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
@@ -42,7 +37,7 @@ export class Voice extends Plugin {
       this.settings.skipUrls,
     );
 
-    this.hotkeySettings = new HotkeySettings(this, this.pollyService);
+    this.hotkeySettings = new HotkeySettings(this);
     this.hotkeySettings.initHotkeys();
   }
 
@@ -79,27 +74,37 @@ export class Voice extends Plugin {
     await this.saveData(this.settings);
   }
 
+  /**
+   * Update the active provider's credentials in place (no audio interruption).
+   * Called when the user edits AWS or ElevenLabs credentials in settings.
+   */
+  public reinitializeProviderCredentials(): void {
+    this.speechProvider.updateCredentials(this.settings);
+  }
+
+  /**
+   * Backwards-compatible alias for AWS credential updates.
+   */
   public reinitializePollyService(): void {
-    // Only reinitialize if all credentials are present
-    if (
-      this.settings.AWS_ACCESS_KEY_ID &&
-      this.settings.AWS_SECRET_ACCESS_KEY &&
-      this.settings.AWS_REGION
-    ) {
-      this.pollyService.updateCredentials({
-        credentials: {
-          accessKeyId: String(this.settings.AWS_ACCESS_KEY_ID),
-          secretAccessKey: String(this.settings.AWS_SECRET_ACCESS_KEY),
-        },
-        region: String(this.settings.AWS_REGION),
-      });
-    }
+    this.reinitializeProviderCredentials();
+  }
+
+  /**
+   * Switch the active TTS provider (e.g. Polly ↔ ElevenLabs). Rewires the UI
+   * (status bar, mobile control bar) and orchestration to the new provider.
+   */
+  public reinitializeProvider(): void {
+    // Stop any audio on the outgoing provider before swapping
+    this.speechProvider.stopAudio();
+    this.speechProvider = createSpeechProvider(this.settings);
+    this.iconEventHandler.setProvider(this.speechProvider);
+    this.reinitializeTextSpeaker();
   }
 
   public reinitializeTextSpeaker(): void {
-    // Recreate TextSpeaker with updated settings
+    // Recreate TextSpeaker with updated settings + current provider
     this.textSpeaker = new TextSpeaker(
-      this.pollyService,
+      this.speechProvider,
       this.markdownHelper,
       this.iconEventHandler,
       this.settings.spellOutAcronyms,
@@ -108,7 +113,29 @@ export class Voice extends Plugin {
     );
   }
 
-  public getPollyService(): AwsPollyService {
-    return this.pollyService;
+  /**
+   * Persist the chosen voice to the correct settings key for the active
+   * provider, apply it to the running provider, and refresh the display.
+   */
+  public async persistActiveVoice(voiceId: string): Promise<void> {
+    if (this.settings.TTS_PROVIDER === "elevenlabs") {
+      this.settings.ELEVENLABS_VOICE = voiceId;
+    } else {
+      this.settings.VOICE = voiceId;
+    }
+    await this.saveSettings();
+    this.speechProvider.setVoice(voiceId);
+    this.iconEventHandler.updateVoiceDisplay();
+  }
+
+  public getSpeechProvider(): SpeechProvider {
+    return this.speechProvider;
+  }
+
+  /**
+   * @deprecated Use getSpeechProvider() instead.
+   */
+  public getPollyService(): SpeechProvider {
+    return this.speechProvider;
   }
 }

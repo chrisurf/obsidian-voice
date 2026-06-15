@@ -1,9 +1,25 @@
+/**
+ * Supported text-to-speech providers
+ */
+export type TtsProvider = "polly" | "elevenlabs";
+
 export interface VoiceSettings {
+  // Active text-to-speech provider
+  TTS_PROVIDER: TtsProvider;
+
+  // AWS Polly
   VOICE: string;
   SPEED: number;
   AWS_REGION: string;
   AWS_ACCESS_KEY_ID: string;
   AWS_SECRET_ACCESS_KEY: string;
+
+  // ElevenLabs
+  ELEVENLABS_API_KEY: string;
+  ELEVENLABS_VOICE: string;
+  ELEVENLABS_MODEL: string;
+
+  // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
   autoDownloadAudio: boolean;
@@ -16,6 +32,11 @@ export interface VoiceOption {
   id: string;
   label: string;
   lang: string;
+}
+
+export interface ModelOption {
+  id: string;
+  label: string;
 }
 
 export const VOICES: VoiceOption[] = [
@@ -49,12 +70,47 @@ export const VOICES: VoiceOption[] = [
   { id: "Zhiyu", label: "Zhiyu (Mandarin)", lang: "cmn-CN" },
 ];
 
+/**
+ * ElevenLabs models selectable in the settings.
+ * Default is multilingual_v2 (best quality, 29 languages, supports breaks).
+ */
+export const ELEVENLABS_MODELS: ModelOption[] = [
+  { id: "eleven_multilingual_v2", label: "Multilingual v2 (quality)" },
+  { id: "eleven_flash_v2_5", label: "Flash v2.5 (fastest)" },
+  { id: "eleven_turbo_v2_5", label: "Turbo v2.5 (balanced)" },
+];
+
+/**
+ * Curated list of ElevenLabs premade voices.
+ *
+ * The `id` is the ElevenLabs voice_id. These premade ids have historically
+ * been stable; users can also see/validate their account voices via the
+ * settings "Test Credentials" action. The `lang` is informational only — the
+ * multilingual model speaks many languages regardless of the voice.
+ */
+export const ELEVENLABS_VOICES: VoiceOption[] = [
+  { id: "21m00Tcm4TlvDq8ikWAM", label: "Rachel (Female)", lang: "en-US" },
+  { id: "EXAVITQu4vr4xnSDxMaL", label: "Bella (Female)", lang: "en-US" },
+  { id: "AZnzlk1XvdvUeBnXmlld", label: "Domi (Female)", lang: "en-US" },
+  { id: "pNInz6obpgDQGcFmaJgB", label: "Adam (Male)", lang: "en-US" },
+  { id: "ErXwobaYiN019PkySvjV", label: "Antoni (Male)", lang: "en-US" },
+  { id: "TxGEqnHWrfWFTfGW9XjX", label: "Josh (Male)", lang: "en-US" },
+  { id: "yoZ06aMxZJJ28mfd3POQ", label: "Sam (Male)", lang: "en-US" },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
+  TTS_PROVIDER: "polly",
+
   VOICE: "Stephen",
   SPEED: 1.0,
   AWS_REGION: "eu-central-1",
   AWS_ACCESS_KEY_ID: "",
   AWS_SECRET_ACCESS_KEY: "",
+
+  ELEVENLABS_API_KEY: "",
+  ELEVENLABS_VOICE: "21m00Tcm4TlvDq8ikWAM",
+  ELEVENLABS_MODEL: "eleven_multilingual_v2",
+
   spellOutAcronyms: false,
   readCodeBlocks: false,
   autoDownloadAudio: false,

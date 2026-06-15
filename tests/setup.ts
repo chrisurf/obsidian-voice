@@ -34,6 +34,14 @@ class MockAudio {
 // Make Audio available globally for tests
 (global as any).Audio = MockAudio;
 
+// Mock object URL helpers used when wiring audio blobs to the audio element
+if (!(global as any).URL.createObjectURL) {
+  (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");
+}
+if (!(global as any).URL.revokeObjectURL) {
+  (global as any).URL.revokeObjectURL = jest.fn();
+}
+
 // Global test timeout
 jest.setTimeout(30000);
 

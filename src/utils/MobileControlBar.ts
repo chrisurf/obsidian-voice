@@ -97,12 +97,12 @@ export class MobileControlBar {
         this.resetToPlayState();
         this.hideProgressBar();
         // Hide overlay after stop
-        activeWindow.setTimeout(() => this.hide(), 3000);
+        window.setTimeout(() => this.hide(), 3000);
         return; // EXIT - don't do anything else
       }
       this.pollyService.stopAudio();
       // Hide overlay after stop
-      activeWindow.setTimeout(() => this.hide(), 3000);
+      window.setTimeout(() => this.hide(), 3000);
     });
 
     // Speed controls group
@@ -300,7 +300,7 @@ export class MobileControlBar {
     this.hideProgressBar();
 
     // Auto-hide after 3 seconds when paused, but only if not playing
-    activeWindow.setTimeout(() => {
+    window.setTimeout(() => {
       if (!this.pollyService.isPlaying()) {
         this.hide();
       }
@@ -318,7 +318,7 @@ export class MobileControlBar {
     }
     this.hideProgressBar();
     // Hide overlay when audio ends
-    activeWindow.setTimeout(() => this.hide(), 3000);
+    window.setTimeout(() => this.hide(), 3000);
   }
 
   private handleError(): void {
@@ -326,7 +326,7 @@ export class MobileControlBar {
     this.resetToPlayState();
 
     // Auto-hide error after 3 seconds
-    activeWindow.setTimeout(() => {
+    window.setTimeout(() => {
       this.hideProgressBar();
     }, 3000);
   }

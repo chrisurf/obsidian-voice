@@ -12,7 +12,7 @@
  */
 
 import { visit, SKIP } from "unist-util-visit";
-import type { Root, Link, Code, InlineCode, Html, Text } from "mdast";
+import type { Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
 
@@ -28,7 +28,7 @@ export function cleanProcessor(options: CleanProcessorOptions) {
 
       // Handle fenced code blocks
       if (node.type === "code") {
-        const codeNode = node as Code;
+        const codeNode = node;
         // When code blocks should be read, speak their raw content;
         // otherwise announce them with a short placeholder.
         let codeValue = codeNode.value;
@@ -45,7 +45,7 @@ export function cleanProcessor(options: CleanProcessorOptions) {
       // Remove inline code backticks but keep the text content so it is
       // never silently dropped by the serializer
       if (node.type === "inlineCode") {
-        const inlineCodeNode = node as InlineCode;
+        const inlineCodeNode = node;
         const textNode: Text = {
           type: "text",
           value: options.skipUrls
@@ -64,7 +64,7 @@ export function cleanProcessor(options: CleanProcessorOptions) {
 
       // Transform links: keep only the text, remove URL
       if (options.preserveLinkText && node.type === "link") {
-        const linkNode = node as Link;
+        const linkNode = node;
         // Replace link with its children (the link text)
         if (linkNode.children && linkNode.children.length > 0) {
           (parent as Parent).children.splice(index, 1, ...linkNode.children);
@@ -87,7 +87,7 @@ export function cleanProcessor(options: CleanProcessorOptions) {
 
       // Handle HTML: strip tags but keep text content if any
       if (options.removeHTML && node.type === "html") {
-        const htmlNode = node as Html;
+        const htmlNode = node;
         // Try to extract text from simple HTML tags
         const textContent = extractTextFromHTML(htmlNode.value);
         if (textContent) {

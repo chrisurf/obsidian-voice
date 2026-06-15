@@ -111,6 +111,11 @@ jobs:
           echo "Installing dependencies with yarn"
           yarn install --frozen-lockfile
 
+      - name: Lint (Obsidian guidelines)
+        run: |
+          echo "Enforcing Obsidian plugin guidelines (eslint-plugin-obsidianmd)"
+          yarn lint:check
+
       - name: Build plugin artifacts
         run: |
           echo "Building Obsidian plugin"

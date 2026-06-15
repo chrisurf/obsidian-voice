@@ -505,7 +505,7 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     // Auto-validate on open if configured
     if (opts.isConfigured()) {
-      activeWindow.setTimeout(() => {
+      window.setTimeout(() => {
         void validateCredentials();
       }, 100);
     } else {

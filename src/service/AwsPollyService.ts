@@ -248,7 +248,7 @@ export class AwsPollyService extends BaseSpeechService {
       } else {
         // Single chunk - use existing flow
         if (ssml === this.synthesizeInput.Text && !this.voiceChanged) {
-          this.playAudio(speed);
+          void this.playAudio(speed);
         } else {
           this.synthesizeInput.Text = ssml;
           await this.callPollySSML(ssml, speed, filePath);
@@ -298,7 +298,7 @@ export class AwsPollyService extends BaseSpeechService {
     }
     this.audio.src = URL.createObjectURL(finalBlob);
     this.reportProgress(1, 1);
-    this.playAudio(speed);
+    void this.playAudio(speed);
   }
 
   /**
@@ -346,7 +346,7 @@ export class AwsPollyService extends BaseSpeechService {
 
       while (true) {
         if (this.abortController?.signal.aborted) {
-          reader.cancel();
+          void reader.cancel();
           throw new Error("AbortError");
         }
 
@@ -441,7 +441,7 @@ export class AwsPollyService extends BaseSpeechService {
 
           while (true) {
             if (this.abortController?.signal.aborted) {
-              reader.cancel();
+              void reader.cancel();
               throw new Error("AbortError");
             }
 
@@ -470,7 +470,7 @@ export class AwsPollyService extends BaseSpeechService {
           }
           this.audio.src = URL.createObjectURL(audioBlob);
           this.reportProgress(1, 1);
-          this.playAudio(speed);
+          void this.playAudio(speed);
         }
       }
     } finally {

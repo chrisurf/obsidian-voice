@@ -13,16 +13,7 @@
  */
 
 import { visit } from "unist-util-visit";
-import type {
-  Root,
-  Heading,
-  Strong,
-  Emphasis,
-  Paragraph,
-  ListItem,
-  List,
-  Text,
-} from "mdast";
+import type { Root, List, Text } from "mdast";
 import type { Node, Parent } from "unist";
 import type { EnhanceProcessorOptions } from "../../types/ProcessorTypes";
 import type {
@@ -68,7 +59,7 @@ const ACRONYM_PATTERN = /\b[A-Z]{2,}\b/g;
 /**
  * Pattern to detect numbers (including formatted numbers)
  */
-const NUMBER_PATTERN = /\b\d+([,\.]\d+)*\b/g;
+const NUMBER_PATTERN = /\b\d+([,.]\d+)*\b/g;
 
 /**
  * Create an enhance processor plugin
@@ -89,7 +80,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
 
       // Handle headings - add prosody and breaks
       if (options.addHeadingEmphasis && node.type === "heading") {
-        const heading = node as Heading;
+        const heading = node;
         const breakTime = options.headingBreakTimes[heading.depth - 1] || 400;
 
         // Wrap heading content in prosody
@@ -122,7 +113,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
 
       // Handle bold text - add prosody
       if (node.type === "strong") {
-        const strong = node as Strong;
+        const strong = node;
         const prosodyNode: SSMLProsody = {
           type: "ssmlProsody",
           children: strong.children,
@@ -135,7 +126,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
 
       // Handle italic text - add prosody
       if (node.type === "emphasis") {
-        const emphasis = node as Emphasis;
+        const emphasis = node;
         const prosodyNode: SSMLProsody = {
           type: "ssmlProsody",
           children: emphasis.children,
@@ -162,7 +153,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
 
       // Handle lists - track current list
       if (node.type === "list") {
-        currentList = node as List;
+        currentList = node;
         listItemIndex = 0;
       }
 
@@ -185,12 +176,12 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
         // If ordered list, prepend ordinal
         if (currentList && currentList.ordered) {
           const ordinal = getOrdinalText(listItemIndex);
-          const listItem = node as ListItem;
+          const listItem = node;
           if (
             listItem.children.length > 0 &&
             listItem.children[0].type === "paragraph"
           ) {
-            const para = listItem.children[0] as Paragraph;
+            const para = listItem.children[0];
             const ordinalText: Text = {
               type: "text",
               value: `${ordinal}, `,
@@ -202,7 +193,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
 
       // Handle text nodes - enhance with abbreviations, acronyms, numbers
       if (node.type === "text") {
-        const textNode = node as Text;
+        const textNode = node;
         const newNodes = enhanceText(textNode, options);
         if (newNodes.length > 1) {
           // Schedule replacement with multiple nodes

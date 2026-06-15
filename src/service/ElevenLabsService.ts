@@ -248,9 +248,11 @@ export class ElevenLabsService extends BaseSpeechService {
         continue;
       }
 
-      // Paragraph too long: split into sentences.
+      // Paragraph too long: split into sentences. Avoid regex lookbehind
+      // (unsupported on iOS < 16.4) by matching sentence runs incl. their
+      // terminator instead.
       flush();
-      const sentences = paragraph.split(/(?<=[.!?])\s+/);
+      const sentences = paragraph.match(/[^.!?]+[.!?]*\s*/g) ?? [paragraph];
       for (const sentence of sentences) {
         if (sentence.length <= maxLen) {
           addPiece(sentence, " ");

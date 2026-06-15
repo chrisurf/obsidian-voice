@@ -232,7 +232,7 @@ export class IconEventHandler {
     this.addVoiceControlsSeparator();
 
     // Set initial speed display
-    activeWindow.setTimeout(() => {
+    window.setTimeout(() => {
       this.updateSpeedDisplay();
     }, 100);
   }
@@ -493,7 +493,7 @@ export class IconEventHandler {
     new Notice(`🔊 Voice Plugin: ${errorMessage}`, 5000);
 
     // Auto-hide error after 3 seconds
-    activeWindow.setTimeout(() => {
+    window.setTimeout(() => {
       this.hideProgressBar();
     }, 3000);
   }

@@ -18,7 +18,7 @@ jobs:
       - name: Set up Node.js environment
         uses: actions/setup-node@v4
         with:
-          node-version: "18.x"
+          node-version: "20"
           cache: "yarn"
 
       - name: Retrieve last tag
@@ -111,6 +111,11 @@ jobs:
           echo "Installing dependencies with yarn"
           yarn install --frozen-lockfile
 
+      - name: Lint (Obsidian guidelines)
+        run: |
+          echo "Enforcing Obsidian plugin guidelines (eslint-plugin-obsidianmd)"
+          yarn lint:check
+
       - name: Build plugin artifacts
         run: |
           echo "Building Obsidian plugin"
@@ -156,10 +161,11 @@ jobs:
           echo "### What's Changed" >> release_notes.md
           git log --pretty=format:"- %s" $(git describe --tags --abbrev=0 HEAD^)..HEAD >> release_notes.md
 
-          # Create GitHub release with required files
+          # Create GitHub release with the supported plugin files only
+          # (versions.json stays in the repo but must not be a release asset)
           gh release create "$TAG" \
             --title="$TAG" \
             --notes-file="release_notes.md" \
-            main.js manifest.json styles.css versions.json
+            main.js manifest.json styles.css
 
           echo "✅ Release created successfully"

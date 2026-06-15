@@ -29,8 +29,6 @@ export class IconEventHandler {
     this.pollyService = pollyService;
     this.audioFileManager = new AudioFileManager(plugin.app);
 
-    this.addSpeedControlStyles();
-    this.addProgressBarStyles();
     this.initStatusBarItem();
     this.initRibbonIcon();
 
@@ -100,13 +98,9 @@ export class IconEventHandler {
   }
 
   private createVoiceSwitcher(): void {
-    this.voiceDisplayEl = this.statusBarItem.createEl("span", {
+    this.voiceDisplayEl = this.statusBarItem.createSpan({
       cls: "voice-statusbar-voice-switcher",
     });
-    this.voiceDisplayEl.style.marginRight = "10px";
-    this.voiceDisplayEl.style.cursor = "pointer";
-    this.voiceDisplayEl.style.fontWeight = "bold";
-    this.voiceDisplayEl.style.fontSize = "0.9em";
     this.voiceDisplayEl.setAttribute("aria-label", "Change Voice");
     this.voiceDisplayEl.setAttribute("aria-label-position", "top");
 
@@ -120,9 +114,7 @@ export class IconEventHandler {
           item
             .setTitle(voice.label)
             .setChecked(voice.id === this.pollyService.getVoice())
-            .onClick(async () => {
-              await this.voice.persistActiveVoice(voice.id);
-            }),
+            .onClick(() => void this.voice.persistActiveVoice(voice.id)),
         );
       });
 
@@ -211,7 +203,7 @@ export class IconEventHandler {
           this.playPauseIconEl.addClass("rotating-icon");
           setIcon(this.playPauseIconEl, "refresh-ccw");
         }
-        this.voice.speakText();
+        void this.voice.speakText();
       },
       true,
       "Play / Pause",
@@ -230,17 +222,17 @@ export class IconEventHandler {
     this.downloadIconEl = this.createStatusBarIcon(
       "download",
       "download-audio",
-      () => this.handleDownloadAudio(),
+      () => void this.handleDownloadAudio(),
       false,
       "Download audio as MP3",
     );
-    this.downloadIconEl.style.display = "none"; // Initially hidden
+    this.downloadIconEl.addClass("voice-hidden"); // Initially hidden
 
     // Add separator after all voice controls to separate from other plugins
     this.addVoiceControlsSeparator();
 
     // Set initial speed display
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.updateSpeedDisplay();
     }, 100);
   }
@@ -252,10 +244,9 @@ export class IconEventHandler {
     isPlayPauseIcon: boolean = false,
     tooltip?: string,
   ): HTMLElement {
-    const iconEl = this.statusBarItem.createEl("span", {
+    const iconEl = this.statusBarItem.createSpan({
       cls: "status-bar-icon " + cls,
     });
-    iconEl.style.marginRight = "5px";
     setIcon(iconEl, icon);
     iconEl.addEventListener("click", onClick);
 
@@ -292,7 +283,7 @@ export class IconEventHandler {
         if (!this.pollyService.isPlaying()) {
           this.ribbonIconHandler();
         }
-        this.voice.speakText();
+        void this.voice.speakText();
       },
     );
     this.initializeEventListeners();
@@ -392,16 +383,9 @@ export class IconEventHandler {
     );
 
     // Add speed display
-    this.speedDisplayEl = this.statusBarItem.createEl("span", {
+    this.speedDisplayEl = this.statusBarItem.createSpan({
       cls: "status-bar-speed-display",
     });
-    this.speedDisplayEl.style.marginLeft = "4px";
-    this.speedDisplayEl.style.marginRight = "4px";
-    this.speedDisplayEl.style.minWidth = "30px";
-    this.speedDisplayEl.style.textAlign = "center";
-    this.speedDisplayEl.style.fontSize = "11px";
-    this.speedDisplayEl.style.fontWeight = "500";
-    this.speedDisplayEl.style.color = "var(--text-normal)";
     this.updateSpeedDisplay();
 
     // Add increase speed button (faster)
@@ -429,7 +413,7 @@ export class IconEventHandler {
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);
       this.voice.settings.SPEED = newSpeed;
-      this.voice.saveSettings();
+      void this.voice.saveSettings();
       this.updateSpeedDisplay();
     }
   }
@@ -441,111 +425,25 @@ export class IconEventHandler {
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);
       this.voice.settings.SPEED = newSpeed;
-      this.voice.saveSettings();
+      void this.voice.saveSettings();
       this.updateSpeedDisplay();
     }
   }
 
   private addVoiceControlsSeparator(): void {
     // Add separator after all voice controls to separate from other plugins
-    const separator = this.statusBarItem.createEl("span", {
+    const separator = this.statusBarItem.createSpan({
       cls: "status-bar-separator",
     });
-    separator.style.marginLeft = "8px";
-    separator.style.marginRight = "8px";
-    separator.style.color = "var(--text-muted)";
     separator.textContent = "|";
   }
 
-  private addSpeedControlStyles(): void {
-    // Check if styles already added
-    if (document.getElementById("voice-speed-control-styles")) return;
-
-    const style = document.createElement("style");
-    style.id = "voice-speed-control-styles";
-    style.textContent = `
-      .status-bar-speed-display {
-        background: var(--background-modifier-hover);
-        border-radius: 3px;
-        padding: 2px 6px;
-        font-variant-numeric: tabular-nums;
-        transition: background-color 0.2s ease;
-      }
-      
-      .status-bar-speed-display:hover {
-        background: var(--background-modifier-active-hover);
-      }
-      
-      .status-bar-icon.speed-decrease,
-      .status-bar-icon.speed-increase {
-        opacity: 0.8;
-        transition: opacity 0.2s ease, transform 0.1s ease;
-      }
-      
-      .status-bar-icon.speed-decrease:hover,
-      .status-bar-icon.speed-increase:hover {
-        opacity: 1;
-        transform: scale(1.1);
-      }
-      
-      .status-bar-icon.speed-decrease:active,
-      .status-bar-icon.speed-increase:active {
-        transform: scale(0.95);
-      }
-      
-      .status-bar-separator {
-        opacity: 0.3;
-        user-select: none;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
-  private addProgressBarStyles(): void {
-    const style = document.createElement("style");
-    style.textContent = `
-      .voice-progress-bar-container {
-        display: none;
-        width: 100px;
-        height: 4px;
-        background: var(--background-modifier-border);
-        border-radius: 2px;
-        margin: 0 8px;
-        overflow: hidden;
-        position: relative;
-        align-self: center;
-      }
-      
-      .voice-progress-bar {
-        height: 100%;
-        width: 0%;
-        background: var(--interactive-accent);
-        border-radius: 2px;
-        transition: width 0.3s ease, background-color 0.3s ease;
-      }
-      
-      .voice-progress-bar-container.visible {
-        display: block;
-      }
-      
-      .voice-progress-bar-container.error {
-        background: var(--background-modifier-error);
-      }
-      
-      .voice-progress-bar-container.error .voice-progress-bar {
-        background: var(--text-error);
-        width: 100% !important;
-      }
-    `;
-    document.head.appendChild(style);
-  }
-
   private createProgressBar(): void {
-    this.progressBarContainer = this.statusBarItem.createEl("div", {
+    this.progressBarContainer = this.statusBarItem.createDiv({
       cls: "voice-progress-bar-container",
     });
 
-    this.progressBar = this.progressBarContainer.createEl("div", {
+    this.progressBar = this.progressBarContainer.createDiv({
       cls: "voice-progress-bar",
     });
 
@@ -580,7 +478,7 @@ export class IconEventHandler {
   private updateProgressBar(progress: number): void {
     if (this.progressBar && !this.isErrorState) {
       const percentage = Math.min(100, Math.max(0, progress * 100));
-      this.progressBar.style.width = `${percentage}%`;
+      this.progressBar.setCssProps({ "--voice-progress": `${percentage}%` });
     }
   }
 
@@ -595,7 +493,7 @@ export class IconEventHandler {
     new Notice(`🔊 Voice Plugin: ${errorMessage}`, 5000);
 
     // Auto-hide error after 3 seconds
-    setTimeout(() => {
+    window.setTimeout(() => {
       this.hideProgressBar();
     }, 3000);
   }
@@ -621,7 +519,7 @@ export class IconEventHandler {
    */
   private showDownloadButton(): void {
     if (this.downloadIconEl) {
-      this.downloadIconEl.style.display = "";
+      this.downloadIconEl.removeClass("voice-hidden");
     }
   }
 
@@ -630,7 +528,7 @@ export class IconEventHandler {
    */
   private hideDownloadButton(): void {
     if (this.downloadIconEl) {
-      this.downloadIconEl.style.display = "none";
+      this.downloadIconEl.addClass("voice-hidden");
     }
   }
 

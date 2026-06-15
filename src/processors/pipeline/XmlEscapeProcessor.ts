@@ -6,7 +6,7 @@
  */
 
 import { visit } from "unist-util-visit";
-import type { Root, Text } from "mdast";
+import type { Root } from "mdast";
 
 /**
  * XML entities that need escaping
@@ -32,7 +32,7 @@ export function escapeXml(text: string): string {
 export function xmlEscapeProcessor() {
   return function transformer(tree: Root): void {
     visit(tree, "text", (node) => {
-      const textNode = node as Text;
+      const textNode = node;
       textNode.value = escapeXml(textNode.value);
     });
   };

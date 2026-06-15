@@ -71,7 +71,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
     }
     this.audio.src = URL.createObjectURL(blob);
     this.reportProgress(1, 1);
-    this.playAudio(speed);
+    void this.playAudio(speed);
   }
 
   // --- Playback controls ---
@@ -87,7 +87,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
     }
 
     this.audio.playbackRate = fSpeed;
-    this.audio.play();
+    void this.audio.play();
   }
 
   pauseAudio(): void {

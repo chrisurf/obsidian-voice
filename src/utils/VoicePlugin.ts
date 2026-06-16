@@ -3,7 +3,7 @@ import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
-import { Plugin, Platform } from "obsidian";
+import { Plugin, Platform, Notice } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
@@ -139,6 +139,22 @@ export class Voice extends Plugin {
     this.speechProvider.setRewindSeconds(this.settings.rewindSeconds);
     this.speechProvider.setForwardSeconds(this.settings.forwardSeconds);
     this.iconEventHandler.updateSkipTooltips();
+  }
+
+  /**
+   * Switch to the next voice in the active provider's catalog (wraps around).
+   * Backs the "Switch to the next voice" command.
+   */
+  public async cycleVoice(): Promise<void> {
+    const options = this.speechProvider.getVoiceOptions();
+    if (options.length === 0) {
+      return;
+    }
+    const currentId = this.speechProvider.getVoice();
+    const currentIndex = options.findIndex((v) => v.id === currentId);
+    const next = options[(currentIndex + 1) % options.length];
+    await this.persistActiveVoice(next.id);
+    new Notice(`Voice: ${next.label}`);
   }
 
   public getSpeechProvider(): SpeechProvider {

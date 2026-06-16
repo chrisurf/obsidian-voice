@@ -109,7 +109,7 @@ These content toggles apply to every provider and are all **off by default**:
 
 ### Hands-Free Shortcuts
 
-- Assign hotkeys to start, stop, pause, rewind, fast-forward, or change tempo without leaving the keyboard.
+- Assign hotkeys to start, stop, pause, rewind, fast-forward, increase/decrease speed, change tempo, save the audio to the note, or switch to the next voice—all without leaving the keyboard.
 
   ![hotkeys](./assets/hotkeys.png)
 

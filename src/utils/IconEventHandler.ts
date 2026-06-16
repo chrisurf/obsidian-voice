@@ -421,7 +421,7 @@ export class IconEventHandler {
     }
   }
 
-  private decreaseSpeed(): void {
+  public decreaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
     const newSpeed = Math.max(0.5, Math.round((currentSpeed - 0.1) * 10) / 10);
 
@@ -433,7 +433,7 @@ export class IconEventHandler {
     }
   }
 
-  private increaseSpeed(): void {
+  public increaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
     const newSpeed = Math.min(1.9, Math.round((currentSpeed + 0.1) * 10) / 10);
 
@@ -591,10 +591,10 @@ export class IconEventHandler {
   }
 
   /**
-   * Handle download audio button click
-   * Retrieves cached audio blob and saves it as MP3 file
+   * Handle download audio button click (also exposed as a command).
+   * Retrieves cached audio blob and saves it as MP3 file.
    */
-  private async handleDownloadAudio(): Promise<void> {
+  public async handleDownloadAudio(): Promise<void> {
     try {
       // Get current file path for validation
       const activeFile = this.plugin.app.workspace.getActiveFile();

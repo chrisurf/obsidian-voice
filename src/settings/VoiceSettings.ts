@@ -1,7 +1,7 @@
 /**
  * Supported text-to-speech providers
  */
-export type TtsProvider = "polly" | "elevenlabs";
+export type TtsProvider = "polly" | "elevenlabs" | "google";
 
 export interface VoiceSettings {
   // Active text-to-speech provider
@@ -18,6 +18,10 @@ export interface VoiceSettings {
   ELEVENLABS_API_KEY: string;
   ELEVENLABS_VOICE: string;
   ELEVENLABS_MODEL: string;
+
+  // Google Cloud Text-to-Speech
+  GOOGLE_API_KEY: string;
+  GOOGLE_VOICE: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -108,6 +112,63 @@ export const ELEVENLABS_VOICES: VoiceOption[] = [
   { id: "yoZ06aMxZJJ28mfd3POQ", label: "Sam (Male)", lang: "en-US" },
 ];
 
+/**
+ * Curated list of Google Cloud Text-to-Speech voices.
+ *
+ * The `id` is the Google voice `name` (e.g. "en-US-Neural2-C"); `lang` is the
+ * BCP-47 languageCode (the name's first two segments). Only Neural2/WaveNet
+ * tiers are listed — they all support SSML (prosody/breaks), unlike
+ * Chirp/Journey voices. Users can verify availability via "Test Credentials".
+ */
+export const GOOGLE_VOICES: VoiceOption[] = [
+  {
+    id: "en-US-Neural2-C",
+    label: "Neural2 C (American, Female)",
+    lang: "en-US",
+  },
+  { id: "en-US-Neural2-D", label: "Neural2 D (American, Male)", lang: "en-US" },
+  {
+    id: "en-US-Neural2-F",
+    label: "Neural2 F (American, Female)",
+    lang: "en-US",
+  },
+  { id: "en-US-Wavenet-D", label: "WaveNet D (American, Male)", lang: "en-US" },
+  {
+    id: "en-GB-Neural2-A",
+    label: "Neural2 A (British, Female)",
+    lang: "en-GB",
+  },
+  { id: "en-GB-Neural2-B", label: "Neural2 B (British, Male)", lang: "en-GB" },
+  { id: "de-DE-Neural2-A", label: "Neural2 A (German, Female)", lang: "de-DE" },
+  { id: "de-DE-Neural2-B", label: "Neural2 B (German, Male)", lang: "de-DE" },
+  { id: "fr-FR-Neural2-A", label: "Neural2 A (French, Female)", lang: "fr-FR" },
+  { id: "fr-FR-Neural2-B", label: "Neural2 B (French, Male)", lang: "fr-FR" },
+  {
+    id: "es-ES-Neural2-A",
+    label: "Neural2 A (Spanish, Female)",
+    lang: "es-ES",
+  },
+  { id: "es-ES-Neural2-B", label: "Neural2 B (Spanish, Male)", lang: "es-ES" },
+  {
+    id: "it-IT-Neural2-A",
+    label: "Neural2 A (Italian, Female)",
+    lang: "it-IT",
+  },
+  { id: "it-IT-Neural2-C", label: "Neural2 C (Italian, Male)", lang: "it-IT" },
+  {
+    id: "pt-BR-Neural2-A",
+    label: "Neural2 A (Portuguese, Brazilian)",
+    lang: "pt-BR",
+  },
+  { id: "nl-NL-Wavenet-A", label: "WaveNet A (Dutch, Female)", lang: "nl-NL" },
+  {
+    id: "ja-JP-Neural2-B",
+    label: "Neural2 B (Japanese, Female)",
+    lang: "ja-JP",
+  },
+  { id: "ko-KR-Neural2-A", label: "Neural2 A (Korean, Female)", lang: "ko-KR" },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -120,6 +181,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   ELEVENLABS_API_KEY: "",
   ELEVENLABS_VOICE: "21m00Tcm4TlvDq8ikWAM",
   ELEVENLABS_MODEL: "eleven_multilingual_v2",
+
+  GOOGLE_API_KEY: "",
+  GOOGLE_VOICE: "en-US-Neural2-C",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

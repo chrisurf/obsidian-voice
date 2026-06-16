@@ -39,6 +39,30 @@ export class HotkeySettings {
     });
 
     this.voice.addCommand({
+      id: "increase-speed",
+      name: "Increase the reading speed by 0.1x.",
+      callback: () => this.voice.iconEventHandler.increaseSpeed(),
+    });
+
+    this.voice.addCommand({
+      id: "decrease-speed",
+      name: "Decrease the reading speed by 0.1x.",
+      callback: () => this.voice.iconEventHandler.decreaseSpeed(),
+    });
+
+    this.voice.addCommand({
+      id: "download-audio",
+      name: "Save the current audio as an MP3 and embed it in the note.",
+      callback: () => void this.voice.iconEventHandler.handleDownloadAudio(),
+    });
+
+    this.voice.addCommand({
+      id: "next-speaker",
+      name: "Switch to the next speaker.",
+      callback: () => void this.voice.cycleVoice(),
+    });
+
+    this.voice.addCommand({
       id: "play-or-stop-audio",
       name: "Play or Stop reading the current document.",
       callback: () => this.voice.speakText(),

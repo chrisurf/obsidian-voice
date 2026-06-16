@@ -6,6 +6,7 @@ import type { VoiceSettings } from "../settings/VoiceSettings";
 import type { SpeechProvider } from "./SpeechProvider";
 import { AwsPollyService } from "./AwsPollyService";
 import { ElevenLabsService } from "./ElevenLabsService";
+import { GoogleTtsService } from "./GoogleTtsService";
 
 /**
  * Create the speech provider selected in settings.
@@ -18,6 +19,12 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.ELEVENLABS_API_KEY,
       settings.ELEVENLABS_VOICE,
       settings.ELEVENLABS_MODEL,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "google") {
+    provider = new GoogleTtsService(
+      settings.GOOGLE_API_KEY,
+      settings.GOOGLE_VOICE,
       Number(settings.SPEED),
     );
   } else {

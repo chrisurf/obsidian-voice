@@ -78,15 +78,19 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Speech Provider")
       .setDesc(
-        "Choose which text-to-speech engine to use. AWS Polly and ElevenLabs offer the same plugin features; each uses its own credentials and voices.",
+        "Choose which text-to-speech engine to use. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
       )
       .addDropdown((dropdown) => {
         dropdown
           .addOption("polly", "AWS Polly")
           .addOption("elevenlabs", "ElevenLabs")
+          .addOption("google", "Google Cloud")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
-            this.plugin.settings.TTS_PROVIDER = value as "polly" | "elevenlabs";
+            this.plugin.settings.TTS_PROVIDER = value as
+              | "polly"
+              | "elevenlabs"
+              | "google";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -261,9 +265,38 @@ export class VoiceSettingTab extends PluginSettingTab {
     // Provider-specific credentials
     if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
       this.displayElevenLabsSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "google") {
+      this.displayGoogleSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
+  }
+
+  private displayGoogleSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Google Cloud").setHeading();
+
+    this.addPasswordSetting(
+      containerEl,
+      "Google Cloud API Key",
+      "An API key for the Cloud Text-to-Speech API. Restrict it to that API only (no HTTP-referrer restriction) so it works from the desktop app.",
+      "Enter your Google Cloud API key",
+      this.plugin.settings.GOOGLE_API_KEY,
+      async (value) => {
+        this.plugin.settings.GOOGLE_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Google Cloud",
+      isConfigured: () => !!this.plugin.settings.GOOGLE_API_KEY,
+      missingMessage: "Please enter your Google Cloud API key before testing.",
+      promptMessage:
+        "Enter your Google Cloud API key above, then click 'Test Credentials' to validate",
+      helpText: "Need a Google Cloud API key? ",
+      helpUrl: "https://console.cloud.google.com/apis/credentials",
+    });
   }
 
   private displayPollySettings(containerEl: HTMLElement): void {

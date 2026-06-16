@@ -7,6 +7,7 @@ import type { SpeechProvider } from "./SpeechProvider";
 import { AwsPollyService } from "./AwsPollyService";
 import { ElevenLabsService } from "./ElevenLabsService";
 import { GoogleTtsService } from "./GoogleTtsService";
+import { AzureSpeechService } from "./AzureSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -25,6 +26,13 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
     provider = new GoogleTtsService(
       settings.GOOGLE_API_KEY,
       settings.GOOGLE_VOICE,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "azure") {
+    provider = new AzureSpeechService(
+      settings.AZURE_API_KEY,
+      settings.AZURE_REGION,
+      settings.AZURE_VOICE,
       Number(settings.SPEED),
     );
   } else {

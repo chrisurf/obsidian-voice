@@ -2,6 +2,7 @@ import { App, PluginSettingTab, Setting } from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
 import {
   ELEVENLABS_MODELS,
+  AZURE_REGIONS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
 } from "./VoiceSettings";
@@ -85,12 +86,14 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("polly", "AWS Polly")
           .addOption("elevenlabs", "ElevenLabs")
           .addOption("google", "Google Cloud")
+          .addOption("azure", "Azure Speech")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as
               | "polly"
               | "elevenlabs"
-              | "google";
+              | "google"
+              | "azure";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -267,9 +270,58 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayElevenLabsSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "google") {
       this.displayGoogleSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "azure") {
+      this.displayAzureSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
+  }
+
+  private displayAzureSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Azure Speech").setHeading();
+
+    new Setting(containerEl)
+      .setName("Region")
+      .setDesc("The Azure region of your Speech resource (must match the key).")
+      .addDropdown((dropdown) => {
+        AZURE_REGIONS.forEach((region) => {
+          dropdown.addOption(region.id, region.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.AZURE_REGION)
+          .onChange(async (value) => {
+            this.plugin.settings.AZURE_REGION = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "Azure Speech Key",
+      "A key for your Azure AI Speech resource (Azure portal → your Speech resource → Keys and Endpoint).",
+      "Enter your Azure Speech key",
+      this.plugin.settings.AZURE_API_KEY,
+      async (value) => {
+        this.plugin.settings.AZURE_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Azure Speech",
+      isConfigured: () =>
+        !!this.plugin.settings.AZURE_API_KEY &&
+        !!this.plugin.settings.AZURE_REGION,
+      missingMessage:
+        "Please enter your Azure Speech key and choose a region before testing.",
+      promptMessage:
+        "Enter your Azure Speech key and region above, then click 'Test Credentials' to validate",
+      helpText: "Need an Azure Speech resource? ",
+      helpUrl:
+        "https://learn.microsoft.com/azure/ai-services/speech-service/get-started-text-to-speech",
+    });
   }
 
   private displayGoogleSettings(containerEl: HTMLElement): void {

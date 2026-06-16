@@ -1,7 +1,7 @@
 /**
  * Supported text-to-speech providers
  */
-export type TtsProvider = "polly" | "elevenlabs" | "google";
+export type TtsProvider = "polly" | "elevenlabs" | "google" | "azure";
 
 export interface VoiceSettings {
   // Active text-to-speech provider
@@ -22,6 +22,11 @@ export interface VoiceSettings {
   // Google Cloud Text-to-Speech
   GOOGLE_API_KEY: string;
   GOOGLE_VOICE: string;
+
+  // Azure AI Speech
+  AZURE_API_KEY: string;
+  AZURE_REGION: string;
+  AZURE_VOICE: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -169,6 +174,89 @@ export const GOOGLE_VOICES: VoiceOption[] = [
   { id: "ko-KR-Neural2-A", label: "Neural2 A (Korean, Female)", lang: "ko-KR" },
 ];
 
+/**
+ * Common Azure AI Speech regions (the region is part of the endpoint host).
+ */
+export const AZURE_REGIONS: ModelOption[] = [
+  { id: "eastus", label: "East US" },
+  { id: "eastus2", label: "East US 2" },
+  { id: "westus", label: "West US" },
+  { id: "westus2", label: "West US 2" },
+  { id: "westus3", label: "West US 3" },
+  { id: "centralus", label: "Central US" },
+  { id: "westeurope", label: "West Europe" },
+  { id: "northeurope", label: "North Europe" },
+  { id: "uksouth", label: "UK South" },
+  { id: "francecentral", label: "France Central" },
+  { id: "germanywestcentral", label: "Germany West Central" },
+  { id: "switzerlandnorth", label: "Switzerland North" },
+  { id: "swedencentral", label: "Sweden Central" },
+  { id: "japaneast", label: "Japan East" },
+  { id: "southeastasia", label: "Southeast Asia" },
+  { id: "centralindia", label: "Central India" },
+  { id: "australiaeast", label: "Australia East" },
+  { id: "canadacentral", label: "Canada Central" },
+  { id: "brazilsouth", label: "Brazil South" },
+];
+
+/**
+ * Curated list of Azure AI Speech neural voices.
+ *
+ * The `id` is the Azure voice ShortName (e.g. "en-US-JennyNeural") used in the
+ * <voice name> element; `lang` is its locale. Users can verify availability
+ * for their key/region via "Test Credentials".
+ */
+export const AZURE_VOICES: VoiceOption[] = [
+  { id: "en-US-JennyNeural", label: "Jenny (American, Female)", lang: "en-US" },
+  { id: "en-US-AriaNeural", label: "Aria (American, Female)", lang: "en-US" },
+  { id: "en-US-GuyNeural", label: "Guy (American, Male)", lang: "en-US" },
+  {
+    id: "en-US-ChristopherNeural",
+    label: "Christopher (American, Male)",
+    lang: "en-US",
+  },
+  { id: "en-GB-SoniaNeural", label: "Sonia (British, Female)", lang: "en-GB" },
+  { id: "en-GB-RyanNeural", label: "Ryan (British, Male)", lang: "en-GB" },
+  {
+    id: "en-AU-NatashaNeural",
+    label: "Natasha (Australian, Female)",
+    lang: "en-AU",
+  },
+  { id: "de-DE-KatjaNeural", label: "Katja (German, Female)", lang: "de-DE" },
+  { id: "de-DE-ConradNeural", label: "Conrad (German, Male)", lang: "de-DE" },
+  { id: "fr-FR-DeniseNeural", label: "Denise (French, Female)", lang: "fr-FR" },
+  { id: "fr-FR-HenriNeural", label: "Henri (French, Male)", lang: "fr-FR" },
+  {
+    id: "es-ES-ElviraNeural",
+    label: "Elvira (Spanish, Female)",
+    lang: "es-ES",
+  },
+  { id: "es-ES-AlvaroNeural", label: "Alvaro (Spanish, Male)", lang: "es-ES" },
+  { id: "it-IT-ElsaNeural", label: "Elsa (Italian, Female)", lang: "it-IT" },
+  { id: "it-IT-DiegoNeural", label: "Diego (Italian, Male)", lang: "it-IT" },
+  {
+    id: "pt-BR-FranciscaNeural",
+    label: "Francisca (Portuguese, Brazilian)",
+    lang: "pt-BR",
+  },
+  {
+    id: "nl-NL-ColetteNeural",
+    label: "Colette (Dutch, Female)",
+    lang: "nl-NL",
+  },
+  {
+    id: "ja-JP-NanamiNeural",
+    label: "Nanami (Japanese, Female)",
+    lang: "ja-JP",
+  },
+  { id: "ko-KR-SunHiNeural", label: "Sun-Hi (Korean, Female)", lang: "ko-KR" },
+  {
+    id: "zh-CN-XiaoxiaoNeural",
+    label: "Xiaoxiao (Mandarin, Female)",
+    lang: "zh-CN",
+  },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -184,6 +272,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
 
   GOOGLE_API_KEY: "",
   GOOGLE_VOICE: "en-US-Neural2-C",
+
+  AZURE_API_KEY: "",
+  AZURE_REGION: "eastus",
+  AZURE_VOICE: "en-US-JennyNeural",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

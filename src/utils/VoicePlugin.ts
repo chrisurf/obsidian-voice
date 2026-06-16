@@ -120,6 +120,8 @@ export class Voice extends Plugin {
   public async persistActiveVoice(voiceId: string): Promise<void> {
     if (this.settings.TTS_PROVIDER === "elevenlabs") {
       this.settings.ELEVENLABS_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "google") {
+      this.settings.GOOGLE_VOICE = voiceId;
     } else {
       this.settings.VOICE = voiceId;
     }

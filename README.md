@@ -1,6 +1,6 @@
 # Obsidian Voice Plugin 🔊
 
-Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly** or **ElevenLabs**. Same controls, downloads, and content options on every device, with credentials kept private in your own account.
+Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly**, **ElevenLabs**, or **Google Cloud**. Same controls, downloads, and content options on every device, with credentials kept private in your own account.
 
 ## Table of Contents
 
@@ -10,26 +10,27 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - [Getting Started](#getting-started)
 - [Setting Up AWS Polly](#setting-up-aws-polly)
 - [Setting Up ElevenLabs](#setting-up-elevenlabs)
+- [Setting Up Google Cloud](#setting-up-google-cloud)
 
 ## Highlights
 
-- **Two engines, one experience**: Switch between **AWS Polly** and **ElevenLabs** anytime. Every feature below works the same for both.
+- **Three engines, one experience**: Switch between **AWS Polly**, **ElevenLabs**, and **Google Cloud** anytime. Every feature below works the same for all.
 - **Listen in seconds**: Convert any note—or a highlighted selection—into lifelike speech.
 - **Designed for every device**: Enjoy the same experience on desktop, iOS, and Android with dedicated mobile controls.
 - **Own your audio**: Download MP3 files, auto-embed them back into your note, and keep an offline archive.
 - **Stay in control**: Adjust tempo on the fly, jump forward or back, and watch synthesis progress in real time.
-- **Stay private**: Your credentials live in your own AWS or ElevenLabs account—nothing is routed through a third party.
+- **Stay private**: Your credentials live in your own AWS, ElevenLabs, or Google Cloud account—nothing is routed through a third party.
 
 ## Choose Your Speech Provider
 
-Pick **AWS Polly** or **ElevenLabs** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else—tempo, downloads, auto-save, and the content toggles—works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Pick **AWS Polly**, **ElevenLabs**, or **Google Cloud** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else—tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles—works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-|                 | **AWS Polly**                                                   | **ElevenLabs**                                                                     |
-| --------------- | --------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| **Voices**      | 28 neural voices across 19 languages                            | 7 premade voices, multilingual models speak 29 languages                           |
-| **Credentials** | AWS region + Access Key ID & Secret                             | ElevenLabs API key                                                                 |
-| **Emphasis**    | SSML pauses and emphasis (louder headings/bold, softer italics) | Expressive models with natural `<break>` pauses at headings, paragraphs, and lists |
-| **Models**      | Neural engine                                                   | Multilingual v2 (quality), Flash v2.5 (fastest), Turbo v2.5 (balanced)             |
+|                 | **AWS Polly**                        | **ElevenLabs**                                           | **Google Cloud**                                  |
+| --------------- | ------------------------------------ | -------------------------------------------------------- | ------------------------------------------------- |
+| **Voices**      | 28 neural voices across 19 languages | 7 premade voices, multilingual models speak 29 languages | Neural2 & WaveNet voices across many languages    |
+| **Credentials** | AWS region + Access Key ID & Secret  | ElevenLabs API key                                       | Google Cloud API key (Text-to-Speech API enabled) |
+| **Emphasis**    | Native SSML pauses & emphasis        | Expressive models with natural `<break>` pauses          | Native SSML pauses & emphasis (same as Polly)     |
+| **Models**      | Neural engine                        | Multilingual v2 / Flash v2.5 / Turbo v2.5                | Neural2 / WaveNet (voice-encoded)                 |
 
 ## Feature Tour
 
@@ -75,7 +76,7 @@ Pick **AWS Polly** or **ElevenLabs** from the **Speech Provider** dropdown in se
 
 ### Fine-Tune What Gets Spoken
 
-These content toggles apply to both providers and are all **off by default**:
+These content toggles apply to every provider and are all **off by default**:
 
 - **Spell Out Acronyms** — Enable to read uppercase words like `NASA` or `API` letter by letter. Off means they are pronounced naturally. (Applies to AWS Polly.)
 - **Read Code Blocks** — Enable to read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
@@ -115,8 +116,8 @@ These content toggles apply to both providers and are all **off by default**:
 ## Getting Started
 
 1. Install the Voice plugin inside Obsidian (Community Plugins → Browse → Voice) and toggle it on.
-2. Open **Settings → Voice** and pick your **Speech Provider** (AWS Polly or ElevenLabs).
-3. Enter that provider's credentials (see [Setting Up AWS Polly](#setting-up-aws-polly) or [Setting Up ElevenLabs](#setting-up-elevenlabs)) and press **Test Credentials**.
+2. Open **Settings → Voice** and pick your **Speech Provider** (AWS Polly, ElevenLabs, or Google Cloud).
+3. Enter that provider's credentials (see [Setting Up AWS Polly](#setting-up-aws-polly), [Setting Up ElevenLabs](#setting-up-elevenlabs), or [Setting Up Google Cloud](#setting-up-google-cloud)) and press **Test Credentials**.
 4. Open any note and press the Voice ribbon icon or your preferred hotkey to start listening.
 5. If it's not working, try restarting Obsidian.
 
@@ -161,3 +162,13 @@ If you ever rotate keys, just update the credentials in settings—no reinstall 
 4. Paste your API key and press **Test Credentials**.
 
 You're ready to listen!
+
+## Setting Up Google Cloud
+
+> **No Google Cloud project yet?** Create one at [console.cloud.google.com](https://console.cloud.google.com/), then enable the **Cloud Text-to-Speech API** and ensure billing is active. The free tier includes a generous monthly character allowance.
+
+1. In the Google Cloud console, open **APIs & Services → Credentials** and create an **API key**.
+2. Restrict the key to the **Cloud Text-to-Speech API** only. Do **not** add an HTTP-referrer restriction — that blocks desktop apps. (An unrestricted-application key also works.)
+3. In **Settings → Voice**, choose **Google Cloud**, pick a voice (Neural2/WaveNet), paste the API key, and press **Test Credentials**.
+
+Google Cloud TTS supports full SSML, so headings, bold, and pauses are emphasized natively — just like AWS Polly.

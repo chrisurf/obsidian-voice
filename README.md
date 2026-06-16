@@ -1,6 +1,6 @@
 # Obsidian Voice Plugin 🔊
 
-![Obsidian Voice](./assets/hero.png)
+![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, or Google Cloud](./assets/hero.png)
 
 Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly**, **ElevenLabs**, or **Google Cloud**. Same controls, downloads, and content options on every device, with credentials kept private in your own account.
 

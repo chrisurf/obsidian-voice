@@ -188,10 +188,13 @@ export class VoicePlayerView extends ItemView {
     const provider = this.provider();
     if (provider.isPlaying()) {
       provider.pauseAudio();
-    } else if (this.audio().src) {
+    } else if (this.audio().currentSrc) {
+      // A chapter or previously synthesized note is loaded → resume it.
+      // (Note: audio.src resolves an empty value to the page URL, so we check
+      // currentSrc, which is "" until a real media resource is selected.)
       void provider.playAudio();
     } else {
-      // Nothing loaded yet → synthesize the current note.
+      // Nothing loaded yet → read the currently open note.
       void this.plugin.speakText();
     }
   }

@@ -32,6 +32,7 @@ export interface VoiceSettings {
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
   autoDownloadAudio: boolean;
+  autoEmbedAudio: boolean;
   skipUrls: boolean;
   // Playback: how many seconds the rewind/fast-forward controls jump
   rewindSeconds: number;
@@ -280,6 +281,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   spellOutAcronyms: false,
   readCodeBlocks: false,
   autoDownloadAudio: false,
+  // Embed the saved MP3 in the note. On by default so manual downloads keep
+  // their previous behaviour (save + embed). Turn off to download only.
+  autoEmbedAudio: true,
   skipUrls: false,
   rewindSeconds: DEFAULT_SKIP_SECONDS,
   forwardSeconds: DEFAULT_SKIP_SECONDS,

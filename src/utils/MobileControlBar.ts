@@ -2,6 +2,7 @@ import { App, setIcon, Notice, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { AudioFileManager } from "./AudioFileManager";
+import { VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 
 export class MobileControlBar {
   private app: App;
@@ -54,6 +55,14 @@ export class MobileControlBar {
     const controlsWrapper = this.containerEl.createDiv({
       cls: "voice-mobile-controls",
     });
+
+    // Open the full player UI (switch from this compact bar to the player view)
+    this.createControlButton(
+      controlsWrapper,
+      "audio-lines",
+      "Open player",
+      () => void this.plugin.activatePlayerView(),
+    );
 
     // Voice Switcher
     this.createControlButton(
@@ -334,7 +343,21 @@ export class MobileControlBar {
     }, 3000);
   }
 
+  /**
+   * Whether the new player view is currently open. When it is, this compact
+   * bar must stay hidden so the two control surfaces never show at once.
+   */
+  private isPlayerViewOpen(): boolean {
+    return (
+      this.app.workspace.getLeavesOfType(VIEW_TYPE_VOICE_PLAYER).length > 0
+    );
+  }
+
   show(): void {
+    // The new player view replaces this bar; never show both at once.
+    if (this.isPlayerViewOpen()) {
+      return;
+    }
     if (this.containerEl && !this.isVisible) {
       this.containerEl.addClass("is-visible");
       this.isVisible = true;

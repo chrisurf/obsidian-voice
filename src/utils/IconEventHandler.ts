@@ -333,6 +333,16 @@ export class IconEventHandler {
     }
   }
 
+  /**
+   * Hide the mobile control bar, if present. Used when opening the player view
+   * so the compact bar and the player are never shown at the same time.
+   */
+  public hideMobileControlBar(): void {
+    if (this.mobileControlBar) {
+      this.mobileControlBar.hide();
+    }
+  }
+
   ribbonIconHandler() {
     if (!this.ribbonIconEl) {
       console.error("Ribbon icon element is not initialized.");

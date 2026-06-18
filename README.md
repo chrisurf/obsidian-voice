@@ -35,7 +35,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Chapters from your folder** — every MP3 saved next to the current note appears as a numbered chapter. Listen to a whole folder like an audiobook, and the chapter you're hearing is highlighted.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
 - **Read this note** — generate speech for the note you're viewing with a single click.
-- **Repeat modes** — cycle through *off → repeat one → repeat all* to loop a single chapter or play through every chapter in the folder.
+- **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — save the current audio as an MP3 right from the player.
 
@@ -119,51 +119,51 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting | What it does |
-| --- | --- |
-| **Speech Provider** | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. The credential fields below adapt to your choice. |
-| **Voice** | Pick the voice, gender, and language used for playback. |
-| **Tempo** | Set your preferred reading speed (0.5× to 1.9×, default 1.0×). |
-| **Rewind interval** | How many seconds the rewind control jumps back (1–60s, default 3s). |
-| **Fast-forward interval** | How many seconds the fast-forward control jumps ahead (1–60s, default 3s). |
-| **Spell Out Acronyms** | Read uppercase words letter by letter (AWS Polly). Off by default. |
-| **Read Code Blocks** | Read fenced code blocks aloud instead of skipping them. Off by default. |
-| **Skip Website URLs** | Remove URLs from spoken output while keeping link labels. Off by default. |
-| **Auto-Save Audio to Note** | Automatically save and embed the MP3 after each playback. Off by default. |
-| **Test Credentials** | Validate your provider keys; on success it reports how many voices are available. |
+| Setting                     | What it does                                                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**         | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. The credential fields below adapt to your choice. |
+| **Voice**                   | Pick the voice, gender, and language used for playback.                                                                                    |
+| **Tempo**                   | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                             |
+| **Rewind interval**         | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                        |
+| **Fast-forward interval**   | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                 |
+| **Spell Out Acronyms**      | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                         |
+| **Read Code Blocks**        | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                    |
+| **Skip Website URLs**       | Remove URLs from spoken output while keeping link labels. Off by default.                                                                  |
+| **Auto-Save Audio to Note** | Automatically save and embed the MP3 after each playback. Off by default.                                                                  |
+| **Test Credentials**        | Validate your provider keys; on success it reports how many voices are available.                                                          |
 
 ## Keyboard Shortcuts
 
 Voice ships **15 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
 
-| Command | What it does |
-| --- | --- |
-| Start reading the current document. | Begin reading the active note |
-| Play or Stop reading the current document. | Toggle playback with one key |
-| Pause reading the current document. | Pause playback |
-| Stop reading the current document. | Stop playback and reset |
-| Rewind by few seconds reading the current document. | Jump back by your rewind interval |
-| Fast-Forward by few seconds reading the current document. | Jump ahead by your fast-forward interval |
-| Increase the reading speed by 0.1x. | Speed up playback |
-| Decrease the reading speed by 0.1x. | Slow down playback |
-| Reading tempo increased by 15% for a faster pace of the current document. | Read at 1.15× |
-| Reading tempo increased by 25% for a faster pace of the current document. | Read at 1.25× |
-| Reading tempo reduced by 15% for a slower pace of the current document. | Read at 0.85× |
-| Reading tempo reduced by 25% for a slower pace of the current document. | Read at 0.75× |
-| Save the current audio as an MP3 and embed it in the note. | Download and embed the audio |
-| Switch to the next speaker. | Cycle to the next voice |
-| Open the player. | Open the Voice player pane |
+| Command                                                                   | What it does                             |
+| ------------------------------------------------------------------------- | ---------------------------------------- |
+| Start reading the current document.                                       | Begin reading the active note            |
+| Play or Stop reading the current document.                                | Toggle playback with one key             |
+| Pause reading the current document.                                       | Pause playback                           |
+| Stop reading the current document.                                        | Stop playback and reset                  |
+| Rewind by few seconds reading the current document.                       | Jump back by your rewind interval        |
+| Fast-Forward by few seconds reading the current document.                 | Jump ahead by your fast-forward interval |
+| Increase the reading speed by 0.1x.                                       | Speed up playback                        |
+| Decrease the reading speed by 0.1x.                                       | Slow down playback                       |
+| Reading tempo increased by 15% for a faster pace of the current document. | Read at 1.15×                            |
+| Reading tempo increased by 25% for a faster pace of the current document. | Read at 1.25×                            |
+| Reading tempo reduced by 15% for a slower pace of the current document.   | Read at 0.85×                            |
+| Reading tempo reduced by 25% for a slower pace of the current document.   | Read at 0.75×                            |
+| Save the current audio as an MP3 and embed it in the note.                | Download and embed the audio             |
+| Switch to the next speaker.                                               | Cycle to the next voice                  |
+| Open the player.                                                          | Open the Voice player pane               |
 
 ## Choose Your Speech Provider
 
 Pick **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-|                 | **AWS Polly**                        | **ElevenLabs**                                           | **Google Cloud**                                  | **Azure Speech**                    |
-| --------------- | ------------------------------------ | -------------------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
-| **Voices**      | Neural voices across many languages  | Premade & multilingual voices speaking 29 languages      | Neural2 & WaveNet voices across many languages    | Neural voices across many languages |
-| **Credentials** | AWS region + Access Key ID & Secret  | ElevenLabs API key                                       | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           |
-| **Emphasis**    | Native SSML pauses & emphasis        | Expressive models with natural `<break>` pauses          | Native SSML pauses & emphasis                      | Native SSML pauses & emphasis       |
-| **Models**      | Neural engine                        | Multilingual v2 / Flash v2.5 / Turbo v2.5                | Neural2 / WaveNet                                 | Neural                              |
+|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    |
+| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
+| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages |
+| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           |
+| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       |
+| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              |
 
 ## Getting Started
 

@@ -1,6 +1,6 @@
 # Voice Plugin — Troubleshooting & Advanced Setup
 
-This page collects everything you only need *occasionally*: fixing errors, reading status messages, and the more advanced provider setup (like creating a dedicated AWS user). For everyday setup, see the [README](./README.md).
+This page collects everything you only need _occasionally_: fixing errors, reading status messages, and the more advanced provider setup (like creating a dedicated AWS user). For everyday setup, see the [README](./README.md).
 
 ## Table of Contents
 
@@ -36,15 +36,15 @@ Everything resets automatically after a few seconds, so you can simply press pla
 
 ## Common Problems
 
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| Nothing happens when I press play | No note open, or playback hasn't finished synthesizing yet | Open a note; wait for the progress bar to finish |
-| The control bar turns red | Network issue or rejected credentials | Check your connection, then re-run **Test Credentials** |
-| "Test Credentials" fails | Wrong key, wrong region, or the TTS API isn't enabled | Re-copy the key; confirm the region; enable the provider's Text-to-Speech API |
-| No voices in the dropdown | Credentials not yet validated | Enter credentials and press **Test Credentials** |
-| Audio sounds robotic or wrong language | A voice from another language is selected | Pick a voice that matches your note's language |
-| Google Cloud key rejected on desktop | An HTTP-referrer restriction is set on the key | Remove the referrer restriction (see below) |
-| Acronyms are spelled out unexpectedly | **Spell Out Acronyms** is on (AWS Polly) | Turn it off in settings |
+| Symptom                                | Likely cause                                               | Fix                                                                           |
+| -------------------------------------- | ---------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| Nothing happens when I press play      | No note open, or playback hasn't finished synthesizing yet | Open a note; wait for the progress bar to finish                              |
+| The control bar turns red              | Network issue or rejected credentials                      | Check your connection, then re-run **Test Credentials**                       |
+| "Test Credentials" fails               | Wrong key, wrong region, or the TTS API isn't enabled      | Re-copy the key; confirm the region; enable the provider's Text-to-Speech API |
+| No voices in the dropdown              | Credentials not yet validated                              | Enter credentials and press **Test Credentials**                              |
+| Audio sounds robotic or wrong language | A voice from another language is selected                  | Pick a voice that matches your note's language                                |
+| Google Cloud key rejected on desktop   | An HTTP-referrer restriction is set on the key             | Remove the referrer restriction (see below)                                   |
+| Acronyms are spelled out unexpectedly  | **Spell Out Acronyms** is on (AWS Polly)                   | Turn it off in settings                                                       |
 
 ## Advanced: AWS Polly Setup
 

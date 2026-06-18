@@ -446,8 +446,11 @@ export class MobileControlBar {
         return;
       }
 
-      // Use AudioFileManager to save and embed
-      await this.audioFileManager.downloadAndEmbed(audioBlob);
+      // Use AudioFileManager to save and (optionally) embed
+      await this.audioFileManager.downloadAndEmbed(
+        audioBlob,
+        this.plugin.settings.autoEmbedAudio,
+      );
     } catch (error) {
       console.error("Error downloading audio:", error);
       new Notice(`Failed to download audio: ${error.message}`);

@@ -254,13 +254,27 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Auto-Save Audio to Note")
       .setDesc(
-        "When enabled, the generated MP3 is automatically saved next to the note and embedded in it after each successful playback—no need to press the download button. Disabled by default.",
+        "When enabled, the generated MP3 is automatically saved next to the note after each successful playback—no need to press the download button. Disabled by default.",
       )
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.autoDownloadAudio)
           .onChange(async (value) => {
             this.plugin.settings.autoDownloadAudio = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Embed Audio in Note")
+      .setDesc(
+        "When enabled, saving an MP3 also inserts an audio embed in the note. This applies to both the download button and auto-save. Turn it off to download the MP3 without embedding it. Enabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.autoEmbedAudio)
+          .onChange(async (value) => {
+            this.plugin.settings.autoEmbedAudio = value;
             await this.plugin.saveSettings();
           }),
       );

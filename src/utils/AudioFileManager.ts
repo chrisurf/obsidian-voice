@@ -130,10 +130,15 @@ export class AudioFileManager {
   }
 
   /**
-   * Download audio file and insert embed in one operation
+   * Download audio file and, when requested, insert the embed tag.
    * @param audioBlob - The audio data to save
+   * @param embed - Whether to also insert the `![[file.mp3]]` embed in the
+   *   note. Defaults to true to preserve the legacy save-and-embed behaviour.
    */
-  async downloadAndEmbed(audioBlob: Blob): Promise<void> {
+  async downloadAndEmbed(
+    audioBlob: Blob,
+    embed: boolean = true,
+  ): Promise<void> {
     try {
       const activeFile = this.app.workspace.getActiveFile();
       if (!activeFile) {
@@ -150,8 +155,10 @@ export class AudioFileManager {
         return; // Error already shown in saveAudioFile
       }
 
-      // Insert the embed tag
-      await this.insertAudioEmbed(audioFileName);
+      // Insert the embed tag only when embedding is enabled
+      if (embed) {
+        await this.insertAudioEmbed(audioFileName);
+      }
     } catch (error) {
       console.error("Error in downloadAndEmbed:", error);
       new Notice(`Error downloading audio: ${error.message}`);

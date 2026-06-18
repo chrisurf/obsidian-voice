@@ -577,10 +577,11 @@ export class IconEventHandler {
   }
 
   /**
-   * Automatically save the generated audio and embed it in the note.
-   * Called after a successful synthesis; only acts when the user enabled
-   * the auto-download setting. Stays silent on edge cases (no active file
-   * or no cached audio) to avoid noisy notices during automatic playback.
+   * Automatically save the generated audio after a successful synthesis, and
+   * embed it in the note when the separate auto-embed setting is enabled.
+   * Only acts when the user enabled the auto-download setting. Stays silent on
+   * edge cases (no active file or no cached audio) to avoid noisy notices
+   * during automatic playback.
    */
   public async maybeAutoDownloadAudio(): Promise<void> {
     if (!this.voice.settings.autoDownloadAudio) {
@@ -597,7 +598,10 @@ export class IconEventHandler {
       return;
     }
 
-    await this.audioFileManager.downloadAndEmbed(audioBlob);
+    await this.audioFileManager.downloadAndEmbed(
+      audioBlob,
+      this.voice.settings.autoEmbedAudio,
+    );
   }
 
   /**
@@ -625,8 +629,11 @@ export class IconEventHandler {
         return;
       }
 
-      // Use AudioFileManager to save and embed
-      await this.audioFileManager.downloadAndEmbed(audioBlob);
+      // Use AudioFileManager to save and (optionally) embed
+      await this.audioFileManager.downloadAndEmbed(
+        audioBlob,
+        this.voice.settings.autoEmbedAudio,
+      );
     } catch (error) {
       console.error("Error downloading audio:", error);
       new Notice(`Failed to download audio: ${error.message}`);

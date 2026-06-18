@@ -7,6 +7,7 @@ import { Plugin, Platform, Notice } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
+import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 
 export class Voice extends Plugin {
   settings: VoiceSettings;
@@ -39,6 +40,21 @@ export class Voice extends Plugin {
 
     this.hotkeySettings = new HotkeySettings(this);
     this.hotkeySettings.initHotkeys();
+
+    // Register the collapsible player (right sidebar on desktop, full-screen
+    // pane on mobile) and the entry points that open it.
+    this.registerView(
+      VIEW_TYPE_VOICE_PLAYER,
+      (leaf) => new VoicePlayerView(leaf, this),
+    );
+    this.addRibbonIcon("audio-lines", "Open Voice player", () => {
+      void this.activatePlayerView();
+    });
+    this.addCommand({
+      id: "open-player",
+      name: "Open the player.",
+      callback: () => void this.activatePlayerView(),
+    });
   }
 
   async speakText(speed?: number) {
@@ -157,6 +173,30 @@ export class Voice extends Plugin {
     const next = options[(currentIndex + 1) % options.length];
     await this.persistActiveVoice(next.id);
     new Notice(`Voice: ${next.label}`);
+  }
+
+  /**
+   * Open the Voice player and reveal it (right sidebar on desktop, full-screen
+   * pane on mobile). Reuses an existing player leaf if one is already open.
+   */
+  public async activatePlayerView(): Promise<void> {
+    const { workspace } = this.app;
+    let leaf = workspace.getLeavesOfType(VIEW_TYPE_VOICE_PLAYER)[0];
+    if (!leaf) {
+      const right = workspace.getRightLeaf(false);
+      if (!right) {
+        return;
+      }
+      leaf = right;
+      await leaf.setViewState({
+        type: VIEW_TYPE_VOICE_PLAYER,
+        active: true,
+      });
+    }
+    // revealLeaf is the standard reveal API; it is a no-op on app versions
+    // that predate it, so we don't raise the manifest's minAppVersion floor.
+    // eslint-disable-next-line obsidianmd/no-unsupported-api
+    await workspace.revealLeaf(leaf);
   }
 
   public getSpeechProvider(): SpeechProvider {

@@ -55,6 +55,14 @@ export class MobileControlBar {
       cls: "voice-mobile-controls",
     });
 
+    // Open the full player UI (switch from this compact bar to the player view)
+    this.createControlButton(
+      controlsWrapper,
+      "audio-lines",
+      "Open player",
+      () => void this.plugin.activatePlayerView(),
+    );
+
     // Voice Switcher
     this.createControlButton(
       controlsWrapper,

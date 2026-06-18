@@ -197,6 +197,10 @@ export class Voice extends Plugin {
     // that predate it, so we don't raise the manifest's minAppVersion floor.
     // eslint-disable-next-line obsidianmd/no-unsupported-api
     await workspace.revealLeaf(leaf);
+
+    // The player replaces the compact mobile bar; hide the bar so they are
+    // never shown at the same time (e.g. when toggling from the navbar).
+    this.iconEventHandler.hideMobileControlBar();
   }
 
   public getSpeechProvider(): SpeechProvider {

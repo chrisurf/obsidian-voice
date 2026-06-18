@@ -7,6 +7,8 @@ export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 const MIN_SPEED = 0.5;
 const MAX_SPEED = 2.0;
 
+type RepeatMode = "none" | "one" | "all";
+
 /**
  * VoicePlayerView - a collapsible audiobook-style player.
  *
@@ -25,11 +27,17 @@ export class VoicePlayerView extends ItemView {
   private durationEl: HTMLElement;
   private scrubberEl: HTMLInputElement;
   private playPauseBtn: HTMLElement;
+  private prevTrackBtn: HTMLElement;
+  private nextTrackBtn: HTMLElement;
+  private repeatBtn: HTMLElement;
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
 
   private isScrubbing = false;
   private currentChapterPath: string | null = null;
+  private chapters: ChapterFile[] = [];
+  private repeatMode: RepeatMode = "none";
+  private endedHandled = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -115,6 +123,16 @@ export class VoicePlayerView extends ItemView {
 
     // Transport
     const transport = root.createDiv({ cls: "voice-player-transport" });
+
+    this.prevTrackBtn = transport.createDiv({
+      cls: "voice-player-btn voice-player-track",
+      attr: { "aria-label": "Previous track" },
+    });
+    setIcon(this.prevTrackBtn, "skip-back");
+    this.registerDomEvent(this.prevTrackBtn, "click", () =>
+      this.playPrevTrack(),
+    );
+
     const rewindBtn = transport.createDiv({
       cls: "voice-player-btn voice-player-skip",
     });
@@ -143,6 +161,15 @@ export class VoicePlayerView extends ItemView {
       this.provider().fastForwardAudio(),
     );
 
+    this.nextTrackBtn = transport.createDiv({
+      cls: "voice-player-btn voice-player-track",
+      attr: { "aria-label": "Next track" },
+    });
+    setIcon(this.nextTrackBtn, "skip-forward");
+    this.registerDomEvent(this.nextTrackBtn, "click", () =>
+      this.playNextTrack(),
+    );
+
     // Secondary row: read note + speed
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
@@ -164,6 +191,13 @@ export class VoicePlayerView extends ItemView {
       "click",
       () => void this.downloadAudio(),
     );
+
+    // Repeat: cycle off → repeat one → repeat all → off.
+    this.repeatBtn = secondary.createEl("button", {
+      cls: "voice-player-repeat",
+    });
+    this.registerDomEvent(this.repeatBtn, "click", () => this.cycleRepeat());
+    this.updateRepeatButton();
 
     const speedGroup = secondary.createDiv({ cls: "voice-player-speed" });
     const slower = speedGroup.createDiv({ cls: "voice-player-speed-btn" });
@@ -235,12 +269,14 @@ export class VoicePlayerView extends ItemView {
       active?.parent?.children
         .filter((f) => f instanceof TFile && f.extension === "mp3")
         .map((f) => f.path) ?? [];
-    const chapters = listChapters(mp3Paths);
+    this.chapters = listChapters(mp3Paths);
 
     this.subtitleEl.setText(
-      chapters.length === 1 ? "1 chapter" : `${chapters.length} chapters`,
+      this.chapters.length === 1
+        ? "1 chapter"
+        : `${this.chapters.length} chapters`,
     );
-    this.renderChapters(chapters);
+    this.renderChapters(this.chapters);
   }
 
   private renderChapters(chapters: ChapterFile[]): void {
@@ -289,6 +325,96 @@ export class VoicePlayerView extends ItemView {
           el.getAttribute("data-path") === this.currentChapterPath;
         el.toggleClass("is-current", isCurrent);
       });
+    this.updateTrackButtons();
+  }
+
+  /** Index of the playing chapter in the list, or -1 if none is selected. */
+  private currentChapterIndex(): number {
+    return this.chapters.findIndex((c) => c.path === this.currentChapterPath);
+  }
+
+  /** Play the chapter before the current one, if any. */
+  private playPrevTrack(): void {
+    const index = this.currentChapterIndex();
+    if (index > 0) {
+      this.playChapter(this.chapters[index - 1].path);
+    }
+  }
+
+  /**
+   * Play the chapter after the current one. When nothing is selected yet
+   * (index -1) this starts the first chapter.
+   */
+  private playNextTrack(): void {
+    const next = this.currentChapterIndex() + 1;
+    if (next < this.chapters.length) {
+      this.playChapter(this.chapters[next].path);
+    }
+  }
+
+  /** Enable/disable the prev/next buttons at the list boundaries. */
+  private updateTrackButtons(): void {
+    if (!this.prevTrackBtn) {
+      return;
+    }
+    const index = this.currentChapterIndex();
+    this.prevTrackBtn.toggleClass("is-disabled", index <= 0);
+    this.nextTrackBtn.toggleClass(
+      "is-disabled",
+      this.chapters.length === 0 || index >= this.chapters.length - 1,
+    );
+  }
+
+  /** Cycle the repeat mode: off → repeat one → repeat all → off. */
+  private cycleRepeat(): void {
+    this.repeatMode =
+      this.repeatMode === "none"
+        ? "one"
+        : this.repeatMode === "one"
+          ? "all"
+          : "none";
+    this.updateRepeatButton();
+  }
+
+  private updateRepeatButton(): void {
+    if (!this.repeatBtn) {
+      return;
+    }
+    const icon = this.repeatMode === "one" ? "repeat-1" : "repeat";
+    setIcon(this.repeatBtn, icon);
+    this.repeatBtn.toggleClass("is-active", this.repeatMode !== "none");
+    const label =
+      this.repeatMode === "one"
+        ? "Repeat one"
+        : this.repeatMode === "all"
+          ? "Repeat all"
+          : "Repeat off";
+    this.repeatBtn.setAttribute("aria-label", label);
+  }
+
+  /**
+   * Called when the current audio finishes. Honors the repeat mode and
+   * auto-advances through the chapter list.
+   */
+  private handleEnded(): void {
+    if (this.repeatMode === "one") {
+      const audio = this.audio();
+      audio.currentTime = 0;
+      void this.provider().playAudio();
+      return;
+    }
+
+    // Auto-advance only makes sense while a chapter is playing.
+    const index = this.currentChapterIndex();
+    if (index < 0) {
+      return;
+    }
+    const next = index + 1;
+    if (next < this.chapters.length) {
+      this.playChapter(this.chapters[next].path);
+    } else if (this.repeatMode === "all" && this.chapters.length > 0) {
+      this.playChapter(this.chapters[0].path);
+    }
   }
 
   /** Sync the transport with the live audio element. */
@@ -311,6 +437,17 @@ export class VoicePlayerView extends ItemView {
 
     setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
+
+    // Detect track end here (rather than via an "ended" listener) so it keeps
+    // working across provider swaps, which replace the audio element.
+    if (audio.ended) {
+      if (!this.endedHandled) {
+        this.endedHandled = true;
+        this.handleEnded();
+      }
+    } else {
+      this.endedHandled = false;
+    }
   }
 }
 

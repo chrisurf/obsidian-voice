@@ -580,6 +580,21 @@
   height: 44px;
 }
 
+.voice-player-track {
+  width: 36px;
+  height: 36px;
+  color: var(--text-muted);
+}
+
+.voice-player-track:hover {
+  color: var(--text-normal);
+}
+
+.voice-player-btn.is-disabled {
+  opacity: 0.25;
+  pointer-events: none;
+}
+
 .voice-player-skip-label {
   position: absolute;
   font-size: 9px;
@@ -623,6 +638,26 @@
 
 .voice-player-download:hover {
   color: var(--text-normal);
+}
+
+.voice-player-repeat {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.voice-player-repeat:hover {
+  color: var(--text-normal);
+}
+
+.voice-player-repeat.is-active {
+  color: var(--interactive-accent);
 }
 
 .voice-player-speed {

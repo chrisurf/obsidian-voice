@@ -609,6 +609,22 @@
   cursor: pointer;
 }
 
+.voice-player-download {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.voice-player-download:hover {
+  color: var(--text-normal);
+}
+
 .voice-player-speed {
   display: flex;
   align-items: center;

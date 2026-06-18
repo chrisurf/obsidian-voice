@@ -59,6 +59,17 @@ export class VoicePlayerView extends ItemView {
     this.registerEvent(
       this.app.workspace.on("active-leaf-change", () => this.refreshContext()),
     );
+
+    // Refresh the chapter list when audio files appear/disappear in the vault
+    // (e.g. after a download), so newly saved MP3s show up immediately.
+    const refreshOnMp3 = (file: { path: string }) => {
+      if (file.path.toLowerCase().endsWith(".mp3")) {
+        this.refreshContext();
+      }
+    };
+    this.registerEvent(this.app.vault.on("create", refreshOnMp3));
+    this.registerEvent(this.app.vault.on("delete", refreshOnMp3));
+    this.registerEvent(this.app.vault.on("rename", refreshOnMp3));
   }
 
   private provider() {
@@ -141,6 +152,19 @@ export class VoicePlayerView extends ItemView {
     });
     this.registerDomEvent(readBtn, "click", () => void this.plugin.speakText());
 
+    // Save the generated audio as an MP3 in the note's folder so it shows up
+    // as a chapter (same behaviour as the status bar / mobile download button).
+    const downloadBtn = secondary.createEl("button", {
+      cls: "voice-player-download",
+      attr: { "aria-label": "Download as MP3" },
+    });
+    setIcon(downloadBtn, "download");
+    this.registerDomEvent(
+      downloadBtn,
+      "click",
+      () => void this.downloadAudio(),
+    );
+
     const speedGroup = secondary.createDiv({ cls: "voice-player-speed" });
     const slower = speedGroup.createDiv({ cls: "voice-player-speed-btn" });
     setIcon(slower, "minus");
@@ -170,6 +194,16 @@ export class VoicePlayerView extends ItemView {
       // Nothing loaded yet → synthesize the current note.
       void this.plugin.speakText();
     }
+  }
+
+  /**
+   * Persist the generated audio for the active note as an MP3 in its folder
+   * and embed it, then refresh so it appears in the chapter list. Reuses the
+   * shared download flow so behaviour matches the status bar / mobile button.
+   */
+  private async downloadAudio(): Promise<void> {
+    await this.plugin.iconEventHandler.handleDownloadAudio();
+    this.refreshContext();
   }
 
   private changeSpeed(delta: number): void {

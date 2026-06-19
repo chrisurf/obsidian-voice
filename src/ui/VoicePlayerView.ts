@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, TFile, setIcon } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
+import type { TtsProvider } from "../settings/VoiceSettings";
 import { listChapters, type ChapterFile } from "../utils/chapters";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
@@ -8,6 +9,14 @@ const MIN_SPEED = 0.5;
 const MAX_SPEED = 2.0;
 
 type RepeatMode = "none" | "one" | "all";
+
+/** Selectable TTS providers, mirroring the settings tab. */
+const PROVIDERS: { id: TtsProvider; label: string }[] = [
+  { id: "polly", label: "AWS Polly" },
+  { id: "elevenlabs", label: "ElevenLabs" },
+  { id: "google", label: "Google Cloud" },
+  { id: "azure", label: "Azure Speech" },
+];
 
 /**
  * VoicePlayerView - a collapsible audiobook-style player.
@@ -32,12 +41,22 @@ export class VoicePlayerView extends ItemView {
   private repeatBtn: HTMLElement;
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
+  private readBtn: HTMLButtonElement;
+  private downloadBtn: HTMLButtonElement;
+  private providerSelect: HTMLSelectElement;
+  private voiceSelect: HTMLSelectElement;
+  private codeBtn: HTMLElement;
+  private loadingBarEl: HTMLElement;
 
   private isScrubbing = false;
   private currentChapterPath: string | null = null;
   private chapters: ChapterFile[] = [];
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
+  // The generated-audio blob that has already been saved via the download
+  // button. Used to disable download once the current audio is saved, while
+  // re-enabling it as soon as a fresh synthesis produces new audio.
+  private lastDownloadedBlob: Blob | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -173,21 +192,21 @@ export class VoicePlayerView extends ItemView {
     // Secondary row: read note + speed
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
-    const readBtn = secondary.createEl("button", {
+    this.readBtn = secondary.createEl("button", {
       cls: "voice-player-read",
       text: "Read this note",
     });
-    this.registerDomEvent(readBtn, "click", () => void this.plugin.speakText());
+    this.registerDomEvent(this.readBtn, "click", () => this.handleReadClick());
 
     // Save the generated audio as an MP3 in the note's folder so it shows up
     // as a chapter (same behaviour as the status bar / mobile download button).
-    const downloadBtn = secondary.createEl("button", {
+    this.downloadBtn = secondary.createEl("button", {
       cls: "voice-player-download",
       attr: { "aria-label": "Download as MP3" },
     });
-    setIcon(downloadBtn, "download");
+    setIcon(this.downloadBtn, "download");
     this.registerDomEvent(
-      downloadBtn,
+      this.downloadBtn,
       "click",
       () => void this.downloadAudio(),
     );
@@ -208,6 +227,34 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
+    // Options row: provider + voice selectors and the read-code-blocks toggle
+    const options = root.createDiv({ cls: "voice-player-options" });
+
+    this.providerSelect = options.createEl("select", {
+      cls: "voice-player-select dropdown",
+      attr: { "aria-label": "Speech provider" },
+    });
+    PROVIDERS.forEach((p) =>
+      this.providerSelect.createEl("option", { value: p.id, text: p.label }),
+    );
+    this.registerDomEvent(this.providerSelect, "change", () =>
+      this.changeProvider(this.providerSelect.value as TtsProvider),
+    );
+
+    this.voiceSelect = options.createEl("select", {
+      cls: "voice-player-select dropdown",
+      attr: { "aria-label": "Voice" },
+    });
+    this.registerDomEvent(this.voiceSelect, "change", () =>
+      this.changeVoice(this.voiceSelect.value),
+    );
+
+    this.codeBtn = options.createEl("button", {
+      cls: "voice-player-code",
+    });
+    setIcon(this.codeBtn, "code");
+    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
+
     // Chapters
     const chapters = root.createDiv({ cls: "voice-player-chapters" });
     chapters
@@ -216,6 +263,12 @@ export class VoicePlayerView extends ItemView {
     this.chaptersListEl = chapters.createDiv({
       cls: "voice-player-chapters-list",
     });
+
+    // Loading bar (indeterminate), shown while a note is being processed.
+    this.loadingBarEl = root.createDiv({ cls: "voice-player-loading" });
+    this.loadingBarEl.createDiv({ cls: "voice-player-loading-fill" });
+
+    this.refreshControls();
   }
 
   private togglePlay(): void {
@@ -239,8 +292,108 @@ export class VoicePlayerView extends ItemView {
    * shared download flow so behaviour matches the status bar / mobile button.
    */
   private async downloadAudio(): Promise<void> {
+    const active = this.app.workspace.getActiveFile();
+    const blob = active
+      ? this.provider().getLastGeneratedAudio(active.path)
+      : null;
     await this.plugin.iconEventHandler.handleDownloadAudio();
+    // Remember which audio we saved so the button disables until the next
+    // synthesis produces a new blob.
+    if (blob) {
+      this.lastDownloadedBlob = blob;
+    }
     this.refreshContext();
+  }
+
+  /** Read the current note. Ignored while a synthesis is already running. */
+  private handleReadClick(): void {
+    if (this.provider().isOperationInProgress()) {
+      return;
+    }
+    void this.plugin.speakText();
+  }
+
+  /** Switch the active TTS provider and resync the voice list. */
+  private changeProvider(provider: TtsProvider): void {
+    if (provider === this.plugin.settings.TTS_PROVIDER) {
+      return;
+    }
+    this.plugin.settings.TTS_PROVIDER = provider;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeProvider();
+    this.refreshControls();
+  }
+
+  /** Persist and apply the chosen voice for the active provider. */
+  private changeVoice(voiceId: string): void {
+    if (voiceId === this.provider().getVoice()) {
+      return;
+    }
+    void this.plugin.persistActiveVoice(voiceId);
+  }
+
+  /** Toggle whether code blocks are read aloud. */
+  private toggleCodeBlocks(): void {
+    this.plugin.settings.readCodeBlocks = !this.plugin.settings.readCodeBlocks;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeTextSpeaker();
+    this.updateCodeButton();
+  }
+
+  /** Resync the provider/voice selectors and the code-blocks toggle. */
+  private refreshControls(): void {
+    if (!this.providerSelect) {
+      return;
+    }
+    this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
+    this.populateVoiceOptions();
+    this.updateCodeButton();
+    this.updateDownloadButton();
+  }
+
+  /** Rebuild the voice dropdown from the active provider's catalog. */
+  private populateVoiceOptions(): void {
+    this.voiceSelect.empty();
+    const provider = this.provider();
+    provider.getVoiceOptions().forEach((voice) => {
+      this.voiceSelect.createEl("option", {
+        value: voice.id,
+        text: voice.label,
+      });
+    });
+    this.voiceSelect.value = provider.getVoice();
+  }
+
+  private updateCodeButton(): void {
+    if (!this.codeBtn) {
+      return;
+    }
+    const on = this.plugin.settings.readCodeBlocks;
+    this.codeBtn.toggleClass("is-active", on);
+    this.codeBtn.setAttribute(
+      "aria-label",
+      on ? "Read code blocks: on" : "Read code blocks: off",
+    );
+  }
+
+  /**
+   * Enable the download button only when there is freshly generated audio for
+   * the active note that has not already been saved via this button. A new
+   * synthesis produces a new blob, which re-enables the button; saving it
+   * disables it again.
+   */
+  private updateDownloadButton(): void {
+    if (!this.downloadBtn) {
+      return;
+    }
+    let enabled = false;
+    const active = this.app.workspace.getActiveFile();
+    if (active) {
+      const cached = this.provider().getLastGeneratedAudio(active.path);
+      enabled = cached !== null && cached !== this.lastDownloadedBlob;
+    }
+    this.downloadBtn.disabled = !enabled;
+    this.downloadBtn.toggleClass("is-disabled", !enabled);
   }
 
   private changeSpeed(delta: number): void {
@@ -277,6 +430,7 @@ export class VoicePlayerView extends ItemView {
         : `${this.chapters.length} chapters`,
     );
     this.renderChapters(this.chapters);
+    this.updateDownloadButton();
   }
 
   private renderChapters(chapters: ChapterFile[]): void {
@@ -437,6 +591,23 @@ export class VoicePlayerView extends ItemView {
 
     setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
+
+    // Loading feedback while a note is being synthesized: show the bottom bar
+    // and animate (and disable) the "Read this note" button.
+    const loading = provider.isOperationInProgress();
+    this.loadingBarEl.toggleClass("is-visible", loading);
+    this.readBtn.toggleClass("is-loading", loading);
+    this.readBtn.disabled = loading;
+    this.readBtn.setText(loading ? "Reading…" : "Read this note");
+
+    // Keep the selectors/toggle in sync if settings changed elsewhere.
+    if (this.providerSelect.value !== this.plugin.settings.TTS_PROVIDER) {
+      this.refreshControls();
+    } else {
+      this.voiceSelect.value = provider.getVoice();
+      this.updateCodeButton();
+    }
+    this.updateDownloadButton();
 
     // Detect track end here (rather than via an "ended" listener) so it keeps
     // working across provider swaps, which replace the audio element.

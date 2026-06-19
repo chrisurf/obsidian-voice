@@ -1,0 +1,437 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Piper Neural TTS — Feasibility Harness</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --accent: #7c5cff;
+        --bg: #1e1e22;
+        --panel: #27272c;
+        --text: #e6e6ea;
+        --muted: #a0a0aa;
+        --border: #3a3a42;
+        --ok: #3fb950;
+        --warn: #d29922;
+        --err: #f85149;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          15px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 18px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        color: var(--muted);
+        margin: 0 0 18px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 10px 0 4px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 9px 10px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      button {
+        margin-top: 14px;
+        width: 100%;
+        padding: 12px;
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 14px;
+        margin-top: 6px;
+      }
+      .metric {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 8px 10px;
+      }
+      .metric .k {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .metric .v {
+        font-size: 18px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      #log {
+        white-space: pre-wrap;
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: var(--muted);
+        max-height: 220px;
+        overflow: auto;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 10px;
+        margin-top: 10px;
+      }
+      .bar {
+        height: 8px;
+        background: var(--bg);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 10px;
+        border: 1px solid var(--border);
+      }
+      .bar > div {
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.15s;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-right: 6px;
+      }
+      audio {
+        width: 100%;
+        margin-top: 12px;
+      }
+      code {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Piper Neural TTS — Feasibility Harness</h1>
+    <p class="sub">
+      Runs <strong>Piper</strong> (VITS ONNX + espeak-ng phonemizer) fully
+      on-device in the browser via <code>@mintplex-labs/piper-tts-web</code> —
+      no server, no API key. This validates the one open question for Piper:
+      does in-browser <strong>phonemization</strong> work, and what are the
+      size / speed / quality numbers per language? First run of a voice
+      downloads it from the Hugging Face CDN into the Origin Private File System
+      (OPFS); afterwards it is served offline from there.
+    </p>
+
+    <div class="panel">
+      <div>
+        <span class="pill" id="env-platform">platform: …</span>
+        <span class="pill" id="env-opfs">OPFS: …</span>
+        <span class="pill" id="env-wasm">wasm-simd: …</span>
+        <span class="pill" id="env-isolated">cross-origin-isolated: …</span>
+      </div>
+
+      <label for="voice">Voice</label>
+      <select id="voice">
+        <option value="">loading voice list…</option>
+      </select>
+      <p class="sub" style="margin: 6px 0 0; font-size: 12px">
+        Only voices for the
+        <strong>18 target languages</strong> are listed (de, en_US,
+        <strong>en_GB</strong>, fr, es, it, pt, nl, da, sv, no, fi, tr, ru, uk,
+        zh, hi, el). Voice id format is
+        <code>lang-name-quality</code>; the quality suffix
+        (<code>x_low</code> / <code>low</code> / <code>medium</code> /
+        <code>high</code>) is the size↔quality knob that maps to the planned
+        settings toggle.
+      </p>
+
+      <label for="quality">Quality filter</label>
+      <select id="quality">
+        <option value="all" selected>all qualities</option>
+        <option value="small">prefer small (x_low / low)</option>
+        <option value="high">prefer high (high / medium)</option>
+      </select>
+
+      <label for="text">Text to synthesize</label>
+      <textarea id="text">
+The quick brown fox jumps over the lazy dog. This sentence measures how fast Piper speaks on this device.</textarea
+      >
+
+      <button id="run" disabled>Download voice &amp; synthesize</button>
+      <div class="bar"><div id="prog"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="metrics">
+        <div class="metric">
+          <div class="k">Voice download</div>
+          <div class="v" id="m-size">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Total time (incl. download)</div>
+          <div class="v" id="m-total">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Synthesis time</div>
+          <div class="v" id="m-synth">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Audio length</div>
+          <div class="v" id="m-audio">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Real-time factor</div>
+          <div class="v" id="m-rtf">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Cached voice?</div>
+          <div class="v" id="m-cached">—</div>
+        </div>
+      </div>
+      <audio id="player" controls></audio>
+    </div>
+
+    <div class="panel">
+      <div class="k" style="color: var(--muted); font-size: 11px">Log</div>
+      <div id="log"></div>
+    </div>
+
+    <script type="module">
+      // @mintplex-labs/piper-tts-web bundles ONNX Runtime Web + the espeak-ng
+      // WASM phonemizer and stores downloaded voices in OPFS for offline reuse.
+      // If this CDN import fails to spin up its internal worker, try the
+      // jsdelivr fallback below, or serve the package locally.
+      //   fallback: https://cdn.jsdelivr.net/npm/@mintplex-labs/piper-tts-web/+esm
+      import * as tts from "https://esm.sh/@mintplex-labs/piper-tts-web";
+
+      const $ = (id) => document.getElementById(id);
+      const log = (msg) => {
+        const el = $("log");
+        el.textContent += msg + "\n";
+        el.scrollTop = el.scrollHeight;
+        console.log("[piper-harness]", msg);
+      };
+      const fmtMB = (b) => (b / 1024 / 1024).toFixed(1) + " MB";
+      const fmtMs = (ms) =>
+        ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : Math.round(ms) + " ms";
+
+      // Languages we ship (see VOICES coverage check). en_GB + en_US both in.
+      const TARGET_LANGS = new Set([
+        "de_DE", "en_US", "en_GB", "fr_FR", "es_ES", "es_MX", "es_AR",
+        "it_IT", "pt_BR", "pt_PT", "nl_NL", "nl_BE", "da_DK", "sv_SE",
+        "no_NO", "fi_FI", "tr_TR", "ru_RU", "uk_UA", "zh_CN", "hi_IN",
+        "el_GR",
+      ]);
+      const SMALL_Q = new Set(["x_low", "low"]);
+
+      // ---- Environment probe ---------------------------------------------
+      $("env-platform").textContent = "platform: " + navigator.platform;
+      const hasOPFS =
+        !!(navigator.storage && navigator.storage.getDirectory);
+      $("env-opfs").textContent = "OPFS: " + (hasOPFS ? "yes" : "no");
+      $("env-wasm").textContent =
+        "wasm-simd: " + (WebAssembly && WebAssembly.validate ? "yes" : "?");
+      $("env-isolated").textContent =
+        "cross-origin-isolated: " + window.crossOriginIsolated;
+
+      // ---- Populate the voice list ---------------------------------------
+      let allVoices = {};
+      function parseId(id) {
+        // id like "en_US-hfc_female-medium"
+        const i = id.indexOf("-");
+        const j = id.lastIndexOf("-");
+        return {
+          lang: id.slice(0, i),
+          name: id.slice(i + 1, j),
+          quality: id.slice(j + 1),
+        };
+      }
+
+      function rebuildVoiceOptions() {
+        const qFilter = $("quality").value;
+        const sel = $("voice");
+        sel.innerHTML = "";
+        const ids = Object.keys(allVoices)
+          .filter((id) => {
+            const { lang, quality } = parseId(id);
+            if (!TARGET_LANGS.has(lang)) return false;
+            if (qFilter === "small") return SMALL_Q.has(quality);
+            if (qFilter === "high") return !SMALL_Q.has(quality);
+            return true;
+          })
+          .sort();
+        if (!ids.length) {
+          sel.innerHTML = "<option value=''>no voices match filter</option>";
+          return;
+        }
+        for (const id of ids) {
+          const opt = document.createElement("option");
+          opt.value = id;
+          opt.textContent = id;
+          sel.appendChild(opt);
+        }
+        // Default to a German medium voice if present, else first.
+        const def =
+          ids.find((id) => id.startsWith("de_DE") && id.endsWith("medium")) ||
+          ids[0];
+        sel.value = def;
+      }
+
+      (async function init() {
+        try {
+          log("Fetching Piper voice catalogue…");
+          allVoices = await tts.voices();
+          const n = Object.keys(allVoices).length;
+          const inTarget = Object.keys(allVoices).filter((id) =>
+            TARGET_LANGS.has(parseId(id).lang),
+          ).length;
+          log(`Catalogue: ${n} voices total, ${inTarget} in our languages.`);
+          rebuildVoiceOptions();
+          $("run").disabled = false;
+          log("Ready. Pick a voice and press the button.");
+        } catch (e) {
+          log("ERROR loading voice list: " + (e?.message || e));
+          log(
+            "If this is a CDN/worker problem, try the jsdelivr fallback in the source, or serve the package locally.",
+          );
+        }
+      })();
+
+      $("quality").addEventListener("change", rebuildVoiceOptions);
+
+      // ---- Run ------------------------------------------------------------
+      async function run() {
+        const btn = $("run");
+        btn.disabled = true;
+        try {
+          const voiceId = $("voice").value;
+          const text = $("text").value.trim();
+          if (!voiceId) {
+            log("No voice selected.");
+            return;
+          }
+          $("prog").style.width = "0%";
+
+          const cachedBefore = (await tts.stored()).includes(voiceId);
+          $("m-cached").textContent = cachedBefore ? "yes (offline)" : "no";
+          log(
+            `Voice: ${voiceId} | cached: ${cachedBefore} | text: ${text.length} chars`,
+          );
+
+          let downloadedBytes = 0;
+          const t0 = performance.now();
+          const wav = await tts.predict({ text, voiceId }, (p) => {
+            // progress can be a download event {url, total, loaded} or similar
+            if (p && p.total) {
+              downloadedBytes = Math.max(downloadedBytes, p.loaded || 0);
+              $("prog").style.width =
+                Math.round(((p.loaded || 0) / p.total) * 100) + "%";
+            }
+          });
+          const totalMs = performance.now() - t0;
+          $("prog").style.width = "100%";
+
+          // Decode WAV to get audio length and isolate synth time estimate.
+          const buf = await wav.arrayBuffer();
+          let audioSec = 0;
+          try {
+            const ctx = new (window.AudioContext ||
+              window.webkitAudioContext)();
+            const decoded = await ctx.decodeAudioData(buf.slice(0));
+            audioSec = decoded.duration;
+            ctx.close();
+          } catch {
+            audioSec = 0;
+          }
+
+          $("m-size").textContent = cachedBefore
+            ? "cached"
+            : downloadedBytes
+              ? fmtMB(downloadedBytes)
+              : "n/a";
+          $("m-total").textContent = fmtMs(totalMs);
+          // When the voice was already cached, total time ≈ pure synthesis.
+          $("m-synth").textContent = cachedBefore ? fmtMs(totalMs) : "run again →";
+          $("m-audio").textContent = audioSec ? audioSec.toFixed(2) + " s" : "—";
+          if (cachedBefore && audioSec) {
+            const rtf = totalMs / 1000 / audioSec;
+            $("m-rtf").textContent =
+              rtf.toFixed(3) + "× " + (rtf < 1 ? "(faster)" : "(slower)");
+          } else {
+            $("m-rtf").textContent = "run again (cached) →";
+          }
+
+          $("player").src = URL.createObjectURL(wav);
+          $("player").play().catch(() => {});
+          log(
+            `Done in ${fmtMs(totalMs)} → ${audioSec.toFixed(2)}s audio.` +
+              (cachedBefore
+                ? ""
+                : " First run included the download — press again for the pure-synthesis RTF."),
+          );
+        } catch (e) {
+          log("ERROR: " + (e?.message || e));
+          console.error(e);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("run").addEventListener("click", run);
+    </script>
+  </body>
+</html>

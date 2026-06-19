@@ -6,8 +6,30 @@ light enough for the Voice plugin — on desktop **and** mobile.
 
 It deliberately lives **outside** the plugin so we can measure the model itself
 without first fighting Obsidian's bundling/CSP. Once the numbers look good, we
-integrate the same engine (Transformers.js + ONNX Runtime Web) as a `local`
-speech provider.
+integrate the same engine as a `local` speech provider.
+
+> **Chosen direction: Piper.** After comparing options we picked **Piper**
+> (MIT-clean weights, separate `en_GB`/`en_US` voices, built-in quality tiers
+> that map to a size↔quality settings toggle). `piper.html` is the harness for
+> it; `index.html` remains the earlier MMS/Transformers.js harness for
+> reference. Piper covers 18 of the requested languages — see coverage below.
+
+## Two harnesses
+
+- **`piper.html`** — Piper via `@mintplex-labs/piper-tts-web` (ONNX + espeak-ng
+  WASM phonemizer, voices cached in OPFS). This is the one that matters now: it
+  validates in-browser **phonemization**, the only open technical risk for
+  Piper.
+- **`index.html`** — the original MMS-TTS / Transformers.js harness (1000+
+  languages, but CC-BY-NC weights). Kept for comparison.
+
+### Piper language coverage (of the requested set)
+
+**Available (18):** German, English-US, **English-GB**, French, Spanish,
+Italian, Portuguese, Dutch, Danish, Swedish, Norwegian, Finnish, Turkish,
+Russian, Ukrainian, Mandarin (zh_CN), Hindi, Greek.
+
+**Not in Piper (MMS-only):** Afrikaans, Japanese, Korean, Yoruba, Igbo, Hausa.
 
 ## What it does
 
@@ -34,7 +56,9 @@ a normal `http(s)://` origin (not `file://`) — especially for WebGPU.
 ```bash
 cd prototype/local-tts
 python3 -m http.server 8000
-# open http://localhost:8000 in Obsidian's browser engine (Chrome/Edge)
+# Piper (current):  http://localhost:8000/piper.html
+# MMS (reference):  http://localhost:8000/index.html
+# open in Obsidian's browser engine (Chrome/Edge)
 ```
 
 **iPhone / iPad and Android:** serve the folder from your computer as above,

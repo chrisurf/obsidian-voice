@@ -1,0 +1,444 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Local Neural TTS — Feasibility Harness</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        --accent: #7c5cff;
+        --bg: #1e1e22;
+        --panel: #27272c;
+        --text: #e6e6ea;
+        --muted: #a0a0aa;
+        --border: #3a3a42;
+        --ok: #3fb950;
+        --warn: #d29922;
+        --err: #f85149;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font:
+          15px/1.5 -apple-system,
+          BlinkMacSystemFont,
+          "Segoe UI",
+          Roboto,
+          sans-serif;
+        background: var(--bg);
+        color: var(--text);
+        padding: 18px;
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      p.sub {
+        color: var(--muted);
+        margin: 0 0 18px;
+      }
+      .panel {
+        background: var(--panel);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        padding: 14px;
+        margin-bottom: 14px;
+      }
+      label {
+        display: block;
+        font-size: 13px;
+        color: var(--muted);
+        margin: 10px 0 4px;
+      }
+      input,
+      select,
+      textarea {
+        width: 100%;
+        padding: 9px 10px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        font-size: 14px;
+      }
+      textarea {
+        min-height: 70px;
+        resize: vertical;
+      }
+      .row {
+        display: flex;
+        gap: 10px;
+      }
+      .row > * {
+        flex: 1;
+      }
+      button {
+        margin-top: 14px;
+        width: 100%;
+        padding: 12px;
+        background: var(--accent);
+        color: #fff;
+        border: 0;
+        border-radius: 8px;
+        font-size: 15px;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .metrics {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px 14px;
+        margin-top: 6px;
+      }
+      .metric {
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 8px 10px;
+      }
+      .metric .k {
+        font-size: 11px;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .metric .v {
+        font-size: 18px;
+        font-weight: 700;
+        font-variant-numeric: tabular-nums;
+      }
+      #log {
+        white-space: pre-wrap;
+        font:
+          12px/1.45 ui-monospace,
+          SFMono-Regular,
+          Menlo,
+          monospace;
+        color: var(--muted);
+        max-height: 220px;
+        overflow: auto;
+        background: var(--bg);
+        border: 1px solid var(--border);
+        border-radius: 7px;
+        padding: 10px;
+        margin-top: 10px;
+      }
+      .bar {
+        height: 8px;
+        background: var(--bg);
+        border-radius: 5px;
+        overflow: hidden;
+        margin-top: 10px;
+        border: 1px solid var(--border);
+      }
+      .bar > div {
+        height: 100%;
+        width: 0;
+        background: var(--accent);
+        transition: width 0.15s;
+      }
+      .pill {
+        display: inline-block;
+        font-size: 12px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--border);
+        color: var(--muted);
+        margin-right: 6px;
+      }
+      audio {
+        width: 100%;
+        margin-top: 12px;
+      }
+      code {
+        color: var(--text);
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Local Neural TTS — Feasibility Harness</h1>
+    <p class="sub">
+      Runs a small text-to-speech model fully on-device (WASM / WebGPU) to
+      measure download size, load time, synthesis speed and memory. No server,
+      no API key. First run downloads the model from the Hugging Face CDN, then
+      it is cached by the browser.
+    </p>
+
+    <div class="panel">
+      <div>
+        <span class="pill" id="env-platform">platform: …</span>
+        <span class="pill" id="env-webgpu">webgpu: …</span>
+        <span class="pill" id="env-isolated">cross-origin-isolated: …</span>
+        <span class="pill" id="env-mem">memory API: …</span>
+      </div>
+
+      <label for="model">Model</label>
+      <select id="model">
+        <option value="Xenova/mms-tts-eng" selected>
+          MMS-TTS · English (eng) — ~38 MB
+        </option>
+        <option value="Xenova/mms-tts-deu">
+          MMS-TTS · German (deu) — ~38 MB
+        </option>
+        <option value="Xenova/mms-tts-fra">MMS-TTS · French (fra)</option>
+        <option value="Xenova/mms-tts-spa">MMS-TTS · Spanish (spa)</option>
+        <option value="Xenova/mms-tts-ita">MMS-TTS · Italian (ita)</option>
+        <option value="Xenova/mms-tts-por">MMS-TTS · Portuguese (por)</option>
+        <option value="Xenova/mms-tts-rus">MMS-TTS · Russian (rus)</option>
+        <option value="Xenova/mms-tts-ara">MMS-TTS · Arabic (ara)</option>
+        <option value="Xenova/mms-tts-hin">MMS-TTS · Hindi (hin)</option>
+        <option value="Xenova/speecht5_tts">
+          SpeechT5 · English (heavier, ~170 MB)
+        </option>
+      </select>
+      <p class="sub" style="margin: 6px 0 0; font-size: 12px">
+        MMS-TTS covers 1000+ languages — swap <code>eng</code> for any
+        <a
+          href="https://huggingface.co/models?search=Xenova/mms-tts"
+          target="_blank"
+          rel="noopener"
+          style="color: var(--accent)"
+          >Xenova/mms-tts-XXX</a
+        >
+        code via the custom field below.
+      </p>
+
+      <label for="custom">Custom model id (optional, overrides the dropdown)</label>
+      <input id="custom" placeholder="e.g. Xenova/mms-tts-nld" />
+
+      <div class="row">
+        <div>
+          <label for="device">Compute</label>
+          <select id="device">
+            <option value="auto" selected>auto (WebGPU → WASM)</option>
+            <option value="webgpu">WebGPU only</option>
+            <option value="wasm">WASM only</option>
+          </select>
+        </div>
+        <div>
+          <label for="dtype">Precision</label>
+          <select id="dtype">
+            <option value="fp32" selected>fp32</option>
+            <option value="q8">q8 (smaller)</option>
+            <option value="fp16">fp16</option>
+          </select>
+        </div>
+      </div>
+
+      <label for="text">Text to synthesize</label>
+      <textarea id="text">
+The quick brown fox jumps over the lazy dog. This sentence measures how fast the model speaks on this device.</textarea
+      >
+
+      <button id="run">Download model &amp; synthesize</button>
+      <div class="bar"><div id="prog"></div></div>
+    </div>
+
+    <div class="panel">
+      <div class="metrics">
+        <div class="metric">
+          <div class="k">Model download</div>
+          <div class="v" id="m-size">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Load time</div>
+          <div class="v" id="m-load">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Synthesis time</div>
+          <div class="v" id="m-synth">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Audio length</div>
+          <div class="v" id="m-audio">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">Real-time factor</div>
+          <div class="v" id="m-rtf">—</div>
+        </div>
+        <div class="metric">
+          <div class="k">JS heap (Chromium)</div>
+          <div class="v" id="m-mem">—</div>
+        </div>
+      </div>
+      <audio id="player" controls></audio>
+    </div>
+
+    <div class="panel">
+      <div class="k" style="color: var(--muted); font-size: 11px">Log</div>
+      <div id="log"></div>
+    </div>
+
+    <script type="module">
+      // Transformers.js v3 from CDN. First run pulls the library + the chosen
+      // model; both are then cached by the browser (Cache API).
+      import {
+        pipeline,
+        env,
+      } from "https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.7.1";
+
+      const $ = (id) => document.getElementById(id);
+      const log = (msg) => {
+        const el = $("log");
+        el.textContent += msg + "\n";
+        el.scrollTop = el.scrollHeight;
+        console.log("[tts-harness]", msg);
+      };
+      const fmtMB = (b) => (b / 1024 / 1024).toFixed(1) + " MB";
+      const fmtMs = (ms) =>
+        ms >= 1000 ? (ms / 1000).toFixed(2) + " s" : Math.round(ms) + " ms";
+
+      // ---- Environment probe ---------------------------------------------
+      $("env-platform").textContent = "platform: " + navigator.platform;
+      const hasWebGPU = "gpu" in navigator;
+      $("env-webgpu").textContent = "webgpu: " + (hasWebGPU ? "yes" : "no");
+      $("env-isolated").textContent =
+        "cross-origin-isolated: " + window.crossOriginIsolated;
+      $("env-mem").textContent =
+        "memory API: " + (performance.memory ? "yes" : "no");
+
+      // Fetch model files from the HF hub (this is the on-device path: a real
+      // plugin would cache them in the vault / IndexedDB for full offline use).
+      env.allowLocalModels = false;
+      env.allowRemoteModels = true;
+
+      // ---- WAV encoder (Float32 mono PCM -> WAV Blob) ---------------------
+      function pcmToWav(float32, sampleRate) {
+        const numFrames = float32.length;
+        const buffer = new ArrayBuffer(44 + numFrames * 2);
+        const view = new DataView(buffer);
+        const writeStr = (off, s) => {
+          for (let i = 0; i < s.length; i++)
+            view.setUint8(off + i, s.charCodeAt(i));
+        };
+        writeStr(0, "RIFF");
+        view.setUint32(4, 36 + numFrames * 2, true);
+        writeStr(8, "WAVE");
+        writeStr(12, "fmt ");
+        view.setUint32(16, 16, true);
+        view.setUint16(20, 1, true); // PCM
+        view.setUint16(22, 1, true); // mono
+        view.setUint32(24, sampleRate, true);
+        view.setUint32(28, sampleRate * 2, true);
+        view.setUint16(32, 2, true);
+        view.setUint16(34, 16, true);
+        writeStr(36, "data");
+        view.setUint32(40, numFrames * 2, true);
+        let off = 44;
+        for (let i = 0; i < numFrames; i++, off += 2) {
+          const s = Math.max(-1, Math.min(1, float32[i]));
+          view.setInt16(off, s < 0 ? s * 0x8000 : s * 0x7fff, true);
+        }
+        return new Blob([view], { type: "audio/wav" });
+      }
+
+      // ---- Run ------------------------------------------------------------
+      let synth = null;
+      let loadedKey = null;
+
+      async function run() {
+        const btn = $("run");
+        btn.disabled = true;
+        try {
+          const modelId = ($("custom").value.trim() || $("model").value).trim();
+          const deviceChoice = $("device").value;
+          const dtype = $("dtype").value;
+          const text = $("text").value.trim();
+          const downloaded = {};
+          $("prog").style.width = "0%";
+
+          const device =
+            deviceChoice === "auto"
+              ? hasWebGPU
+                ? "webgpu"
+                : "wasm"
+              : deviceChoice;
+          log(
+            `Model: ${modelId} | device: ${device} | dtype: ${dtype} | text: ${text.length} chars`,
+          );
+
+          const key = `${modelId}|${device}|${dtype}`;
+          if (key !== loadedKey) {
+            synth = null;
+          }
+
+          // --- load (download + init) ---
+          if (!synth) {
+            const t0 = performance.now();
+            synth = await pipeline("text-to-speech", modelId, {
+              device,
+              dtype,
+              progress_callback: (p) => {
+                if (p.status === "progress" && p.file) {
+                  downloaded[p.file] = { loaded: p.loaded, total: p.total };
+                  const totals = Object.values(downloaded);
+                  const loaded = totals.reduce(
+                    (a, b) => a + (b.loaded || 0),
+                    0,
+                  );
+                  const total = totals.reduce((a, b) => a + (b.total || 0), 0);
+                  if (total)
+                    $("prog").style.width =
+                      Math.round((loaded / total) * 100) + "%";
+                } else if (p.status === "ready") {
+                  $("prog").style.width = "100%";
+                }
+              },
+            });
+            const loadMs = performance.now() - t0;
+            loadedKey = key;
+            const totalBytes = Object.values(downloaded).reduce(
+              (a, b) => a + (b.total || 0),
+              0,
+            );
+            $("m-size").textContent = totalBytes ? fmtMB(totalBytes) : "cached";
+            $("m-load").textContent = fmtMs(loadMs);
+            log(
+              `Loaded in ${fmtMs(loadMs)} (download ${totalBytes ? fmtMB(totalBytes) : "from cache"})`,
+            );
+          } else {
+            log("Model already loaded — reusing.");
+          }
+
+          // --- synthesize ---
+          const t1 = performance.now();
+          const out = await synth(text);
+          const synthMs = performance.now() - t1;
+
+          const audioSec = out.audio.length / out.sampling_rate;
+          const rtf = synthMs / 1000 / audioSec;
+          $("m-synth").textContent = fmtMs(synthMs);
+          $("m-audio").textContent = audioSec.toFixed(2) + " s";
+          $("m-rtf").textContent =
+            rtf.toFixed(3) + "× " + (rtf < 1 ? "(faster)" : "(slower)");
+          if (performance.memory)
+            $("m-mem").textContent = fmtMB(performance.memory.usedJSHeapSize);
+
+          const wav = pcmToWav(out.audio, out.sampling_rate);
+          $("player").src = URL.createObjectURL(wav);
+          $("player").play().catch(() => {});
+          log(
+            `Synthesized ${audioSec.toFixed(2)}s of audio in ${fmtMs(synthMs)} → RTF ${rtf.toFixed(3)} (lower is better; <1 = faster than real time)`,
+          );
+        } catch (e) {
+          log("ERROR: " + (e && e.message ? e.message : String(e)));
+          console.error(e);
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      $("run").addEventListener("click", run);
+      log("Ready. Pick a model and press the button.");
+    </script>
+  </body>
+</html>

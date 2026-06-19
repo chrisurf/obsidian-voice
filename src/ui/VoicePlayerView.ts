@@ -1,10 +1,4 @@
-import {
-  ItemView,
-  WorkspaceLeaf,
-  TFile,
-  setIcon,
-  normalizePath,
-} from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, setIcon } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
 import { listChapters, type ChapterFile } from "../utils/chapters";
@@ -59,6 +53,10 @@ export class VoicePlayerView extends ItemView {
   private chapters: ChapterFile[] = [];
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
+  // The generated-audio blob that has already been saved via the download
+  // button. Used to disable download once the current audio is saved, while
+  // re-enabling it as soon as a fresh synthesis produces new audio.
+  private lastDownloadedBlob: Blob | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -294,7 +292,16 @@ export class VoicePlayerView extends ItemView {
    * shared download flow so behaviour matches the status bar / mobile button.
    */
   private async downloadAudio(): Promise<void> {
+    const active = this.app.workspace.getActiveFile();
+    const blob = active
+      ? this.provider().getLastGeneratedAudio(active.path)
+      : null;
     await this.plugin.iconEventHandler.handleDownloadAudio();
+    // Remember which audio we saved so the button disables until the next
+    // synthesis produces a new blob.
+    if (blob) {
+      this.lastDownloadedBlob = blob;
+    }
     this.refreshContext();
   }
 
@@ -371,7 +378,9 @@ export class VoicePlayerView extends ItemView {
 
   /**
    * Enable the download button only when there is freshly generated audio for
-   * the active note that has not already been saved as an MP3.
+   * the active note that has not already been saved via this button. A new
+   * synthesis produces a new blob, which re-enables the button; saving it
+   * disables it again.
    */
   private updateDownloadButton(): void {
     if (!this.downloadBtn) {
@@ -381,13 +390,7 @@ export class VoicePlayerView extends ItemView {
     const active = this.app.workspace.getActiveFile();
     if (active) {
       const cached = this.provider().getLastGeneratedAudio(active.path);
-      const dir = active.parent?.path ?? "";
-      const mp3Path = normalizePath(
-        dir ? `${dir}/${active.basename}.mp3` : `${active.basename}.mp3`,
-      );
-      const alreadySaved =
-        this.app.vault.getAbstractFileByPath(mp3Path) instanceof TFile;
-      enabled = cached !== null && !alreadySaved;
+      enabled = cached !== null && cached !== this.lastDownloadedBlob;
     }
     this.downloadBtn.disabled = !enabled;
     this.downloadBtn.toggleClass("is-disabled", !enabled);

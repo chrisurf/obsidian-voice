@@ -640,6 +640,13 @@
   color: var(--text-normal);
 }
 
+.voice-player-download:disabled,
+.voice-player-download.is-disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
 .voice-player-repeat {
   display: flex;
   align-items: center;
@@ -744,4 +751,87 @@
 .voice-player-chapter.is-current .voice-player-chapter-name {
   color: var(--text-accent);
   font-weight: 600;
+}
+
+/* Provider / voice selectors + read-code-blocks toggle */
+.voice-player-options {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-player-select {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.voice-player-code {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-muted);
+}
+
+.voice-player-code:hover {
+  color: var(--text-normal);
+}
+
+.voice-player-code.is-active {
+  color: var(--interactive-accent);
+}
+
+/* "Read this note" loading animation */
+.voice-player-read.is-loading {
+  opacity: 0.85;
+  cursor: default;
+  animation: voice-player-pulse 1.2s ease-in-out infinite;
+}
+
+@keyframes voice-player-pulse {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Indeterminate loading bar, pinned to the bottom of the panel */
+.voice-player-loading {
+  margin-top: auto;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.voice-player-loading.is-visible {
+  opacity: 1;
+}
+
+.voice-player-loading-fill {
+  width: 40%;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--interactive-accent);
+  animation: voice-player-indeterminate 1.1s ease-in-out infinite;
+}
+
+@keyframes voice-player-indeterminate {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(350%);
+  }
 }

@@ -63,6 +63,13 @@ non-commercial licence; Piper = EN+DE; Kokoro = English, licence-clean), and
   internal measurement, but a shipping decision is still open.
 - **iOS memory:** WKWebView has a hard per-process limit (~1.5 GB). Stay with
   small / quantized models there; large fp32 models may OOM-crash.
-- **WebGPU:** desktop yes; Android System WebView probable; iOS only from
-  iOS 26+. The harness auto-falls back to WASM (single-threaded on mobile).
+- **WebGPU:** MMS-TTS (VITS) is **not** WebGPU-compatible — it uses a
+  `GatherND` op with int64 indices that ORT-Web's WebGPU backend rejects
+  ("Unsupported data type: 7"). The harness therefore runs MMS on WASM in auto
+  mode and auto-falls back WebGPU→WASM on error. WebGPU only helps heavier
+  models (Kokoro / SpeechT5). Availability: desktop yes; Android WebView
+  probable; iOS only from iOS 26+.
+- **Footprint:** the ~38 MB figure for MMS is the quantized (**q8**) build;
+  the default **fp32** download is ~100+ MB. Switch Precision to q8 to measure
+  the small-footprint case.
 - This page is a throwaway measurement tool, not shipped with the plugin.

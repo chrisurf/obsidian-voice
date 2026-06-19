@@ -356,12 +356,19 @@ The quick brown fox jumps over the lazy dog. This sentence measures how fast the
           const downloaded = {};
           $("prog").style.width = "0%";
 
+          // MMS-TTS is VITS-based and uses a GatherND op with int64 indices,
+          // which the WebGPU backend of ONNX Runtime Web does not support
+          // ("Unsupported data type: 7"). Force such models onto WASM in auto
+          // mode; WebGPU only helps heavier models (Kokoro / SpeechT5).
+          const isVits = /mms-tts|vits/i.test(modelId);
           const device =
             deviceChoice === "auto"
-              ? hasWebGPU
+              ? hasWebGPU && !isVits
                 ? "webgpu"
                 : "wasm"
               : deviceChoice;
+          if (deviceChoice === "auto" && isVits && hasWebGPU)
+            log("Note: MMS/VITS is not WebGPU-compatible → using WASM.");
           log(
             `Model: ${modelId} | device: ${device} | dtype: ${dtype} | text: ${text.length} chars`,
           );
@@ -409,9 +416,22 @@ The quick brown fox jumps over the lazy dog. This sentence measures how fast the
             log("Model already loaded — reusing.");
           }
 
-          // --- synthesize ---
+          // --- synthesize (with automatic WebGPU -> WASM fallback) ---
           const t1 = performance.now();
-          const out = await synth(text);
+          let out;
+          try {
+            out = await synth(text);
+          } catch (synthErr) {
+            const msg = String(synthErr && synthErr.message);
+            if (device === "webgpu" && /webgpu|data type|kernel/i.test(msg)) {
+              log(`WebGPU synthesis failed (${msg}). Falling back to WASM…`);
+              synth = await pipeline("text-to-speech", modelId, { device: "wasm", dtype });
+              loadedKey = `${modelId}|wasm|${dtype}`;
+              out = await synth(text);
+            } else {
+              throw synthErr;
+            }
+          }
           const synthMs = performance.now() - t1;
 
           const audioSec = out.audio.length / out.sampling_rate;

@@ -24,10 +24,11 @@ describe("Unit Tests - What's New", () => {
       expect(WHATS_NEW).toMatch(/Voice player/i);
     });
 
-    test("mentions the engines added since 1.8.0", () => {
+    test("mentions the available engines", () => {
       expect(WHATS_NEW).toMatch(/ElevenLabs/);
       expect(WHATS_NEW).toMatch(/Google Cloud/);
       expect(WHATS_NEW).toMatch(/Azure/);
+      expect(WHATS_NEW).toMatch(/OpenAI/);
     });
   });
 });

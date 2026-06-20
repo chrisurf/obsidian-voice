@@ -55,6 +55,35 @@ export class Voice extends Plugin {
       name: "Open the player.",
       callback: () => void this.activatePlayerView(),
     });
+
+    // Make the player discoverable out of the box: place it as a tab in the
+    // right sidebar once (after the layout is ready), so new users see it
+    // alongside Backlinks/Outline without first running a command. It is only
+    // placed a single time, so closing it afterwards is respected.
+    this.app.workspace.onLayoutReady(() => void this.placeDefaultPlayerPane());
+  }
+
+  /**
+   * One-time placement of the player in the right sidebar so it shows up by
+   * default (desktop and mobile). The tab is added without revealing it, so it
+   * does not steal focus from the user's current pane.
+   */
+  private async placeDefaultPlayerPane(): Promise<void> {
+    if (this.settings.playerPanePlaced) {
+      return;
+    }
+    this.settings.playerPanePlaced = true;
+    await this.saveSettings();
+
+    const { workspace } = this.app;
+    if (workspace.getLeavesOfType(VIEW_TYPE_VOICE_PLAYER).length > 0) {
+      return;
+    }
+    const right = workspace.getRightLeaf(false);
+    if (!right) {
+      return;
+    }
+    await right.setViewState({ type: VIEW_TYPE_VOICE_PLAYER });
   }
 
   async speakText(speed?: number) {

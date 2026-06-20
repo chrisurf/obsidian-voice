@@ -279,6 +279,20 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl)
+      .setName("Folder Picker Follows Active Note")
+      .setDesc(
+        "When enabled, the player's folder picker automatically switches to the folder of the note you are viewing. Disable it to keep the folder you selected in the player when you switch notes. Enabled by default.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.folderSelectorFollowsNote)
+          .onChange(async (value) => {
+            this.plugin.settings.folderSelectorFollowsNote = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
     // Provider-specific credentials
     if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
       this.displayElevenLabsSettings(containerEl);

@@ -1,7 +1,13 @@
 import { ItemView, WorkspaceLeaf, TFile, setIcon } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
-import { listChapters, type ChapterFile } from "../utils/chapters";
+import {
+  listChapters,
+  listMp3Folders,
+  normalizeFolderPath,
+  type ChapterFile,
+  type Mp3Folder,
+} from "../utils/chapters";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -25,7 +31,8 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
  * full-screen pane. It binds to the active speech provider's audio element
  * (polling, so provider swaps and chapter playback are handled uniformly) and
  * offers transport controls, a scrubber, speed, and a "chapters" list built
- * from the MP3 files in the active note's folder.
+ * from the MP3 files in the selected folder. A folder picker lists every vault
+ * folder that contains MP3s so the player can browse audio across the vault.
  */
 export class VoicePlayerView extends ItemView {
   private plugin: Voice;
@@ -45,12 +52,17 @@ export class VoicePlayerView extends ItemView {
   private downloadBtn: HTMLButtonElement;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
+  private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
 
   private isScrubbing = false;
   private currentChapterPath: string | null = null;
   private chapters: ChapterFile[] = [];
+  // Folders in the vault that contain at least one MP3, and the one currently
+  // selected in the folder picker (drives the chapter list).
+  private folders: Mp3Folder[] = [];
+  private selectedFolderPath: string | null = null;
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
   // The generated-audio blob that has already been saved via the download
@@ -255,6 +267,17 @@ export class VoicePlayerView extends ItemView {
     setIcon(this.codeBtn, "code");
     this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
 
+    // Folder picker: choose any vault folder that contains MP3s and list its
+    // tracks as chapters, so the player can browse audio across the vault.
+    const folderRow = root.createDiv({ cls: "voice-player-folder" });
+    this.folderSelect = folderRow.createEl("select", {
+      cls: "voice-player-select voice-player-folder-select dropdown",
+      attr: { "aria-label": "Audio folder" },
+    });
+    this.registerDomEvent(this.folderSelect, "change", () =>
+      this.changeFolder(this.folderSelect.value),
+    );
+
     // Chapters
     const chapters = root.createDiv({ cls: "voice-player-chapters" });
     chapters
@@ -410,7 +433,11 @@ export class VoicePlayerView extends ItemView {
     }
   }
 
-  /** Refresh the title and the chapter list from the active note. */
+  /**
+   * Refresh the title, the folder picker, and the chapter list. The folder
+   * picker lists every vault folder that holds MP3s; the selected folder drives
+   * the chapter list.
+   */
   private refreshContext(): void {
     if (!this.titleEl) {
       return;
@@ -418,10 +445,91 @@ export class VoicePlayerView extends ItemView {
     const active = this.app.workspace.getActiveFile();
     this.titleEl.setText(active ? active.basename : "Voice player");
 
+    // Collect every folder in the vault that holds at least one MP3.
+    const mp3Files = this.app.vault
+      .getFiles()
+      .filter((f) => f.extension === "mp3");
+    this.folders = listMp3Folders(mp3Files.map((f) => f.path));
+
+    this.selectedFolderPath = this.resolveSelectedFolder(active);
+    this.renderFolderOptions();
+    this.renderSelectedFolderChapters();
+  }
+
+  /**
+   * Decide which folder the chapter list should show. When "follow note" is on
+   * (and the active note's folder has audio) we track the note; otherwise we
+   * keep the user's manual choice, falling back to the active note's folder or
+   * the first available folder when the previous selection no longer exists.
+   */
+  private resolveSelectedFolder(active: TFile | null): string | null {
+    if (this.folders.length === 0) {
+      return null;
+    }
+    const activeFolder =
+      active?.parent != null ? normalizeFolderPath(active.parent.path) : null;
+    const hasFolder = (path: string | null): boolean =>
+      path !== null && this.folders.some((f) => f.path === path);
+
+    if (
+      this.plugin.settings.folderSelectorFollowsNote &&
+      hasFolder(activeFolder)
+    ) {
+      return activeFolder;
+    }
+    if (hasFolder(this.selectedFolderPath)) {
+      return this.selectedFolderPath;
+    }
+    return hasFolder(activeFolder) ? activeFolder : this.folders[0].path;
+  }
+
+  /** Rebuild the folder dropdown from the discovered MP3 folders. */
+  private renderFolderOptions(): void {
+    this.folderSelect.empty();
+    if (this.folders.length === 0) {
+      const placeholder = this.folderSelect.createEl("option", {
+        value: "",
+        text: "No audio folders",
+      });
+      placeholder.disabled = true;
+      this.folderSelect.disabled = true;
+      return;
+    }
+    this.folderSelect.disabled = false;
+    this.folders.forEach((folder) => {
+      this.folderSelect.createEl("option", {
+        value: folder.path,
+        text: folder.name,
+      });
+    });
+    if (this.selectedFolderPath !== null) {
+      this.folderSelect.value = this.selectedFolderPath;
+    }
+  }
+
+  /** Switch the folder whose tracks are listed as chapters. */
+  private changeFolder(folderPath: string): void {
+    if (folderPath === this.selectedFolderPath) {
+      return;
+    }
+    this.selectedFolderPath = folderPath;
+    this.renderSelectedFolderChapters();
+  }
+
+  /** Render the chapters (MP3s) that live in the selected folder. */
+  private renderSelectedFolderChapters(): void {
+    const folderPath = this.selectedFolderPath;
     const mp3Paths =
-      active?.parent?.children
-        .filter((f) => f instanceof TFile && f.extension === "mp3")
-        .map((f) => f.path) ?? [];
+      folderPath === null
+        ? []
+        : this.app.vault
+            .getFiles()
+            .filter(
+              (f) =>
+                f.extension === "mp3" &&
+                normalizeFolderPath(f.parent?.path ?? "/") === folderPath,
+            )
+            .map((f) => f.path);
     this.chapters = listChapters(mp3Paths);
 
     this.subtitleEl.setText(

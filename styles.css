@@ -787,6 +787,18 @@
   color: var(--interactive-accent);
 }
 
+/* Folder picker: choose which folder's MP3s show up as chapters */
+.voice-player-folder {
+  display: flex;
+  align-items: center;
+}
+
+.voice-player-folder-select {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 100%;
+}
+
 /* "Read this note" loading animation */
 .voice-player-read.is-loading {
   opacity: 0.85;

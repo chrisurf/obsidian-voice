@@ -1,4 +1,10 @@
-import { listChapters, chapterName } from "../src/utils/chapters";
+import {
+  listChapters,
+  chapterName,
+  listMp3Folders,
+  folderDisplayName,
+  normalizeFolderPath,
+} from "../src/utils/chapters";
 
 describe("Unit Tests - Chapter helpers", () => {
   describe("chapterName", () => {
@@ -42,6 +48,67 @@ describe("Unit Tests - Chapter helpers", () => {
 
     test("handles an empty list", () => {
       expect(listChapters([])).toEqual([]);
+    });
+  });
+
+  describe("normalizeFolderPath", () => {
+    test("maps an empty path to the vault root", () => {
+      expect(normalizeFolderPath("")).toBe("/");
+    });
+
+    test("leaves a non-empty path untouched", () => {
+      expect(normalizeFolderPath("notes/audio")).toBe("notes/audio");
+    });
+  });
+
+  describe("folderDisplayName", () => {
+    test("returns the folder's own name", () => {
+      expect(folderDisplayName("Projects/Audiobooks/Part 1")).toBe("Part 1");
+    });
+
+    test("renders the vault root as a slash", () => {
+      expect(folderDisplayName("/")).toBe("/");
+      expect(folderDisplayName("")).toBe("/");
+    });
+
+    test("handles a single-segment folder", () => {
+      expect(folderDisplayName("audio")).toBe("audio");
+    });
+  });
+
+  describe("listMp3Folders", () => {
+    test("returns only folders that contain MP3s, de-duplicated", () => {
+      const result = listMp3Folders([
+        "notes/audio/a.mp3",
+        "notes/audio/b.mp3",
+        "podcasts/c.mp3",
+      ]);
+      expect(result).toEqual([
+        { path: "notes/audio", name: "audio" },
+        { path: "podcasts", name: "podcasts" },
+      ]);
+    });
+
+    test("treats files in the vault root as the '/' folder", () => {
+      const result = listMp3Folders(["intro.mp3"]);
+      expect(result).toEqual([{ path: "/", name: "/" }]);
+    });
+
+    test("sorts folders naturally by display name", () => {
+      const result = listMp3Folders([
+        "Part 10/a.mp3",
+        "Part 2/b.mp3",
+        "Part 1/c.mp3",
+      ]);
+      expect(result.map((f) => f.name)).toEqual([
+        "Part 1",
+        "Part 2",
+        "Part 10",
+      ]);
+    });
+
+    test("handles an empty list", () => {
+      expect(listMp3Folders([])).toEqual([]);
     });
   });
 });

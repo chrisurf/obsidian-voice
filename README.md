@@ -32,7 +32,9 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 ![Voice player on desktop](./assets/voice-player.png)
 
+- **Always within reach** — the player is docked in the right sidebar (next to Backlinks and Outline) right after install, so it's there whenever you need it. On mobile it opens as a full-screen pane.
 - **Chapters from your folder** — every MP3 saved next to the current note appears as a numbered chapter. Listen to a whole folder like an audiobook, and the chapter you're hearing is highlighted.
+- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. It follows the note you're viewing by default; turn off **Folder Picker Follows Active Note** in settings to keep your chosen folder while you browse.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
 - **Read this note** — generate speech for the note you're viewing with a single click.
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
@@ -119,18 +121,19 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                     | What it does                                                                                                                               |
-| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Speech Provider**         | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. The credential fields below adapt to your choice. |
-| **Voice**                   | Pick the voice, gender, and language used for playback.                                                                                    |
-| **Tempo**                   | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                             |
-| **Rewind interval**         | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                        |
-| **Fast-forward interval**   | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                 |
-| **Spell Out Acronyms**      | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                         |
-| **Read Code Blocks**        | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                    |
-| **Skip Website URLs**       | Remove URLs from spoken output while keeping link labels. Off by default.                                                                  |
-| **Auto-Save Audio to Note** | Automatically save and embed the MP3 after each playback. Off by default.                                                                  |
-| **Test Credentials**        | Validate your provider keys; on success it reports how many voices are available.                                                          |
+| Setting                               | What it does                                                                                                                               |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**                   | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. The credential fields below adapt to your choice. |
+| **Voice**                             | Pick the voice, gender, and language used for playback.                                                                                    |
+| **Tempo**                             | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                             |
+| **Rewind interval**                   | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                        |
+| **Fast-forward interval**             | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                 |
+| **Spell Out Acronyms**                | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                         |
+| **Read Code Blocks**                  | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                    |
+| **Skip Website URLs**                 | Remove URLs from spoken output while keeping link labels. Off by default.                                                                  |
+| **Auto-Save Audio to Note**           | Automatically save and embed the MP3 after each playback. Off by default.                                                                  |
+| **Folder Picker Follows Active Note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.         |
+| **Test Credentials**                  | Validate your provider keys; on success it reports how many voices are available.                                                          |
 
 ## Keyboard Shortcuts
 

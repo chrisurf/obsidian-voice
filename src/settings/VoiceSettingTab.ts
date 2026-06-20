@@ -3,6 +3,7 @@ import { Voice } from "../utils/VoicePlugin";
 import {
   ELEVENLABS_MODELS,
   AZURE_REGIONS,
+  OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
 } from "./VoiceSettings";
@@ -87,13 +88,15 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("elevenlabs", "ElevenLabs")
           .addOption("google", "Google Cloud")
           .addOption("azure", "Azure Speech")
+          .addOption("openai", "OpenAI")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as
               | "polly"
               | "elevenlabs"
               | "google"
-              | "azure";
+              | "azure"
+              | "openai";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -300,9 +303,56 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayGoogleSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "azure") {
       this.displayAzureSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
+      this.displayOpenAISettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
+  }
+
+  private displayOpenAISettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("OpenAI").setHeading();
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "The OpenAI text-to-speech model. GPT-4o mini TTS is recommended; TTS-1 favours latency and TTS-1 HD favours quality.",
+      )
+      .addDropdown((dropdown) => {
+        OPENAI_MODELS.forEach((model) => {
+          dropdown.addOption(model.id, model.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.OPENAI_MODEL)
+          .onChange(async (value) => {
+            this.plugin.settings.OPENAI_MODEL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "OpenAI API Key",
+      "Your OpenAI API key (from the OpenAI dashboard → API keys).",
+      "Enter your OpenAI API key",
+      this.plugin.settings.OPENAI_API_KEY,
+      async (value) => {
+        this.plugin.settings.OPENAI_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "OpenAI",
+      isConfigured: () => !!this.plugin.settings.OPENAI_API_KEY,
+      missingMessage: "Please enter your OpenAI API key before testing.",
+      promptMessage:
+        "Enter your OpenAI API key above, then click 'Test Credentials' to validate",
+      helpText: "Need an OpenAI API key? ",
+      helpUrl: "https://platform.openai.com/api-keys",
+    });
   }
 
   private displayAzureSettings(containerEl: HTMLElement): void {

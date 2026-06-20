@@ -1,7 +1,7 @@
 {
   "name": "voice",
   "version": "1.14.0",
-  "description": "Add a voice to Obsidian (https://obsidian.md). Text-to-speech adds sound, audio, and speech to your notes, letting them talk in your workspace, mobile-friendly, perfect for learning or reinforcing ideas as you listen hands-free in an audiobook-like experience.",
+  "description": "Obsidian Voice — Text-to-Speech (TTS) plugin that reads your notes aloud in natural, lifelike speech. Turn notes into an audiobook: a podcast-style voice player with chapters, MP3 audio download, offline listening, and speed control. Listen hands-free on desktop, iOS & Android. Powered by AWS Polly, ElevenLabs, OpenAI, Google Cloud Text-to-Speech & Azure Speech — your credentials stay private. Great for learning, accessibility, and reinforcing ideas by listening.",
   "main": "main.js",
   "scripts": {
     "dev": "node esbuild.config.mjs",
@@ -17,10 +17,27 @@
     "lint:check": "eslint src --ext .ts"
   },
   "keywords": [
-    "Obsidian",
-    "Voice",
-    "Plugin",
-    "Text-to-Speech"
+    "obsidian",
+    "voice",
+    "text-to-speech",
+    "tts",
+    "speech",
+    "audio",
+    "audiobook",
+    "read-aloud",
+    "narration",
+    "listen",
+    "aws-polly",
+    "elevenlabs",
+    "openai",
+    "openai-tts",
+    "google-cloud-tts",
+    "azure-speech",
+    "neural-voices",
+    "mp3",
+    "accessibility",
+    "hands-free",
+    "mobile"
   ],
   "author": "Chris Oguntolu",
   "license": "MIT",

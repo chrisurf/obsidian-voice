@@ -8,6 +8,7 @@ import { AwsPollyService } from "./AwsPollyService";
 import { ElevenLabsService } from "./ElevenLabsService";
 import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
+import { OpenAiSpeechService } from "./OpenAiSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -33,6 +34,13 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.AZURE_API_KEY,
       settings.AZURE_REGION,
       settings.AZURE_VOICE,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "openai") {
+    provider = new OpenAiSpeechService(
+      settings.OPENAI_API_KEY,
+      settings.OPENAI_VOICE,
+      settings.OPENAI_MODEL,
       Number(settings.SPEED),
     );
   } else {

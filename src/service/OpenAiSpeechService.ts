@@ -1,6 +1,6 @@
 import { requestUrl } from "obsidian";
 import {
-  ELEVENLABS_VOICES,
+  OPENAI_VOICES,
   type VoiceOption,
   type VoiceSettings,
 } from "../settings/VoiceSettings";
@@ -9,24 +9,26 @@ import type { CredentialValidationResult } from "./SpeechProvider";
 import { chunkPlainText } from "./textChunker";
 
 /**
- * ElevenLabs Text-to-Speech integration.
+ * OpenAI Text-to-Speech integration.
  *
- * - Receives plain spoken text from TextSpeaker (ElevenLabs does not support
- *   full SSML, so the text pipeline is used instead of the SSML pipeline).
- * - Chunks long notes to stay within the per-request character limit and
+ * - Receives plain spoken text from TextSpeaker (OpenAI's speech endpoint does
+ *   not support SSML, so the text pipeline is used instead of the SSML pipeline).
+ * - Chunks long notes to stay within the per-request input limit and
  *   concatenates the resulting MP3 blobs.
- * - Uses Obsidian's requestUrl() to bypass browser CORS (same rationale as the
- *   Polly path) and to keep the API key out of fetch/XHR client requests.
- * - Playback/controls/caching are inherited from BaseSpeechService.
+ * - Uses Obsidian's requestUrl() with a Bearer token to bypass browser CORS
+ *   (same rationale as the other HTTP providers) and to keep the key out of
+ *   fetch/XHR client requests.
+ * - Playback/controls/caching are inherited from BaseSpeechService. Speed is
+ *   applied client-side via the audio element, so it is not sent to the API.
  */
 
-const ELEVENLABS_BASE_URL = "https://api.elevenlabs.io";
-const OUTPUT_FORMAT = "mp3_44100_128";
-// Conservative per-request size. multilingual_v2 allows 10k chars; smaller
-// chunks lower first-audio latency and avoid hitting limits on any model.
-const MAX_CHUNK_CHARS = 3000;
+const OPENAI_BASE_URL = "https://api.openai.com/v1";
+// Conservative per-request size. The speech endpoint accepts up to ~4096
+// characters; smaller chunks lower first-audio latency and stay safely under
+// the limit for every model.
+const MAX_CHUNK_CHARS = 2000;
 
-export class ElevenLabsService extends BaseSpeechService {
+export class OpenAiSpeechService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
 
   private apiKey: string;
@@ -35,20 +37,20 @@ export class ElevenLabsService extends BaseSpeechService {
   constructor(apiKey: string, voice: string, model: string, speed?: number) {
     super(voice, speed);
     this.apiKey = apiKey;
-    this.model = model || "eleven_multilingual_v2";
+    this.model = model || "gpt-4o-mini-tts";
   }
 
   getVoiceOptions(): VoiceOption[] {
-    return ELEVENLABS_VOICES;
+    return OPENAI_VOICES;
   }
 
   updateCredentials(settings: VoiceSettings): void {
-    this.apiKey = settings.ELEVENLABS_API_KEY;
-    this.model = settings.ELEVENLABS_MODEL || "eleven_multilingual_v2";
+    this.apiKey = settings.OPENAI_API_KEY;
+    this.model = settings.OPENAI_MODEL || "gpt-4o-mini-tts";
   }
 
   /**
-   * Synthesize and play plain text via ElevenLabs.
+   * Synthesize and play plain text via OpenAI.
    */
   async speak(
     content: string,
@@ -56,11 +58,11 @@ export class ElevenLabsService extends BaseSpeechService {
     filePath?: string,
   ): Promise<void> {
     if (this.isLoading) {
-      throw new Error("ElevenLabs call already in progress.");
+      throw new Error("OpenAI call already in progress.");
     }
 
     if (!this.apiKey) {
-      const error = new Error("Missing ElevenLabs API key");
+      const error = new Error("Missing OpenAI API key");
       this.reportError(error);
       throw error;
     }
@@ -100,7 +102,7 @@ export class ElevenLabsService extends BaseSpeechService {
       if (error instanceof Error && error.name === "AbortError") {
         return;
       }
-      console.error("Error in ElevenLabs speak:", error);
+      console.error("Error in OpenAI speak:", error);
       this.reportError(error);
       throw error;
     } finally {
@@ -113,76 +115,76 @@ export class ElevenLabsService extends BaseSpeechService {
    * Synthesize a single text chunk and return the MP3 blob.
    */
   private async synthesizeChunk(text: string): Promise<Blob> {
-    const voiceId = this.voice;
-    const url = `${ELEVENLABS_BASE_URL}/v1/text-to-speech/${encodeURIComponent(
-      voiceId,
-    )}?output_format=${OUTPUT_FORMAT}`;
-
     const response = await requestUrl({
-      url,
+      url: `${OPENAI_BASE_URL}/audio/speech`,
       method: "POST",
       headers: {
-        "xi-api-key": this.apiKey,
+        Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
       body: JSON.stringify({
-        text,
-        model_id: this.model,
+        model: this.model,
+        input: text,
+        voice: this.voice,
+        response_format: "mp3",
       }),
       throw: false,
     });
 
     if (response.status === 401) {
-      throw new Error("ElevenLabs: invalid or expired API key (401)");
+      throw new Error("OpenAI: invalid or expired API key (401)");
     }
     if (response.status === 429) {
-      throw new Error("ElevenLabs: rate or concurrency limit reached (429)");
+      throw new Error("OpenAI: rate limit or quota reached (429)");
     }
     if (response.status >= 400) {
-      throw new Error(`ElevenLabs API error (HTTP ${response.status})`);
+      const message = response.json?.error?.message;
+      throw new Error(
+        `OpenAI API error (HTTP ${response.status})${
+          message ? `: ${message}` : ""
+        }`,
+      );
     }
 
     const arrayBuffer = response.arrayBuffer;
     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error("ElevenLabs returned an empty audio response");
+      throw new Error("OpenAI returned an empty audio response");
     }
 
     return new Blob([arrayBuffer], { type: "audio/mpeg" });
   }
 
   /**
-   * Validate the API key by listing the account's voices.
+   * Validate the API key. OpenAI has no list-voices endpoint, so we probe the
+   * models endpoint; a 200 means the key works. The voice count reflects the
+   * built-in catalog.
    */
   async validateCredentials(): Promise<CredentialValidationResult> {
     if (!this.apiKey) {
-      return { isValid: false, error: "Please enter your ElevenLabs API key." };
+      return { isValid: false, error: "Please enter your OpenAI API key." };
     }
 
     try {
       const response = await requestUrl({
-        url: `${ELEVENLABS_BASE_URL}/v1/voices`,
+        url: `${OPENAI_BASE_URL}/models`,
         method: "GET",
-        headers: { "xi-api-key": this.apiKey },
+        headers: { Authorization: `Bearer ${this.apiKey}` },
         throw: false,
       });
 
       if (response.status === 200) {
-        const voices = response.json?.voices ?? [];
-        return { isValid: true, voiceCount: voices.length };
+        return { isValid: true, voiceCount: OPENAI_VOICES.length };
       }
       if (response.status === 401) {
-        return {
-          isValid: false,
-          error: "Invalid or expired ElevenLabs API key.",
-        };
+        return { isValid: false, error: "Invalid or expired OpenAI API key." };
       }
       return {
         isValid: false,
         error: `Validation failed (HTTP ${response.status}).`,
       };
     } catch (error) {
-      console.error("ElevenLabs credential validation error:", error);
+      console.error("OpenAI credential validation error:", error);
       return {
         isValid: false,
         error: "Network error during validation. Please try again.",
@@ -195,22 +197,22 @@ export class ElevenLabsService extends BaseSpeechService {
       const message = String((error as { message: string }).message);
 
       if (message.includes("401")) {
-        return "Invalid ElevenLabs API key.";
+        return "Invalid OpenAI API key.";
       }
       if (message.includes("429")) {
-        return "ElevenLabs rate limit reached. Please wait and try again.";
+        return "OpenAI rate limit or quota reached. Please wait and try again.";
       }
-      if (message.includes("Missing ElevenLabs API key")) {
-        return "Add your ElevenLabs API key in settings.";
+      if (message.includes("Missing OpenAI API key")) {
+        return "Add your OpenAI API key in settings.";
       }
       if (message.includes("empty audio")) {
-        return "ElevenLabs returned no audio. Try a different voice or model.";
+        return "OpenAI returned no audio. Try a different voice or model.";
       }
       if (message.toLowerCase().includes("network")) {
         return "Connection failed. Check your internet.";
       }
-      return `ElevenLabs error: ${message}`;
+      return `OpenAI error: ${message}`;
     }
-    return "ElevenLabs error. Please try again.";
+    return "OpenAI error. Please try again.";
   }
 }

@@ -202,6 +202,8 @@ export class Voice extends Plugin {
       this.settings.GOOGLE_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "azure") {
       this.settings.AZURE_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "openai") {
+      this.settings.OPENAI_VOICE = voiceId;
     } else {
       this.settings.VOICE = voiceId;
     }

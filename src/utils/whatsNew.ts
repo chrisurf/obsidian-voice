@@ -30,7 +30,7 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 - **Read this note & download** — generate speech and save an MP3 without leaving the player.
 - **Switch provider & voice** — change between AWS Polly, ElevenLabs, Google Cloud, and Azure Speech directly in the player.
 
-## ✨ Everything new since 1.8.0
+## ✨ Everything you need to know
 
 **Player & playback**
 

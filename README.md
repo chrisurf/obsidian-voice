@@ -2,7 +2,7 @@
 
 ![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, or Azure Speech](./assets/hero.png)
 
-Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
+Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
 
 ## Table of Contents
 
@@ -19,7 +19,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 ## Highlights
 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
-- **Four engines, one experience** — switch between **AWS Polly**, **ElevenLabs**, **Google Cloud**, and **Azure Speech** anytime. Every feature works the same on all of them.
+- **Five engines, one experience** — switch between **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, and **OpenAI** anytime. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
@@ -121,19 +121,19 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                               | What it does                                                                                                                               |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Speech Provider**                   | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech**. The credential fields below adapt to your choice. |
-| **Voice**                             | Pick the voice, gender, and language used for playback.                                                                                    |
-| **Tempo**                             | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                             |
-| **Rewind interval**                   | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                        |
-| **Fast-forward interval**             | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                 |
-| **Spell Out Acronyms**                | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                         |
-| **Read Code Blocks**                  | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                    |
-| **Skip Website URLs**                 | Remove URLs from spoken output while keeping link labels. Off by default.                                                                  |
-| **Auto-Save Audio to Note**           | Automatically save and embed the MP3 after each playback. Off by default.                                                                  |
-| **Folder Picker Follows Active Note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.         |
-| **Test Credentials**                  | Validate your provider keys; on success it reports how many voices are available.                                                          |
+| Setting                               | What it does                                                                                                                                           |
+| ------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**                   | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice. |
+| **Voice**                             | Pick the voice, gender, and language used for playback.                                                                                                |
+| **Tempo**                             | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                         |
+| **Rewind interval**                   | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                    |
+| **Fast-forward interval**             | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                             |
+| **Spell Out Acronyms**                | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                     |
+| **Read Code Blocks**                  | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                |
+| **Skip Website URLs**                 | Remove URLs from spoken output while keeping link labels. Off by default.                                                                              |
+| **Auto-Save Audio to Note**           | Automatically save and embed the MP3 after each playback. Off by default.                                                                              |
+| **Folder Picker Follows Active Note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                     |
+| **Test Credentials**                  | Validate your provider keys; on success it reports how many voices are available.                                                                      |
 
 ## Keyboard Shortcuts
 
@@ -160,14 +160,14 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 ## Choose Your Speech Provider
 
-Pick **AWS Polly**, **ElevenLabs**, **Google Cloud**, or **Azure Speech** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Pick **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    |
-| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- |
-| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages |
-| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           |
-| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       |
-| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              |
+|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    |
+| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- |
+| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) |
+| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                |
+| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     |
+| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            |
 
 ## Getting Started
 
@@ -188,6 +188,8 @@ Choose one provider to start — you can switch anytime.
 **Google Cloud** — In the [Google Cloud console](https://console.cloud.google.com/), enable the **Cloud Text-to-Speech API** and create an **API key**. In **Settings → Voice**, choose **Google Cloud**, pick a voice, paste the key, and press **Test Credentials**. (Don't add an HTTP-referrer restriction — see the [provider notes](./TROUBLESHOOTING.md#provider-specific-notes).)
 
 **Azure Speech** — In the [Azure portal](https://portal.azure.com/), create a **Speech** resource and copy a **Key** and **Region**. In **Settings → Voice**, choose **Azure Speech**, select the matching region, pick a voice, paste the key, and press **Test Credentials**.
+
+**OpenAI** — Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). In **Settings → Voice**, choose **OpenAI**, pick a model and voice, paste the key, and press **Test Credentials**.
 
 ## Troubleshooting & Help
 

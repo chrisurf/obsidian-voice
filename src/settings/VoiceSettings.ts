@@ -1,7 +1,12 @@
 /**
  * Supported text-to-speech providers
  */
-export type TtsProvider = "polly" | "elevenlabs" | "google" | "azure";
+export type TtsProvider =
+  | "polly"
+  | "elevenlabs"
+  | "google"
+  | "azure"
+  | "openai";
 
 export interface VoiceSettings {
   // Active text-to-speech provider
@@ -27,6 +32,11 @@ export interface VoiceSettings {
   AZURE_API_KEY: string;
   AZURE_REGION: string;
   AZURE_VOICE: string;
+
+  // OpenAI Text-to-Speech
+  OPENAI_API_KEY: string;
+  OPENAI_VOICE: string;
+  OPENAI_MODEL: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -267,6 +277,35 @@ export const AZURE_VOICES: VoiceOption[] = [
   },
 ];
 
+/**
+ * OpenAI Text-to-Speech models selectable in the settings.
+ * Default is gpt-4o-mini-tts (newest, expressive, low cost). tts-1 favours
+ * latency and tts-1-hd favours quality; all return MP3 audio.
+ */
+export const OPENAI_MODELS: ModelOption[] = [
+  { id: "gpt-4o-mini-tts", label: "GPT-4o mini TTS (recommended)" },
+  { id: "tts-1", label: "TTS-1 (fast)" },
+  { id: "tts-1-hd", label: "TTS-1 HD (quality)" },
+];
+
+/**
+ * Built-in OpenAI voices. Limited to the set supported across every selectable
+ * model (tts-1, tts-1-hd, and gpt-4o-mini-tts) so switching the model never
+ * invalidates the chosen voice. The voices are multilingual — they speak the
+ * language of the input text — so `lang` is informational only.
+ */
+export const OPENAI_VOICES: VoiceOption[] = [
+  { id: "alloy", label: "Alloy (Neutral)", lang: "en-US" },
+  { id: "ash", label: "Ash (Expressive)", lang: "en-US" },
+  { id: "coral", label: "Coral (Warm)", lang: "en-US" },
+  { id: "echo", label: "Echo (Male)", lang: "en-US" },
+  { id: "fable", label: "Fable (British)", lang: "en-GB" },
+  { id: "onyx", label: "Onyx (Deep)", lang: "en-US" },
+  { id: "nova", label: "Nova (Female)", lang: "en-US" },
+  { id: "sage", label: "Sage (Calm)", lang: "en-US" },
+  { id: "shimmer", label: "Shimmer (Soft)", lang: "en-US" },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -286,6 +325,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   AZURE_API_KEY: "",
   AZURE_REGION: "eastus",
   AZURE_VOICE: "en-US-JennyNeural",
+
+  OPENAI_API_KEY: "",
+  OPENAI_VOICE: "alloy",
+  OPENAI_MODEL: "gpt-4o-mini-tts",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

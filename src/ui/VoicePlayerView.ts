@@ -22,6 +22,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "elevenlabs", label: "ElevenLabs" },
   { id: "google", label: "Google Cloud" },
   { id: "azure", label: "Azure Speech" },
+  { id: "openai", label: "OpenAI" },
 ];
 
 /**

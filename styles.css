@@ -799,6 +799,32 @@
   max-width: 100%;
 }
 
+/* "What's New" modal: hero banner + changelog */
+.voice-whats-new-modal {
+  max-width: 640px;
+}
+
+.voice-whats-new-hero {
+  display: block;
+  width: 100%;
+  height: auto;
+  border-radius: var(--radius-m);
+  margin-bottom: 12px;
+}
+
+.voice-whats-new-body {
+  max-height: 50vh;
+  overflow-y: auto;
+}
+
+.voice-whats-new-body h2 {
+  margin-top: 1em;
+}
+
+.voice-whats-new-body h2:first-child {
+  margin-top: 0;
+}
+
 /* "Read this note" loading animation */
 .voice-player-read.is-loading {
   opacity: 0.85;

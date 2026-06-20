@@ -137,7 +137,7 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ## Keyboard Shortcuts
 
-Voice ships **15 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
+Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
 
 | Command                                                                   | What it does                             |
 | ------------------------------------------------------------------------- | ---------------------------------------- |
@@ -156,6 +156,7 @@ Voice ships **15 commands** you can bind to any hotkey. No keys are assigned by 
 | Save the current audio as an MP3 and embed it in the note.                | Download and embed the audio             |
 | Switch to the next speaker.                                               | Cycle to the next voice                  |
 | Open the player.                                                          | Open the Voice player pane               |
+| Show what's new.                                                          | Reopen the latest "What's New" note      |
 
 ## Choose Your Speech Provider
 

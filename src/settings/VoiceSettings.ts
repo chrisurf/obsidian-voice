@@ -45,6 +45,9 @@ export interface VoiceSettings {
   // Internal: tracks the one-time placement of the player in the right sidebar
   // so it is discoverable by default without re-adding it after the user closes it.
   playerPanePlaced: boolean;
+  // Internal: the plugin version whose "What's New" note the user has already
+  // seen, so it is shown only once per install/update.
+  lastWhatsNewVersion: string;
 }
 
 /**
@@ -296,4 +299,5 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   folderSelectorFollowsNote: true,
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
+  lastWhatsNewVersion: "",
 };

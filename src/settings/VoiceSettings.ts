@@ -37,8 +37,17 @@ export interface VoiceSettings {
   // Playback: how many seconds the rewind/fast-forward controls jump
   rewindSeconds: number;
   forwardSeconds: number;
+  // Player: when true, the player's folder picker follows the active note's
+  // folder; when false the chosen folder stays put across note switches.
+  folderSelectorFollowsNote: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
+  // Internal: tracks the one-time placement of the player in the right sidebar
+  // so it is discoverable by default without re-adding it after the user closes it.
+  playerPanePlaced: boolean;
+  // Internal: the plugin version whose "What's New" note the user has already
+  // seen, so it is shown only once per install/update.
+  lastWhatsNewVersion: string;
 }
 
 /**
@@ -287,5 +296,8 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   skipUrls: false,
   rewindSeconds: DEFAULT_SKIP_SECONDS,
   forwardSeconds: DEFAULT_SKIP_SECONDS,
+  folderSelectorFollowsNote: true,
   acronymDefaultMigrated: false,
+  playerPanePlaced: false,
+  lastWhatsNewVersion: "",
 };

@@ -8,6 +8,8 @@ import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
 import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
+import { WhatsNewModal } from "../ui/WhatsNewModal";
+import { shouldShowWhatsNew } from "./whatsNew";
 
 export class Voice extends Plugin {
   settings: VoiceSettings;
@@ -55,6 +57,66 @@ export class Voice extends Plugin {
       name: "Open the player.",
       callback: () => void this.activatePlayerView(),
     });
+    this.addCommand({
+      id: "show-whats-new",
+      name: "Show what's new.",
+      callback: () => this.showWhatsNew(),
+    });
+
+    // After the layout is ready: make the player discoverable out of the box
+    // (place it as a sidebar tab once) and surface the "What's New" note once
+    // per install/update so users learn about new functionality.
+    this.app.workspace.onLayoutReady(() => {
+      void this.placeDefaultPlayerPane();
+      this.maybeShowWhatsNew();
+    });
+  }
+
+  /** Open the "What's New" modal for the current version. */
+  private showWhatsNew(): void {
+    new WhatsNewModal(
+      this.app,
+      this.manifest.version,
+      this,
+      () => void this.activatePlayerView(),
+    ).open();
+  }
+
+  /**
+   * Show the "What's New" note once after a fresh install or an update, then
+   * remember the version so it is not shown again until the next upgrade.
+   */
+  private maybeShowWhatsNew(): void {
+    const current = this.manifest.version;
+    if (!shouldShowWhatsNew(current, this.settings.lastWhatsNewVersion)) {
+      return;
+    }
+    this.settings.lastWhatsNewVersion = current;
+    void this.saveSettings();
+    this.showWhatsNew();
+  }
+
+  /**
+   * One-time placement of the player in the right sidebar so it shows up by
+   * default (desktop and mobile). The tab is added without revealing it, so it
+   * does not steal focus from the user's current pane.
+   */
+  private async placeDefaultPlayerPane(): Promise<void> {
+    if (this.settings.playerPanePlaced) {
+      return;
+    }
+    this.settings.playerPanePlaced = true;
+    await this.saveSettings();
+
+    const { workspace } = this.app;
+    if (workspace.getLeavesOfType(VIEW_TYPE_VOICE_PLAYER).length > 0) {
+      return;
+    }
+    const right = workspace.getRightLeaf(false);
+    if (!right) {
+      return;
+    }
+    await right.setViewState({ type: VIEW_TYPE_VOICE_PLAYER });
   }
 
   async speakText(speed?: number) {

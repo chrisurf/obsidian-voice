@@ -2,7 +2,7 @@
 
 ![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, Azure Speech, or OpenAI](./assets/hero.png)
 
-Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — powered by your choice of **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
+Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — using the text-to-speech provider you already have. It supports all the major engines — **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, and **Azure Speech** — so you can listen with whichever one you prefer. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
 
 ## Table of Contents
 
@@ -11,7 +11,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - [Feature Tour](#feature-tour)
 - [Settings](#settings)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
-- [Choose Your Speech Provider](#choose-your-speech-provider)
+- [Bring Your Own Provider](#bring-your-own-provider)
 - [Getting Started](#getting-started)
 - [Connecting a Provider](#connecting-a-provider)
 - [Troubleshooting & Help](#troubleshooting--help)
@@ -19,7 +19,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 ## Highlights
 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
-- **Five engines, one experience** — switch between **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, and **OpenAI** anytime. Every feature works the same on all of them.
+- **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, and **Azure Speech**), so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
@@ -158,9 +158,9 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 | Open the player.                                                          | Open the Voice player pane               |
 | Show what's new.                                                          | Reopen the latest "What's New" note      |
 
-## Choose Your Speech Provider
+## Bring Your Own Provider
 
-Pick **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, or **Azure Speech** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
 |                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    |
 | --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- |
@@ -179,7 +179,7 @@ Pick **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **Ope
 
 ## Connecting a Provider
 
-Choose one provider to start — you can switch anytime.
+Start with the provider you already have — you can switch anytime.
 
 **AWS Polly** — In **Settings → Voice**, choose **AWS Polly**, select your region, paste your **Access Key ID** and **Secret Access Key**, and press **Test Credentials**. For a step-by-step guide to creating a dedicated AWS key, see [Advanced: AWS Polly Setup](./TROUBLESHOOTING.md#advanced-aws-polly-setup).
 

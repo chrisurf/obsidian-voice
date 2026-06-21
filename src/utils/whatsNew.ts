@@ -28,7 +28,7 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 - **Browse audio across your vault** — a folder picker lets you jump between any folders that contain audio, right from the player.
 - **Transport controls** — play / pause, previous / next, rewind, fast-forward, a draggable progress bar, and on-the-fly speed.
 - **Read this note & download** — generate speech and save an MP3 without leaving the player.
-- **Switch provider & voice** — change between AWS Polly, ElevenLabs, Google Cloud, Azure Speech, and OpenAI directly in the player.
+- **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, or Azure Speech (and the voice) right in the player.
 
 ## ✨ Everything you need to know
 
@@ -39,12 +39,14 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 - **Collapsible, audiobook-style player** with chapters, transport controls, scrubber, and repeat modes (off / one / all).
 - **Configurable rewind & fast-forward** intervals (1–60 seconds each).
 
-**More engines, more voices**
+**Bring your own provider**
 
-- **ElevenLabs** support — premade & multilingual voices.
-- **Google Cloud Text-to-Speech** support, plus extra hotkey commands.
-- **Azure AI Speech** support — neural voices across many languages.
-- **OpenAI** support — built-in voices (Alloy, Nova, …) with GPT-4o mini TTS.
+Voice started out as AWS Polly only — now it supports all the major engines, so you can listen with the provider you already use:
+
+- **ElevenLabs** — premade & multilingual voices.
+- **OpenAI** — built-in voices (Alloy, Nova, …) with GPT-4o mini TTS.
+- **Google Cloud Text-to-Speech** — plus extra hotkey commands.
+- **Azure AI Speech** — neural voices across many languages.
 
 **Your audio files**
 

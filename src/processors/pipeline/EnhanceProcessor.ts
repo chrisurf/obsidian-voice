@@ -22,6 +22,7 @@ import type {
   SSMLSayAs,
   SSMLSub,
 } from "../../types/SSMLNodes";
+import { ACRONYM_PATTERN, titleCaseAcronyms } from "./acronyms";
 
 /**
  * Modification to apply after tree traversal
@@ -50,11 +51,6 @@ const ABBREVIATIONS: Record<string, string> = {
   "i.e.": "that is",
   "vs.": "versus",
 };
-
-/**
- * Pattern to detect acronyms (2+ consecutive uppercase letters)
- */
-const ACRONYM_PATTERN = /\b[A-Z]{2,}\b/g;
 
 /**
  * Pattern to detect numbers (including formatted numbers)
@@ -233,6 +229,13 @@ interface TextSegment {
  * Returns array of nodes to replace the original text node
  */
 function enhanceText(textNode: Text, options: EnhanceProcessorOptions): Node[] {
+  // When acronyms should NOT be spelled out, title-case them up front (NASA →
+  // Nasa) so the engine reads them as a word. This preserves length, so the
+  // segment offsets computed below stay valid. When they SHOULD be spelled out,
+  // the say-as branch further down handles it instead.
+  if (!options.spellOutAcronyms) {
+    textNode.value = titleCaseAcronyms(textNode.value);
+  }
   const text = textNode.value;
   const segments: TextSegment[] = [];
 

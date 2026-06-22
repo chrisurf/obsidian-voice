@@ -753,6 +753,36 @@
   font-weight: 600;
 }
 
+/* Rename control on each chapter row */
+.voice-player-chapter-edit {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-s);
+  cursor: pointer;
+  color: var(--text-faint);
+  opacity: 0;
+  transition: opacity 0.1s ease;
+}
+
+.voice-player-chapter:hover .voice-player-chapter-edit {
+  opacity: 1;
+}
+
+.voice-player-chapter-edit:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.voice-player-chapter-rename {
+  flex: 1;
+  min-width: 0;
+  font-size: inherit;
+}
+
 /* Provider / voice selectors + read-code-blocks toggle */
 .voice-player-options {
   display: flex;
@@ -842,7 +872,8 @@
   }
 }
 
-/* Indeterminate loading bar, pinned to the bottom of the panel */
+/* Determinate loading bar, pinned to the bottom of the panel. The fill grows
+   to the real synthesis progress via the --voice-progress custom property. */
 .voice-player-loading {
   margin-top: auto;
   height: 3px;
@@ -858,18 +889,9 @@
 }
 
 .voice-player-loading-fill {
-  width: 40%;
+  width: var(--voice-progress, 0%);
   height: 100%;
   border-radius: 3px;
   background: var(--interactive-accent);
-  animation: voice-player-indeterminate 1.1s ease-in-out infinite;
-}
-
-@keyframes voice-player-indeterminate {
-  0% {
-    transform: translateX(-100%);
-  }
-  100% {
-    transform: translateX(350%);
-  }
+  transition: width 0.2s ease;
 }

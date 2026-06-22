@@ -76,6 +76,9 @@ export interface SpeechProvider {
   setProgressCallback(callback: (progress: number) => void): void;
   setErrorCallback(callback: (error: string) => void): void;
 
+  /** Last reported synthesis progress (0..1). Useful for pollers like the player. */
+  getProgress(): number;
+
   // Caching / download
   getLastGeneratedAudio(filePath?: string): Blob | null;
   clearCachedAudio(): void;

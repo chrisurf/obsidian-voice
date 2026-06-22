@@ -161,10 +161,13 @@ export class VoicePlayerView extends ItemView {
       this.isScrubbing = false;
     });
 
-    // Transport
+    // Transport. These are real <button> elements (not divs) so a single
+    // click works even when the player pane isn't the focused leaf — Obsidian
+    // delivers the first click to native controls, whereas a plain div's click
+    // would be consumed by activating the pane (requiring a second click).
     const transport = root.createDiv({ cls: "voice-player-transport" });
 
-    this.prevTrackBtn = transport.createDiv({
+    this.prevTrackBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-track",
       attr: { "aria-label": "Previous track" },
     });
@@ -173,8 +176,9 @@ export class VoicePlayerView extends ItemView {
       this.playPrevTrack(),
     );
 
-    const rewindBtn = transport.createDiv({
+    const rewindBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-skip",
+      attr: { "aria-label": "Rewind" },
     });
     setIcon(rewindBtn, "rewind");
     rewindBtn
@@ -184,14 +188,16 @@ export class VoicePlayerView extends ItemView {
       this.provider().rewindAudio(),
     );
 
-    this.playPauseBtn = transport.createDiv({
+    this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
+      attr: { "aria-label": "Play / pause" },
     });
     setIcon(this.playPauseBtn, "play");
     this.registerDomEvent(this.playPauseBtn, "click", () => this.togglePlay());
 
-    const forwardBtn = transport.createDiv({
+    const forwardBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-skip",
+      attr: { "aria-label": "Fast-forward" },
     });
     setIcon(forwardBtn, "fast-forward");
     forwardBtn
@@ -201,7 +207,7 @@ export class VoicePlayerView extends ItemView {
       this.provider().fastForwardAudio(),
     );
 
-    this.nextTrackBtn = transport.createDiv({
+    this.nextTrackBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-track",
       attr: { "aria-label": "Next track" },
     });
@@ -240,11 +246,17 @@ export class VoicePlayerView extends ItemView {
     this.updateRepeatButton();
 
     const speedGroup = secondary.createDiv({ cls: "voice-player-speed" });
-    const slower = speedGroup.createDiv({ cls: "voice-player-speed-btn" });
+    const slower = speedGroup.createEl("button", {
+      cls: "voice-player-speed-btn",
+      attr: { "aria-label": "Slower" },
+    });
     setIcon(slower, "minus");
     this.registerDomEvent(slower, "click", () => this.changeSpeed(-0.1));
     this.speedEl = speedGroup.createSpan({ cls: "voice-player-speed-value" });
-    const faster = speedGroup.createDiv({ cls: "voice-player-speed-btn" });
+    const faster = speedGroup.createEl("button", {
+      cls: "voice-player-speed-btn",
+      attr: { "aria-label": "Faster" },
+    });
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 

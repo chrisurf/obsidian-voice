@@ -561,6 +561,14 @@
   cursor: pointer;
   color: var(--text-normal);
   border-radius: 50%;
+  /* Reset native <button> styling so these match their previous div look. */
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  box-shadow: none;
+  appearance: none;
   transition:
     transform 0.1s ease,
     background-color 0.15s ease;
@@ -682,6 +690,14 @@
   border-radius: var(--radius-s);
   cursor: pointer;
   color: var(--text-muted);
+  /* Reset native <button> styling so these match their previous div look. */
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  box-shadow: none;
+  appearance: none;
 }
 
 .voice-player-speed-btn:hover {

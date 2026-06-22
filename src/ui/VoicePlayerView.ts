@@ -1,4 +1,11 @@
-import { ItemView, WorkspaceLeaf, TFile, setIcon } from "obsidian";
+import {
+  ItemView,
+  WorkspaceLeaf,
+  TFile,
+  setIcon,
+  Notice,
+  normalizePath,
+} from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
 import {
@@ -56,6 +63,7 @@ export class VoicePlayerView extends ItemView {
   private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
+  private loadingFillEl: HTMLElement;
 
   private isScrubbing = false;
   private currentChapterPath: string | null = null;
@@ -290,7 +298,9 @@ export class VoicePlayerView extends ItemView {
 
     // Loading bar (indeterminate), shown while a note is being processed.
     this.loadingBarEl = root.createDiv({ cls: "voice-player-loading" });
-    this.loadingBarEl.createDiv({ cls: "voice-player-loading-fill" });
+    this.loadingFillEl = this.loadingBarEl.createDiv({
+      cls: "voice-player-loading-fill",
+    });
 
     this.refreshControls();
   }
@@ -564,8 +574,102 @@ export class VoicePlayerView extends ItemView {
       this.registerDomEvent(item, "click", () =>
         this.playChapter(chapter.path),
       );
+
+      // Rename control: edit the MP3's file name (kept in the same folder, the
+      // .mp3 extension is preserved). Stops propagation so it doesn't play.
+      const editBtn = item.createDiv({
+        cls: "voice-player-chapter-edit",
+        attr: { "aria-label": "Rename track" },
+      });
+      setIcon(editBtn, "pencil");
+      this.registerDomEvent(editBtn, "click", (evt) => {
+        evt.stopPropagation();
+        this.beginRenameChapter(item, chapter);
+      });
     });
     this.highlightCurrentChapter();
+  }
+
+  /**
+   * Replace a chapter's name with an inline text field so the user can rename
+   * the underlying MP3. Enter/blur commits, Escape cancels.
+   */
+  private beginRenameChapter(item: HTMLElement, chapter: ChapterFile): void {
+    const nameEl = item.querySelector<HTMLElement>(
+      ".voice-player-chapter-name",
+    );
+    if (!nameEl) {
+      return;
+    }
+    const input = createEl("input", {
+      cls: "voice-player-chapter-rename",
+      attr: { type: "text" },
+    });
+    input.value = chapter.name;
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let settled = false;
+    const commit = () => {
+      if (settled) return;
+      settled = true;
+      void this.commitRenameChapter(chapter, input.value);
+    };
+    const cancel = () => {
+      if (settled) return;
+      settled = true;
+      this.refreshContext();
+    };
+
+    this.registerDomEvent(input, "click", (evt) => evt.stopPropagation());
+    this.registerDomEvent(input, "keydown", (evt) => {
+      if (evt.key === "Enter") {
+        evt.preventDefault();
+        commit();
+      } else if (evt.key === "Escape") {
+        evt.preventDefault();
+        cancel();
+      }
+    });
+    this.registerDomEvent(input, "blur", () => commit());
+  }
+
+  /**
+   * Rename the chapter's MP3 on disk to the new base name, keeping it in the
+   * same folder and preserving the .mp3 extension. Uses fileManager so embeds
+   * in notes are updated automatically.
+   */
+  private async commitRenameChapter(
+    chapter: ChapterFile,
+    rawName: string,
+  ): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(chapter.path);
+    const newBase = rawName.trim();
+    if (!(file instanceof TFile) || !newBase || newBase === chapter.name) {
+      this.refreshContext();
+      return;
+    }
+    if (/[\\/:*?"<>|]/.test(newBase)) {
+      new Notice("That file name contains characters that aren't allowed.");
+      this.refreshContext();
+      return;
+    }
+
+    const folder = normalizeFolderPath(file.parent?.path ?? "/");
+    const dir = folder === "/" ? "" : `${folder}/`;
+    const newPath = normalizePath(`${dir}${newBase}.${file.extension}`);
+    try {
+      await this.app.fileManager.renameFile(file, newPath);
+      if (this.currentChapterPath === chapter.path) {
+        this.currentChapterPath = newPath;
+      }
+    } catch (error) {
+      new Notice(
+        `Could not rename: ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+    this.refreshContext();
   }
 
   private playChapter(path: string): void {
@@ -698,13 +802,24 @@ export class VoicePlayerView extends ItemView {
     }
     this.durationEl.setText(formatTime(duration));
 
-    setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
 
-    // Loading feedback while a note is being synthesized: show the bottom bar
+    // Loading feedback while a note is being synthesized: grow the bottom bar to
+    // the real synthesis progress, spin the play button (like the status bar),
     // and animate (and disable) the "Read this note" button.
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
+    if (loading) {
+      const pct = Math.round(provider.getProgress() * 100);
+      this.loadingFillEl.setCssProps({ "--voice-progress": `${pct}%` });
+      if (!this.playPauseBtn.hasClass("rotating-icon")) {
+        this.playPauseBtn.addClass("rotating-icon");
+        setIcon(this.playPauseBtn, "refresh-ccw");
+      }
+    } else {
+      this.playPauseBtn.removeClass("rotating-icon");
+      setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
+    }
     this.readBtn.toggleClass("is-loading", loading);
     this.readBtn.disabled = loading;
     this.readBtn.setText(loading ? "Reading…" : "Read this note");

@@ -42,10 +42,26 @@ export function folderDisplayName(path: string): string {
 }
 
 /**
+ * Display label for a folder, with its own name first and parent folders to the
+ * right, up to the top-level folder (e.g. "Projects/Audiobooks/Part 1" →
+ * "Part 1 / Audiobooks / Projects"). Putting the actual folder on the left keeps
+ * the most relevant part visible when the dropdown truncates, while the trail to
+ * the right disambiguates folders that share the same name. The vault root
+ * renders as "/".
+ */
+export function folderPathLabel(path: string): string {
+  const normalized = normalizeFolderPath(path);
+  if (normalized === "/") {
+    return "/";
+  }
+  return normalized.split("/").reverse().join(" / ");
+}
+
+/**
  * Build the list of folders that contain at least one MP3, derived from a flat
- * list of MP3 paths. Folders are de-duplicated and sorted naturally by their
- * display name (case-insensitively), so the player's folder picker only ever
- * offers directories that actually hold audio.
+ * list of MP3 paths. Folders are de-duplicated and sorted by their full path
+ * (so the hierarchy groups together), with a leaf-first display label, so the
+ * player's folder picker only ever offers directories that actually hold audio.
  */
 export function listMp3Folders(mp3Paths: string[]): Mp3Folder[] {
   const folderPaths = new Set<string>();
@@ -55,9 +71,9 @@ export function listMp3Folders(mp3Paths: string[]): Mp3Folder[] {
     folderPaths.add(normalizeFolderPath(folder));
   }
   return [...folderPaths]
-    .map((path) => ({ path, name: folderDisplayName(path) }))
+    .map((path) => ({ path, name: folderPathLabel(path) }))
     .sort((a, b) =>
-      a.name.localeCompare(b.name, undefined, {
+      a.path.localeCompare(b.path, undefined, {
         numeric: true,
         sensitivity: "base",
       }),

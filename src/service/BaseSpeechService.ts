@@ -35,6 +35,9 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // How many seconds the rewind / fast-forward controls jump
   protected rewindSeconds: number = DEFAULT_SKIP_SECONDS;
   protected forwardSeconds: number = DEFAULT_SKIP_SECONDS;
+  // Last reported synthesis progress (0..1), exposed via getProgress() for
+  // pollers such as the Voice player's loading bar.
+  protected lastProgress: number = 0;
 
   constructor(voice: string, speed?: number) {
     this.voice = voice;
@@ -234,6 +237,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
     const requestId = `req_${Date.now()}_${Math.random().toString(36).substring(2, 15)}`;
     this.currentRequestId = requestId;
     this.abortController = new AbortController();
+    this.lastProgress = 0;
 
     return requestId;
   }
@@ -291,10 +295,15 @@ export abstract class BaseSpeechService implements SpeechProvider {
   }
 
   protected reportProgress(current: number, total: number): void {
+    const progress = total > 0 ? current / total : 0;
+    this.lastProgress = Math.min(1, Math.max(0, progress));
     if (this.progressCallback) {
-      const progress = total > 0 ? current / total : 0;
-      this.progressCallback(Math.min(1, Math.max(0, progress)));
+      this.progressCallback(this.lastProgress);
     }
+  }
+
+  getProgress(): number {
+    return this.lastProgress;
   }
 
   protected reportError(error: unknown): void {

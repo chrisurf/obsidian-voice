@@ -19,6 +19,7 @@ import type { ProcessorConfig } from "../types/ProcessorTypes";
 import { DEFAULT_CONFIG } from "./config/DefaultConfig";
 import { cleanProcessor } from "./pipeline/CleanProcessor";
 import { serializeToText } from "./pipeline/TextSerializer";
+import { titleCaseAcronyms } from "./pipeline/acronyms";
 
 export class MarkdownToTextProcessor {
   private config: ProcessorConfig;
@@ -61,7 +62,12 @@ export class MarkdownToTextProcessor {
     cleanProcessor(cleanOptions)(ast);
 
     // Stage 3: Serialize to spoken text (with structural pause tags)
-    return serializeToText(ast, { pauseTags: this.pauseTags });
+    const text = serializeToText(ast, { pauseTags: this.pauseTags });
+
+    // Stage 4: When acronyms should not be spelled out, title-case them so the
+    // engine reads them as a word (consistent with the SSML pipeline). Engines
+    // like Google otherwise spell uppercase tokens by default.
+    return this.config.spellOutAcronyms ? text : titleCaseAcronyms(text);
   }
 
   updateConfig(config: Partial<ProcessorConfig>): void {

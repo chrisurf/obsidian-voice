@@ -3,6 +3,7 @@ import {
   chapterName,
   listMp3Folders,
   folderDisplayName,
+  folderPathLabel,
   normalizeFolderPath,
 } from "../src/utils/chapters";
 
@@ -76,15 +77,32 @@ describe("Unit Tests - Chapter helpers", () => {
     });
   });
 
+  describe("folderPathLabel", () => {
+    test("shows the folder first and parents to the right", () => {
+      expect(folderPathLabel("Projects/Audiobooks/Part 1")).toBe(
+        "Part 1 / Audiobooks / Projects",
+      );
+    });
+
+    test("leaves a single-segment folder unchanged", () => {
+      expect(folderPathLabel("audio")).toBe("audio");
+    });
+
+    test("renders the vault root as a slash", () => {
+      expect(folderPathLabel("/")).toBe("/");
+      expect(folderPathLabel("")).toBe("/");
+    });
+  });
+
   describe("listMp3Folders", () => {
-    test("returns only folders that contain MP3s, de-duplicated", () => {
+    test("returns only folders that contain MP3s, de-duplicated, leaf-first", () => {
       const result = listMp3Folders([
         "notes/audio/a.mp3",
         "notes/audio/b.mp3",
         "podcasts/c.mp3",
       ]);
       expect(result).toEqual([
-        { path: "notes/audio", name: "audio" },
+        { path: "notes/audio", name: "audio / notes" },
         { path: "podcasts", name: "podcasts" },
       ]);
     });
@@ -94,13 +112,13 @@ describe("Unit Tests - Chapter helpers", () => {
       expect(result).toEqual([{ path: "/", name: "/" }]);
     });
 
-    test("sorts folders naturally by display name", () => {
+    test("sorts folders naturally by full path", () => {
       const result = listMp3Folders([
         "Part 10/a.mp3",
         "Part 2/b.mp3",
         "Part 1/c.mp3",
       ]);
-      expect(result.map((f) => f.name)).toEqual([
+      expect(result.map((f) => f.path)).toEqual([
         "Part 1",
         "Part 2",
         "Part 10",

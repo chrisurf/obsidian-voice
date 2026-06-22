@@ -34,9 +34,10 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 - **Always within reach** — the player is docked in the right sidebar (next to Backlinks and Outline) right after install, so it's there whenever you need it. On mobile it opens as a full-screen pane.
 - **Chapters from your folder** — every MP3 saved next to the current note appears as a numbered chapter. Listen to a whole folder like an audiobook, and the chapter you're hearing is highlighted.
-- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. It follows the note you're viewing by default; turn off **Folder Picker Follows Active Note** in settings to keep your chosen folder while you browse.
+- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder Picker Follows Active Note** in settings to keep your chosen folder while you browse.
+- **Rename tracks** — hover a chapter and click the pencil to rename the MP3 right from the player. The file is renamed in place (same folder, `.mp3` kept) and embeds are updated automatically.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
-- **Read this note** — generate speech for the note you're viewing with a single click.
+- **Read this note** — generate speech for the note you're viewing with a single click; the play button spins and a progress bar fills up while the audio is synthesized.
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — save the current audio as an MP3 right from the player.

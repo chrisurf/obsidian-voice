@@ -6,6 +6,7 @@ import {
   OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  type AudioSaveMode,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
@@ -70,6 +71,21 @@ export class VoiceSettingTab extends PluginSettingTab {
     });
     rightIndicator.textContent = "faster +";
     rightIndicator.title = "Move right to increase speed (faster playback)";
+  }
+
+  /**
+   * Platform-aware description for the "Audio save location" setting, so the
+   * tap/hold gesture is explained with the right wording for desktop vs mobile.
+   */
+  private audioSaveLocationDesc(): string {
+    const gesture = this.plugin.isMobile()
+      ? "touch & hold the save button to pick another"
+      : "hold the save button (or right-click) to pick another";
+    return (
+      "Where saved MP3s go. With “Custom folder”, a tap on the save button " +
+      `stores to your last folder — ${gesture}. Star folders in the picker ` +
+      "for one-tap access. Defaults to saving next to the note."
+    );
   }
 
   display(): void {
@@ -281,6 +297,20 @@ export class VoiceSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
           }),
       );
+
+    new Setting(containerEl)
+      .setName("Audio save location")
+      .setDesc(this.audioSaveLocationDesc())
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("note", "Next to note")
+          .addOption("custom", "Custom folder")
+          .setValue(this.plugin.settings.audioSaveMode)
+          .onChange(async (value) => {
+            this.plugin.settings.audioSaveMode = value as AudioSaveMode;
+            await this.plugin.saveSettings();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Folder Picker Follows Active Note")

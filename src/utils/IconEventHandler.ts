@@ -3,6 +3,9 @@ import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { MobileControlBar } from "./MobileControlBar";
 import { AudioFileManager } from "./AudioFileManager";
+import { FolderPickerModal } from "../ui/FolderPickerModal";
+import { resolveSaveFolder } from "./audioFolders";
+import { attachPressGesture } from "./pressGesture";
 
 export class IconEventHandler {
   private pollyService: SpeechProvider;
@@ -233,15 +236,18 @@ export class IconEventHandler {
       `Fast-forward ${this.voice.settings.forwardSeconds} seconds`,
     );
 
-    // Download MP3 (initially hidden)
+    // Download MP3 (initially hidden). The plain click is handled by the press
+    // gesture below (tap = save, hold/right-click = choose folder), so no
+    // onClick is wired here.
     this.downloadIconEl = this.createStatusBarIcon(
       "download",
       "download-audio",
-      () => void this.handleDownloadAudio(),
+      () => {},
       false,
       "Download audio as MP3",
     );
     this.downloadIconEl.addClass("voice-hidden"); // Initially hidden
+    this.attachSaveGesture(this.downloadIconEl);
 
     // Add separator after all voice controls to separate from other plugins
     this.addVoiceControlsSeparator();
@@ -561,6 +567,9 @@ export class IconEventHandler {
    * Update download button visibility based on whether cached audio exists for current file
    */
   private updateDownloadButtonVisibility(): void {
+    // Keep the tooltip in sync with the current save mode / last folder.
+    this.updateSaveTooltip();
+
     const activeFile = this.plugin.app.workspace.getActiveFile();
     if (!activeFile) {
       this.hideDownloadButton();
@@ -598,17 +607,30 @@ export class IconEventHandler {
       return;
     }
 
+    // Auto-save never prompts: it writes to the resolved folder silently
+    // (custom mode → last used folder, falling back to the note's folder).
+    const folder = resolveSaveFolder(
+      this.voice.settings.audioSaveMode,
+      this.voice.settings.lastAudioFolder,
+      activeFile.parent?.path || "",
+    );
     await this.audioFileManager.downloadAndEmbed(
       audioBlob,
       this.voice.settings.autoEmbedAudio,
+      folder,
     );
   }
 
   /**
    * Handle download audio button click (also exposed as a command).
-   * Retrieves cached audio blob and saves it as MP3 file.
+   * Retrieves cached audio blob and saves it as an MP3 file in the resolved
+   * folder.
+   * @param options.forcePicker - Open the folder picker even when a last folder
+   *   exists (the "hold"/right-click gesture). Ignored in "next to note" mode.
    */
-  public async handleDownloadAudio(): Promise<void> {
+  public async handleDownloadAudio(options?: {
+    forcePicker?: boolean;
+  }): Promise<void> {
     try {
       // Get current file path for validation
       const activeFile = this.plugin.app.workspace.getActiveFile();
@@ -629,14 +651,96 @@ export class IconEventHandler {
         return;
       }
 
+      const folder = await this.resolveManualSaveFolder(
+        activeFile.parent?.path || "",
+        options?.forcePicker ?? false,
+      );
+      if (folder === null) {
+        return; // User dismissed the folder picker.
+      }
+
       // Use AudioFileManager to save and (optionally) embed
       await this.audioFileManager.downloadAndEmbed(
         audioBlob,
         this.voice.settings.autoEmbedAudio,
+        folder,
       );
     } catch (error) {
       console.error("Error downloading audio:", error);
       new Notice(`Failed to download audio: ${error.message}`);
     }
+  }
+
+  /**
+   * Resolve the destination folder for a manual save. In "next to note" mode
+   * this is always the note's folder. In "custom" mode a tap reuses the last
+   * folder (opening the picker only the first time), while a hold/right-click
+   * forces the picker. Returns null when the user dismisses the picker.
+   */
+  private async resolveManualSaveFolder(
+    noteFolder: string,
+    forcePicker: boolean,
+  ): Promise<string | null> {
+    const settings = this.voice.settings;
+    if (settings.audioSaveMode === "note") {
+      return noteFolder;
+    }
+
+    const needsPicker = forcePicker || settings.lastAudioFolder.trim() === "";
+    if (needsPicker) {
+      const chosen = await FolderPickerModal.open(this.plugin.app, this.voice);
+      if (chosen === null) {
+        return null;
+      }
+      settings.lastAudioFolder = chosen;
+      await this.voice.saveSettings();
+      this.updateSaveTooltip();
+      return chosen;
+    }
+
+    return resolveSaveFolder(
+      settings.audioSaveMode,
+      settings.lastAudioFolder,
+      noteFolder,
+    );
+  }
+
+  /**
+   * Wire the tap-vs-hold gesture onto a save button: tap saves, hold (or
+   * right-click) opens the folder picker. Holding is only active in custom
+   * mode.
+   */
+  private attachSaveGesture(el: HTMLElement): void {
+    attachPressGesture(el, {
+      onTap: () => void this.handleDownloadAudio(),
+      onHold: () => void this.handleDownloadAudio({ forcePicker: true }),
+      isHoldEnabled: () => this.voice.settings.audioSaveMode === "custom",
+    });
+  }
+
+  /**
+   * Refresh the download button's tooltip to reflect the current save mode and
+   * target folder, including a platform-appropriate hint about the hold gesture.
+   */
+  private updateSaveTooltip(): void {
+    if (!this.downloadIconEl) {
+      return;
+    }
+    this.downloadIconEl.title = this.saveTooltip();
+  }
+
+  private saveTooltip(): string {
+    const settings = this.voice.settings;
+    if (settings.audioSaveMode === "note") {
+      return "Download audio as MP3";
+    }
+    const folder =
+      settings.lastAudioFolder.trim() === ""
+        ? "a folder you pick"
+        : settings.lastAudioFolder;
+    const hint = this.voice.isMobile()
+      ? "touch & hold to choose folder"
+      : "hold or right-click to choose folder";
+    return `Save to ${folder} — ${hint}`;
   }
 }

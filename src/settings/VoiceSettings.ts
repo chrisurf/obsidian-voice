@@ -8,6 +8,15 @@ export type TtsProvider =
   | "azure"
   | "openai";
 
+/**
+ * Where saved MP3s are written.
+ * - "note": next to the active note (the original, default behaviour).
+ * - "custom": into a folder chosen via the folder picker; a tap on the save
+ *   button reuses the last folder, while holding it (or right-click) re-opens
+ *   the picker.
+ */
+export type AudioSaveMode = "note" | "custom";
+
 export interface VoiceSettings {
   // Active text-to-speech provider
   TTS_PROVIDER: TtsProvider;
@@ -50,6 +59,17 @@ export interface VoiceSettings {
   // Player: when true, the player's folder picker follows the active note's
   // folder; when false the chosen folder stays put across note switches.
   folderSelectorFollowsNote: boolean;
+  // Audio files: where saved MP3s go. "note" (default) keeps the original
+  // behaviour of saving next to the active note; "custom" routes saves to a
+  // folder chosen via the folder picker.
+  audioSaveMode: AudioSaveMode;
+  // Audio files: folders the user starred in the picker, shown first for
+  // one-tap access. Stored vault-relative ("/" for the vault root).
+  favoriteAudioFolders: string[];
+  // Audio files: the folder used for the most recent custom save. A tap on the
+  // save button reuses it (and auto-save writes here silently) without
+  // re-opening the picker. Empty until the first custom save.
+  lastAudioFolder: string;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
@@ -340,6 +360,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   rewindSeconds: DEFAULT_SKIP_SECONDS,
   forwardSeconds: DEFAULT_SKIP_SECONDS,
   folderSelectorFollowsNote: true,
+  audioSaveMode: "note",
+  favoriteAudioFolders: [],
+  lastAudioFolder: "",
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",

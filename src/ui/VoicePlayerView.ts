@@ -321,15 +321,45 @@ export class VoicePlayerView extends ItemView {
     const provider = this.provider();
     if (provider.isPlaying()) {
       provider.pauseAudio();
-    } else if (this.audio().currentSrc) {
-      // A chapter or previously synthesized note is loaded → resume it.
-      // (Note: audio.src resolves an empty value to the page URL, so we check
-      // currentSrc, which is "" until a real media resource is selected.)
-      void provider.playAudio();
-    } else {
-      // Nothing loaded yet → read the currently open note.
-      void this.plugin.speakText();
+      return;
     }
+
+    // Resume the loaded audio only when it still matches what the player is
+    // showing. (Note: audio.src resolves an empty value to the page URL, so we
+    // check currentSrc, which is "" until a real media resource is selected.)
+    if (this.audio().currentSrc && !this.loadedAudioIsStale()) {
+      void provider.playAudio();
+      return;
+    }
+
+    // Nothing loaded, or the loaded audio was generated for a different note
+    // than the one now open → read the currently open note instead of
+    // replaying the previous one (issue #59).
+    this.currentChapterPath = null;
+    this.highlightCurrentChapter();
+    void this.plugin.speakText();
+  }
+
+  /**
+   * Whether the audio currently loaded in the player no longer matches the
+   * active note. A chapter the user explicitly picked is never treated as
+   * stale; synthesized note audio is stale once the active note differs from
+   * the note it was generated for, so pressing play reads the new note rather
+   * than resuming the previously rendered one.
+   */
+  private loadedAudioIsStale(): boolean {
+    // An explicitly selected chapter keeps control of the play button.
+    if (this.currentChapterPath) {
+      return false;
+    }
+    const active = this.app.workspace.getActiveFile();
+    // No readable note to compare against → keep the current audio.
+    if (!active || active.extension !== "md") {
+      return false;
+    }
+    // Synthesized audio is fresh only while it belongs to the active note;
+    // getLastGeneratedAudio returns null once the cached note path differs.
+    return this.provider().getLastGeneratedAudio(active.path) === null;
   }
 
   /**
@@ -356,6 +386,10 @@ export class VoicePlayerView extends ItemView {
     if (this.provider().isOperationInProgress()) {
       return;
     }
+    // Reading the note replaces any loaded chapter as the active audio, so
+    // drop the chapter selection to keep the highlight and play button honest.
+    this.currentChapterPath = null;
+    this.highlightCurrentChapter();
     void this.plugin.speakText();
   }
 

@@ -629,7 +629,16 @@
 }
 
 .voice-player-read {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
+}
+
+.voice-player-read .svg-icon {
+  width: 16px;
+  height: 16px;
 }
 
 .voice-player-download {
@@ -871,7 +880,7 @@
   margin-top: 0;
 }
 
-/* "Read this note" loading animation */
+/* "Regenerate" loading animation */
 .voice-player-read.is-loading {
   opacity: 0.85;
   cursor: default;

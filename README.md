@@ -37,7 +37,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder Picker Follows Active Note** in settings to keep your chosen folder while you browse.
 - **Rename tracks** — hover a chapter and click the pencil to rename the MP3 right from the player. The file is renamed in place (same folder, `.mp3` kept) and embeds are updated automatically.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
-- **Read this note** — generate speech for the note you're viewing with a single click; the play button spins and a progress bar fills up while the audio is synthesized.
+- **Play & Regenerate** — press play to listen to the note you're viewing; if its audio is already loaded, play just resumes it. The **Regenerate** button (↻) forces a fresh synthesis from scratch — useful after you've edited the note or changed the voice. The play button spins and a progress bar fills up while audio is synthesized.
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — save the current audio as an MP3 right from the player.

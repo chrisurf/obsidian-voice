@@ -57,6 +57,7 @@ export class VoicePlayerView extends ItemView {
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
   private readBtn: HTMLButtonElement;
+  private readLabelEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
@@ -219,9 +220,18 @@ export class VoicePlayerView extends ItemView {
     // Secondary row: read note + speed
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
+    // Regenerate: force a fresh synthesis of the active note. The transport
+    // play button already reads the note when nothing matching is loaded, so
+    // this button's distinct job is to re-render from scratch (e.g. after the
+    // note changed) — hence the reload icon and "Regenerate" label.
     this.readBtn = secondary.createEl("button", {
       cls: "voice-player-read",
-      text: "Read this note",
+      attr: { "aria-label": "Regenerate audio for this note" },
+    });
+    setIcon(this.readBtn, "refresh-cw");
+    this.readLabelEl = this.readBtn.createSpan({
+      cls: "voice-player-read-label",
+      text: "Regenerate",
     });
     this.registerDomEvent(this.readBtn, "click", () => this.handleReadClick());
 
@@ -321,15 +331,45 @@ export class VoicePlayerView extends ItemView {
     const provider = this.provider();
     if (provider.isPlaying()) {
       provider.pauseAudio();
-    } else if (this.audio().currentSrc) {
-      // A chapter or previously synthesized note is loaded → resume it.
-      // (Note: audio.src resolves an empty value to the page URL, so we check
-      // currentSrc, which is "" until a real media resource is selected.)
-      void provider.playAudio();
-    } else {
-      // Nothing loaded yet → read the currently open note.
-      void this.plugin.speakText();
+      return;
     }
+
+    // Resume the loaded audio only when it still matches what the player is
+    // showing. (Note: audio.src resolves an empty value to the page URL, so we
+    // check currentSrc, which is "" until a real media resource is selected.)
+    if (this.audio().currentSrc && !this.loadedAudioIsStale()) {
+      void provider.playAudio();
+      return;
+    }
+
+    // Nothing loaded, or the loaded audio was generated for a different note
+    // than the one now open → read the currently open note instead of
+    // replaying the previous one (issue #59).
+    this.currentChapterPath = null;
+    this.highlightCurrentChapter();
+    void this.plugin.speakText();
+  }
+
+  /**
+   * Whether the audio currently loaded in the player no longer matches the
+   * active note. A chapter the user explicitly picked is never treated as
+   * stale; synthesized note audio is stale once the active note differs from
+   * the note it was generated for, so pressing play reads the new note rather
+   * than resuming the previously rendered one.
+   */
+  private loadedAudioIsStale(): boolean {
+    // An explicitly selected chapter keeps control of the play button.
+    if (this.currentChapterPath) {
+      return false;
+    }
+    const active = this.app.workspace.getActiveFile();
+    // No readable note to compare against → keep the current audio.
+    if (!active || active.extension !== "md") {
+      return false;
+    }
+    // Synthesized audio is fresh only while it belongs to the active note;
+    // getLastGeneratedAudio returns null once the cached note path differs.
+    return this.provider().getLastGeneratedAudio(active.path) === null;
   }
 
   /**
@@ -351,11 +391,18 @@ export class VoicePlayerView extends ItemView {
     this.refreshContext();
   }
 
-  /** Read the current note. Ignored while a synthesis is already running. */
+  /**
+   * Regenerate: force a fresh synthesis of the current note. Ignored while a
+   * synthesis is already running.
+   */
   private handleReadClick(): void {
     if (this.provider().isOperationInProgress()) {
       return;
     }
+    // Reading the note replaces any loaded chapter as the active audio, so
+    // drop the chapter selection to keep the highlight and play button honest.
+    this.currentChapterPath = null;
+    this.highlightCurrentChapter();
     void this.plugin.speakText();
   }
 
@@ -818,7 +865,7 @@ export class VoicePlayerView extends ItemView {
 
     // Loading feedback while a note is being synthesized: grow the bottom bar to
     // the real synthesis progress, spin the play button (like the status bar),
-    // and animate (and disable) the "Read this note" button.
+    // and animate (and disable) the "Regenerate" button.
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
     if (loading) {
@@ -834,7 +881,8 @@ export class VoicePlayerView extends ItemView {
     }
     this.readBtn.toggleClass("is-loading", loading);
     this.readBtn.disabled = loading;
-    this.readBtn.setText(loading ? "Reading…" : "Read this note");
+    // Update only the label span so the reload icon is preserved.
+    this.readLabelEl.setText(loading ? "Regenerating…" : "Regenerate");
 
     // Keep the selectors/toggle in sync if settings changed elsewhere.
     if (this.providerSelect.value !== this.plugin.settings.TTS_PROVIDER) {

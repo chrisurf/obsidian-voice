@@ -41,6 +41,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — save the current audio as an MP3 right from the player.
+- **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:
 
@@ -107,6 +108,8 @@ These content toggles apply to every provider and are all **off by default**:
 - **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
 - **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
 - **Save automatically** — automatically save and embed the MP3 after each successful playback (see [Save & Play Audio Offline](#save--play-audio-offline)).
+
+> **Tip:** **Read code blocks**, **Spell out acronyms**, and **Embed MP3 in note** are also one-click icon toggles in the Voice player — no need to open settings.
 
 ### Built for Mobile
 

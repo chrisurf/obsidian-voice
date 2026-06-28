@@ -62,6 +62,8 @@ export class VoicePlayerView extends ItemView {
   private voiceSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
+  private acronymBtn: HTMLElement;
+  private embedBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
   private loadingFillEl: HTMLElement;
 
@@ -222,7 +224,8 @@ export class VoicePlayerView extends ItemView {
       this.playNextTrack(),
     );
 
-    // Secondary row: download + repeat + speed
+    // Controls row: download + repeat + speed, then the on/off toggles
+    // (code / acronyms / embed) after a divider.
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
     // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
@@ -261,7 +264,30 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // Options row: provider + voice selectors and the read-code-blocks toggle
+    // Divider between the action controls (download / repeat / speed) and the
+    // on/off content toggles, so the single row stays scannable.
+    secondary.createDiv({ cls: "voice-player-divider" });
+
+    // On/off toggles, grouped: read code blocks, spell out acronyms, embed MP3.
+    this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
+    setIcon(this.codeBtn, "code");
+    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
+
+    this.acronymBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.acronymBtn, "case-sensitive");
+    this.registerDomEvent(this.acronymBtn, "click", () =>
+      this.toggleAcronyms(),
+    );
+
+    this.embedBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.embedBtn, "paperclip");
+    this.registerDomEvent(this.embedBtn, "click", () => this.toggleEmbed());
+
+    // Options row: provider + voice selectors.
     const options = root.createDiv({ cls: "voice-player-options" });
 
     this.providerSelect = options.createEl("select", {
@@ -282,12 +308,6 @@ export class VoicePlayerView extends ItemView {
     this.registerDomEvent(this.voiceSelect, "change", () =>
       this.changeVoice(this.voiceSelect.value),
     );
-
-    this.codeBtn = options.createEl("button", {
-      cls: "voice-player-code",
-    });
-    setIcon(this.codeBtn, "code");
-    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
 
     // Folder picker: choose any vault folder that contains MP3s and list its
     // tracks as chapters, so the player can browse audio across the vault.
@@ -428,7 +448,23 @@ export class VoicePlayerView extends ItemView {
     this.updateCodeButton();
   }
 
-  /** Resync the provider/voice selectors and the code-blocks toggle. */
+  /** Toggle whether acronyms (NASA, API) are spelled out letter by letter. */
+  private toggleAcronyms(): void {
+    this.plugin.settings.spellOutAcronyms =
+      !this.plugin.settings.spellOutAcronyms;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeTextSpeaker();
+    this.updateAcronymButton();
+  }
+
+  /** Toggle whether saving an MP3 also embeds an audio player in the note. */
+  private toggleEmbed(): void {
+    this.plugin.settings.autoEmbedAudio = !this.plugin.settings.autoEmbedAudio;
+    void this.plugin.saveSettings();
+    this.updateEmbedButton();
+  }
+
+  /** Resync the provider/voice selectors and the toggle buttons. */
   private refreshControls(): void {
     if (!this.providerSelect) {
       return;
@@ -436,6 +472,8 @@ export class VoicePlayerView extends ItemView {
     this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
     this.populateVoiceOptions();
     this.updateCodeButton();
+    this.updateAcronymButton();
+    this.updateEmbedButton();
     this.updateDownloadButton();
   }
 
@@ -461,6 +499,30 @@ export class VoicePlayerView extends ItemView {
     this.codeBtn.setAttribute(
       "aria-label",
       on ? "Read code blocks: on" : "Read code blocks: off",
+    );
+  }
+
+  private updateAcronymButton(): void {
+    if (!this.acronymBtn) {
+      return;
+    }
+    const on = this.plugin.settings.spellOutAcronyms;
+    this.acronymBtn.toggleClass("is-active", on);
+    this.acronymBtn.setAttribute(
+      "aria-label",
+      on ? "Spell out acronyms: on" : "Spell out acronyms: off",
+    );
+  }
+
+  private updateEmbedButton(): void {
+    if (!this.embedBtn) {
+      return;
+    }
+    const on = this.plugin.settings.autoEmbedAudio;
+    this.embedBtn.toggleClass("is-active", on);
+    this.embedBtn.setAttribute(
+      "aria-label",
+      on ? "Embed MP3 in note: on" : "Embed MP3 in note: off",
     );
   }
 
@@ -871,12 +933,14 @@ export class VoicePlayerView extends ItemView {
       setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }
 
-    // Keep the selectors/toggle in sync if settings changed elsewhere.
+    // Keep the selectors/toggles in sync if settings changed elsewhere.
     if (this.providerSelect.value !== this.plugin.settings.TTS_PROVIDER) {
       this.refreshControls();
     } else {
       this.voiceSelect.value = provider.getVoice();
       this.updateCodeButton();
+      this.updateAcronymButton();
+      this.updateEmbedButton();
     }
     this.updateDownloadButton();
 

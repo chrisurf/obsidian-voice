@@ -146,6 +146,20 @@ export class Voice extends Plugin {
       this.settings.acronymDefaultMigrated = true;
       await this.saveSettings();
     }
+
+    // One-time migration: the legacy "custom save mode" (audioSaveMode +
+    // lastAudioFolder) is replaced by a single defaultAudioFolder. Carry a
+    // user's previous custom folder over so their saves keep landing there.
+    if (!this.settings.audioFolderMigrated) {
+      if (
+        this.settings.audioSaveMode === "custom" &&
+        this.settings.lastAudioFolder
+      ) {
+        this.settings.defaultAudioFolder = this.settings.lastAudioFolder;
+      }
+      this.settings.audioFolderMigrated = true;
+      await this.saveSettings();
+    }
   }
 
   async saveSettings() {

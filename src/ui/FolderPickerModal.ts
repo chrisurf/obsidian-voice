@@ -2,14 +2,14 @@ import { App, SuggestModal, TFolder, setIcon } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import { normalizeFolderPath } from "../utils/chapters";
 import {
-  isFavoriteFolder,
   orderFoldersForPicker,
+  toggleDefaultFolder,
   toggleFavorite,
 } from "../utils/audioFolders";
 
 /** A pickable vault folder, or the "create a new folder" affordance. */
 type FolderSuggestion =
-  | { kind: "folder"; path: string; isFavorite: boolean }
+  | { kind: "folder"; path: string; isFavorite: boolean; isDefault: boolean }
   | { kind: "create"; path: string };
 
 /**
@@ -37,7 +37,8 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
     this.setPlaceholder("Search folders to save audio…");
     this.setInstructions([
       { command: "↵", purpose: "save here" },
-      { command: "click ★", purpose: "favorite" },
+      { command: "📌", purpose: "set default" },
+      { command: "★", purpose: "favorite" },
       { command: "esc", purpose: "cancel" },
     ]);
   }
@@ -55,8 +56,12 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
   }
 
   getSuggestions(query: string): FolderSuggestion[] {
-    const favorites = this.plugin.settings.favoriteAudioFolders;
-    const ordered = orderFoldersForPicker(this.allFolders, favorites);
+    const { favoriteAudioFolders, defaultAudioFolder } = this.plugin.settings;
+    const ordered = orderFoldersForPicker(
+      this.allFolders,
+      favoriteAudioFolders,
+      defaultAudioFolder,
+    );
     const q = query.trim().toLowerCase();
 
     const matches = (
@@ -68,6 +73,7 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
         kind: "folder",
         path: f.path,
         isFavorite: f.isFavorite,
+        isDefault: f.isDefault,
       }),
     );
 
@@ -93,15 +99,40 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       return;
     }
 
+    // Highlight the active default folder so it stands out at the top.
+    el.toggleClass("is-default", item.isDefault);
+
     const icon = el.createSpan({ cls: "voice-folder-suggestion-icon" });
     setIcon(icon, item.path === "/" ? "home" : "folder");
     el.createSpan({
       cls: "voice-folder-suggestion-name",
       text: item.path === "/" ? "Vault root" : item.path,
     });
+    if (item.isDefault) {
+      el.createSpan({
+        cls: "voice-folder-suggestion-badge",
+        text: "Default",
+      });
+    }
 
-    // Inline star toggle. stopPropagation keeps a star click from also choosing
-    // the folder (which would close the modal).
+    // Inline default-folder toggle (pin). The default is where a tap on the save
+    // button stores audio; only one folder can be the default at a time, so
+    // pinning a new one replaces the previous, and pinning the active one
+    // clears it. stopPropagation keeps the click from also choosing the folder.
+    const pin = el.createSpan({ cls: "voice-folder-suggestion-pin" });
+    setIcon(pin, item.isDefault ? "pin" : "pin-off");
+    pin.toggleClass("is-default", item.isDefault);
+    pin.setAttribute(
+      "aria-label",
+      item.isDefault ? "Clear default folder" : "Set as default folder",
+    );
+    pin.addEventListener("click", (evt) => {
+      evt.stopPropagation();
+      evt.preventDefault();
+      void this.toggleDefaultFor(item.path);
+    });
+
+    // Inline star toggle (favorite), independent of the default.
     const star = el.createSpan({ cls: "voice-folder-suggestion-star" });
     setIcon(star, item.isFavorite ? "star" : "star-off");
     star.toggleClass("is-favorite", item.isFavorite);
@@ -145,12 +176,21 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       path,
     );
     await this.plugin.saveSettings();
-    // Re-run getSuggestions so the star icon and ordering refresh immediately.
-    this.inputEl.dispatchEvent(new Event("input"));
+    this.refreshList();
   }
 
-  /** Whether a folder is currently a favorite (used by callers/tests). */
-  isFavorite(path: string): boolean {
-    return isFavoriteFolder(this.plugin.settings.favoriteAudioFolders, path);
+  /** Set/clear the default folder (only one at a time) and re-render. */
+  private async toggleDefaultFor(path: string): Promise<void> {
+    this.plugin.settings.defaultAudioFolder = toggleDefaultFolder(
+      this.plugin.settings.defaultAudioFolder,
+      path,
+    );
+    await this.plugin.saveSettings();
+    this.refreshList();
+  }
+
+  /** Re-run getSuggestions so icons and ordering refresh immediately. */
+  private refreshList(): void {
+    this.inputEl.dispatchEvent(new Event("input"));
   }
 }

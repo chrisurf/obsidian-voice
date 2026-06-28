@@ -37,7 +37,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder list follows note** in settings to keep your chosen folder while you browse.
 - **Rename tracks** — hover a chapter and click the pencil to rename the MP3 right from the player. The file is renamed in place (same folder, `.mp3` kept) and embeds are updated automatically.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
-- **One smart play button** — tap to play, pause, or cancel a generation in progress; if audio is already loaded it just resumes. **Hold the play button for 3 seconds** to regenerate the note from scratch with your current voice and settings (there's no separate Regenerate button to hunt for). The button spins and a progress bar fills up while audio is synthesized.
+- **One smart play button** — **tap** ▶️ to play, pause, or cancel a synthesis that's running; if audio is already loaded it just resumes. **Press and hold for 3 seconds** to regenerate the note from scratch with your current voice and settings — a ring fills around the button as you hold, and there's no separate Regenerate button to hunt for. (The button spins while audio is synthesized.)
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — save the current audio as an MP3 right from the player.
@@ -61,12 +61,22 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
 ### Save & Play Audio Offline
 
-- While playback is running, press the download button to save an MP3 named after your note; the plugin embeds it right after the front matter so you can replay it anytime, offline.
+The **save button** (the download arrow ⬇, in the player, the status bar, and the mobile bar) writes the current audio to an MP3, embeds it right after the front matter, and adds it to the chapter list — so you can replay it anytime, offline. It has **two gestures**:
+
+- 👆 **Tap** → save now. By default the MP3 lands **next to your note**. If you've set a **default folder**, every tap saves there instead.
+- ✋ **Press and hold ~½ second** (or right-click on desktop) → open the **folder picker** to save somewhere else just this once — or to set your default folder.
 
   ![voice download](./assets/voice-download.png)
 
-- Prefer a hands-off workflow? Enable **Save automatically** in settings to save and embed the MP3 automatically after every successful playback — no manual click. Off by default.
-- **Choose where audio is saved** — keep MP3s next to the note (default) or send them to a custom folder. Set **Save location → Custom folder** in settings, then **tap** the save button to use your last folder or **hold it** (desktop: or right-click) to pick another. **Star** favorites in the picker for one-tap saving, and type to create a new folder on the spot.
+**Set a default folder (optional).** In the folder picker, every folder row has a **pin** 📌 and a **star** ⭐:
+
+- 📌 **Pin** → make this folder your default. From now on a quick tap of the save button always saves here. Only one default at a time — tap the pin again to clear it (back to “next to the note”). The default is shown first and highlighted.
+- ⭐ **Star** → keep a folder near the top as a favorite. Favorites and the default are managed independently.
+- Start typing to filter the list, or to **create a new folder** on the spot.
+
+> **Example.** You keep recordings in `Media/Audio`. Hold the save button, then tap the **pin 📌** next to `Media/Audio`. Done — now a single tap of the save button always stores there. Need to drop one file elsewhere? Hold again and tap a different folder; your default stays put.
+
+- Prefer a hands-off workflow? Turn on **Save automatically** in settings to save and embed after every playback (it uses your default folder too).
 - Cached audio prevents repeat synthesis costs until your note content changes.
 
 ### Precision Playback Controls
@@ -123,20 +133,20 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                      | What it does                                                                                                                                                                                             |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                   |
-| **Voice**                    | Pick the voice, gender, and language used for playback.                                                                                                                                                  |
-| **Tempo**                    | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                                                                           |
-| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                      |
-| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                               |
-| **Spell out acronyms**       | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                                                                       |
-| **Read code blocks**         | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                                                                  |
-| **Skip website URLs**        | Remove URLs from spoken output while keeping link labels. Off by default.                                                                                                                                |
-| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                |
-| **Save location**            | Save MP3s next to the note (default) or in a custom folder chosen via a quick folder picker with favorites. Tap the save button for your last folder; hold it (desktop: or right-click) to pick another. |
-| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                       |
-| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                        |
+| Setting                      | What it does                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                       |
+| **Voice**                    | Pick the voice, gender, and language used for playback.                                                                                                                                                      |
+| **Tempo**                    | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                                                                               |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                          |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
+| **Spell out acronyms**       | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                                                                           |
+| **Read code blocks**         | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                                                                      |
+| **Skip website URLs**        | Remove URLs from spoken output while keeping link labels. Off by default.                                                                                                                                    |
+| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
+| **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
+| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |
+| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                            |
 
 ## Keyboard Shortcuts
 

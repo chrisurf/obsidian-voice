@@ -99,7 +99,6 @@ export class MobileControlBar {
         void this.plugin.iconEventHandler.handleDownloadAudio({
           forcePicker: true,
         }),
-      isHoldEnabled: () => this.plugin.settings.audioSaveMode === "custom",
     });
 
     // Rewind button

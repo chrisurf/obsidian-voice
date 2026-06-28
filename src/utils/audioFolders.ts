@@ -1,35 +1,51 @@
 /**
- * Pure helpers for the custom audio-folder feature (issue #57).
+ * Pure helpers for the audio save-folder feature (issue #57).
  *
- * Kept free of Obsidian APIs so the folder-resolution and favorites logic can
- * be unit-tested in isolation; the Obsidian-facing pieces (the picker modal and
- * the save orchestration) build on top of these.
+ * Kept free of Obsidian APIs so the folder-resolution, default-folder and
+ * favorites logic can be unit-tested in isolation; the Obsidian-facing pieces
+ * (the picker modal and the save orchestration) build on top of these.
  */
 
-import type { AudioSaveMode } from "../settings/VoiceSettings";
 import { normalizeFolderPath } from "./chapters";
 
 /**
  * Decide which folder a non-interactive save (a tap on the save button, or a
- * silent auto-save) should write to.
+ * silent auto-save) writes to: the configured default folder when set,
+ * otherwise next to the active note.
  *
- * - "note" mode always saves next to the active note.
- * - "custom" mode reuses the last folder the user picked; until they have
- *   picked one, it falls back to the note's folder so a save never fails.
- *
- * @param mode          The configured audio save mode.
- * @param lastAudioFolder The most recently used custom folder (may be empty).
- * @param activeFolder  The active note's folder (vault-relative; "/" = root).
+ * @param defaultFolder The user's default audio folder (may be empty).
+ * @param noteFolder    The active note's folder (vault-relative; "/" = root).
  */
 export function resolveSaveFolder(
-  mode: AudioSaveMode,
-  lastAudioFolder: string,
-  activeFolder: string,
+  defaultFolder: string,
+  noteFolder: string,
 ): string {
-  if (mode === "custom" && lastAudioFolder.trim() !== "") {
-    return normalizeFolderPath(lastAudioFolder);
+  if (defaultFolder.trim() !== "") {
+    return normalizeFolderPath(defaultFolder);
   }
-  return normalizeFolderPath(activeFolder);
+  return normalizeFolderPath(noteFolder);
+}
+
+/**
+ * Whether a folder is the current default (path-normalized comparison).
+ */
+export function isDefaultFolder(defaultFolder: string, path: string): boolean {
+  const target = normalizeFolderPath(path);
+  return (
+    defaultFolder.trim() !== "" && normalizeFolderPath(defaultFolder) === target
+  );
+}
+
+/**
+ * Toggle a folder as the default: returns "" when it is already the default
+ * (clearing it), otherwise returns the folder (replacing any previous default,
+ * since only one default exists at a time).
+ */
+export function toggleDefaultFolder(
+  defaultFolder: string,
+  path: string,
+): string {
+  return isDefaultFolder(defaultFolder, path) ? "" : normalizeFolderPath(path);
 }
 
 /**
@@ -57,34 +73,62 @@ export interface PickerFolder {
   path: string;
   /** Whether the folder is starred. */
   isFavorite: boolean;
+  /** Whether the folder is the current default save location. */
+  isDefault: boolean;
 }
 
 /**
- * Order folders for the picker: favorites first (in their saved order), then
- * the remaining folders sorted naturally by path. Used when the search box is
- * empty so the user's starred folders are always within reach.
+ * Order folders for the picker: the default folder first (highlighted), then
+ * favorites (in their saved order), then the remaining folders sorted naturally
+ * by path. Used when the search box is empty so the default and starred folders
+ * are always within reach.
  *
- * @param allFolders All vault folder paths.
- * @param favorites  The starred folder paths.
+ * @param allFolders    All vault folder paths.
+ * @param favorites     The starred folder paths.
+ * @param defaultFolder The current default folder (may be empty).
  */
 export function orderFoldersForPicker(
   allFolders: string[],
   favorites: string[],
+  defaultFolder: string,
 ): PickerFolder[] {
   const normalizedAll = [...new Set(allFolders.map(normalizeFolderPath))];
+  const def =
+    defaultFolder.trim() !== "" ? normalizeFolderPath(defaultFolder) : null;
   const favSet = new Set(favorites.map(normalizeFolderPath));
 
-  const favs = favorites
-    .map(normalizeFolderPath)
-    .filter((f) => normalizedAll.includes(f))
-    .map((path) => ({ path, isFavorite: true }));
+  const decorate = (path: string): PickerFolder => ({
+    path,
+    isFavorite: favSet.has(path),
+    isDefault: def === path,
+  });
 
+  const result: PickerFolder[] = [];
+
+  // Default folder first (only if it still exists in the vault).
+  if (def !== null && normalizedAll.includes(def)) {
+    result.push(decorate(def));
+  }
+
+  // Then favorites (excluding the default, which is already at the top).
+  for (const fav of favorites.map(normalizeFolderPath)) {
+    if (
+      normalizedAll.includes(fav) &&
+      fav !== def &&
+      !result.some((r) => r.path === fav)
+    ) {
+      result.push(decorate(fav));
+    }
+  }
+
+  // Then the rest, sorted naturally.
+  const placed = new Set(result.map((r) => r.path));
   const rest = normalizedAll
-    .filter((p) => !favSet.has(p))
+    .filter((p) => !placed.has(p))
     .sort((a, b) =>
       a.localeCompare(b, undefined, { numeric: true, sensitivity: "base" }),
     )
-    .map((path) => ({ path, isFavorite: false }));
+    .map(decorate);
 
-  return [...favs, ...rest];
+  return [...result, ...rest];
 }

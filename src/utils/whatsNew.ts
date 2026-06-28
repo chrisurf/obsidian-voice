@@ -22,18 +22,18 @@ export const HERO_IMAGE_URL =
  */
 export const WHATS_NEW = `## ▶️ One play button, less clutter
 
-Playback is simpler now — the play button does everything, so the separate Regenerate button is gone.
+Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 
-- **Tap** to play, pause, or cancel a generation that is in progress.
-- **Hold for 3 seconds** to regenerate the current note from scratch — always with your current voice and settings.
+- **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
+- **Press and hold for 3 seconds** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
 
 ## 📁 Save audio where you want
 
-Keep your vault tidy — choose a **custom folder** for saved MP3s instead of dropping them next to every note.
+The save button (the download arrow) now has two simple gestures, and you can pick a **default folder** so every save lands in the same place.
 
-- **Set it once** in Settings → Voice → **Audio save location → Custom folder**.
-- **Tap** the save button to store in your last folder; **hold it** (or right-click on desktop) to pick another.
-- **Star** your favorite folders in the picker for one-tap saving — and type to create a new folder on the spot.
+- 👆 **Tap** to save now — next to your note, or in your default folder if you've set one.
+- ✋ **Press and hold** the save button (or right-click on desktop) to open the folder picker.
+- 📌 In the picker, **pin** a folder to make it your default (only one at a time; tap the pin again to clear it). ⭐ **Star** folders for quick access, or type to create a new folder.
 
 ## 🔊 The Voice player is here
 

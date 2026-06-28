@@ -6,7 +6,6 @@ import {
   OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
-  type AudioSaveMode,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
@@ -74,16 +73,20 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   /**
-   * Platform-aware description for the "Audio save location" setting, so the
-   * tap/hold gesture is explained with the right wording for desktop vs mobile.
+   * Platform-aware, read-only description for the "Save location" info row. It
+   * states where MP3s currently go and how to pick a default folder.
    */
   private audioSaveLocationDesc(): string {
-    const gesture = this.plugin.isMobile()
-      ? "touch & hold to pick another"
-      : "hold (or right-click) to pick another";
+    const hold = this.plugin.isMobile()
+      ? "touch & hold"
+      : "hold (or right-click)";
+    const current =
+      this.plugin.settings.defaultAudioFolder.trim() === ""
+        ? "MP3s are saved next to the note."
+        : `MP3s are saved to “${this.plugin.settings.defaultAudioFolder}”.`;
     return (
-      "Where MP3s are saved. With “Custom folder”, tap save for your last " +
-      `folder or ${gesture}.`
+      `${current} To set a default folder, ${hold} the save button to open ` +
+      "the folder picker, then tap the pin on a folder (tap it again to clear)."
     );
   }
 
@@ -273,19 +276,11 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).setName("Saving audio").setHeading();
 
+    // Informational only — the save location is managed from the player's
+    // folder picker (no toggle here). Explains how to set a default folder.
     new Setting(containerEl)
       .setName("Save location")
-      .setDesc(this.audioSaveLocationDesc())
-      .addDropdown((dropdown) => {
-        dropdown
-          .addOption("note", "Next to note")
-          .addOption("custom", "Custom folder")
-          .setValue(this.plugin.settings.audioSaveMode)
-          .onChange(async (value) => {
-            this.plugin.settings.audioSaveMode = value as AudioSaveMode;
-            await this.plugin.saveSettings();
-          });
-      });
+      .setDesc(this.audioSaveLocationDesc());
 
     new Setting(containerEl)
       .setName("Save automatically")

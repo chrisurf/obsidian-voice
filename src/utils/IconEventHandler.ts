@@ -608,10 +608,9 @@ export class IconEventHandler {
     }
 
     // Auto-save never prompts: it writes to the resolved folder silently
-    // (custom mode → last used folder, falling back to the note's folder).
+    // (the default folder when set, otherwise next to the note).
     const folder = resolveSaveFolder(
-      this.voice.settings.audioSaveMode,
-      this.voice.settings.lastAudioFolder,
+      this.voice.settings.defaultAudioFolder,
       activeFile.parent?.path || "",
     );
     await this.audioFileManager.downloadAndEmbed(
@@ -625,8 +624,8 @@ export class IconEventHandler {
    * Handle download audio button click (also exposed as a command).
    * Retrieves cached audio blob and saves it as an MP3 file in the resolved
    * folder.
-   * @param options.forcePicker - Open the folder picker even when a last folder
-   *   exists (the "hold"/right-click gesture). Ignored in "next to note" mode.
+   * @param options.forcePicker - Open the folder picker (the "hold"/right-click
+   *   gesture) and save to the chosen folder for this one save.
    */
   public async handleDownloadAudio(options?: {
     forcePicker?: boolean;
@@ -672,55 +671,42 @@ export class IconEventHandler {
   }
 
   /**
-   * Resolve the destination folder for a manual save. In "next to note" mode
-   * this is always the note's folder. In "custom" mode a tap reuses the last
-   * folder (opening the picker only the first time), while a hold/right-click
-   * forces the picker. Returns null when the user dismisses the picker.
+   * Resolve the destination folder for a manual save. A tap saves to the
+   * default folder (or next to the note when no default is set); a hold /
+   * right-click opens the picker and saves to the chosen folder for this one
+   * save. Returns null when the user dismisses the picker.
    */
   private async resolveManualSaveFolder(
     noteFolder: string,
     forcePicker: boolean,
   ): Promise<string | null> {
-    const settings = this.voice.settings;
-    if (settings.audioSaveMode === "note") {
-      return noteFolder;
-    }
-
-    const needsPicker = forcePicker || settings.lastAudioFolder.trim() === "";
-    if (needsPicker) {
+    if (forcePicker) {
       const chosen = await FolderPickerModal.open(this.plugin.app, this.voice);
-      if (chosen === null) {
-        return null;
-      }
-      settings.lastAudioFolder = chosen;
-      await this.voice.saveSettings();
+      // The picker may have changed the default folder via the pin button.
       this.updateSaveTooltip();
-      return chosen;
+      return chosen; // chosen path, or null when cancelled
     }
 
     return resolveSaveFolder(
-      settings.audioSaveMode,
-      settings.lastAudioFolder,
+      this.voice.settings.defaultAudioFolder,
       noteFolder,
     );
   }
 
   /**
-   * Wire the tap-vs-hold gesture onto a save button: tap saves, hold (or
-   * right-click) opens the folder picker. Holding is only active in custom
-   * mode.
+   * Wire the tap-vs-hold gesture onto a save button: tap saves (to the default
+   * folder, or next to the note), hold (or right-click) opens the folder picker.
    */
   private attachSaveGesture(el: HTMLElement): void {
     attachPressGesture(el, {
       onTap: () => void this.handleDownloadAudio(),
       onHold: () => void this.handleDownloadAudio({ forcePicker: true }),
-      isHoldEnabled: () => this.voice.settings.audioSaveMode === "custom",
     });
   }
 
   /**
-   * Refresh the download button's tooltip to reflect the current save mode and
-   * target folder, including a platform-appropriate hint about the hold gesture.
+   * Refresh the download button's tooltip to reflect the current default folder,
+   * with a platform-appropriate hint about the hold gesture.
    */
   private updateSaveTooltip(): void {
     if (!this.downloadIconEl) {
@@ -730,17 +716,11 @@ export class IconEventHandler {
   }
 
   private saveTooltip(): string {
-    const settings = this.voice.settings;
-    if (settings.audioSaveMode === "note") {
-      return "Download audio as MP3";
-    }
-    const folder =
-      settings.lastAudioFolder.trim() === ""
-        ? "a folder you pick"
-        : settings.lastAudioFolder;
+    const def = this.voice.settings.defaultAudioFolder.trim();
+    const target = def === "" ? "the note's folder" : def;
     const hint = this.voice.isMobile()
-      ? "touch & hold to choose folder"
-      : "hold or right-click to choose folder";
-    return `Save to ${folder} — ${hint}`;
+      ? "touch & hold to choose a folder"
+      : "hold (or right-click) to choose a folder";
+    return `Save to ${target} — ${hint}`;
   }
 }

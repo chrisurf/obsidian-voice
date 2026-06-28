@@ -936,12 +936,37 @@
   text-overflow: ellipsis;
 }
 
+/* The active default folder is highlighted and carries a "Default" chip. */
+.voice-folder-suggestion.is-default {
+  border-left: 2px solid var(--interactive-accent);
+  background: var(--background-modifier-hover);
+}
+
+.voice-folder-suggestion.is-default .voice-folder-suggestion-icon {
+  color: var(--text-accent);
+}
+
+.voice-folder-suggestion-badge {
+  flex-shrink: 0;
+  padding: 1px 6px;
+  border-radius: var(--radius-s);
+  font-size: var(--font-ui-smaller);
+  color: var(--text-on-accent);
+  background: var(--interactive-accent);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.voice-folder-suggestion-pin,
 .voice-folder-suggestion-star {
   display: inline-flex;
+  flex-shrink: 0;
   color: var(--text-faint);
   cursor: pointer;
 }
 
+.voice-folder-suggestion-pin:hover,
+.voice-folder-suggestion-pin.is-default,
 .voice-folder-suggestion-star:hover,
 .voice-folder-suggestion-star.is-favorite {
   color: var(--text-accent);

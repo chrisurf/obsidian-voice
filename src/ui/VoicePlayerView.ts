@@ -237,7 +237,6 @@ export class VoicePlayerView extends ItemView {
     attachPressGesture(this.downloadBtn, {
       onTap: () => void this.downloadAudio(),
       onHold: () => void this.downloadAudio({ forcePicker: true }),
-      isHoldEnabled: () => this.plugin.settings.audioSaveMode === "custom",
     });
 
     // Repeat: cycle off → repeat one → repeat all → off.

@@ -99,8 +99,9 @@ orchestrators pick the path by `inputFormat`:
   on mobile). Transport (the play button taps to play / pause / cancel and is
   **held 3s to regenerate**), scrubber, speed, provider/voice pickers, download,
   repeat modes, and a **chapter list** built from the MP3s in a folder.
-- `FolderPickerModal.ts` — quick folder picker (fuzzy search, starred favorites,
-  "create folder") used by the custom-save-location feature.
+- `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
+  default-folder **pin**, starred favorites, "create folder") used by the
+  custom-save-location feature.
 - `WhatsNewModal.ts` — renders `utils/whatsNew.ts` once per install/update.
 - The **status bar** controls are created in `utils/IconEventHandler.ts`; the
   **mobile** control bar is `utils/MobileControlBar.ts`.
@@ -109,8 +110,9 @@ orchestrators pick the path by `inputFormat`:
 
 - `AudioFileManager.ts` — writes the MP3 (into the note's folder or a custom
   target, creating it if missing) and inserts the `![[file.mp3]]` embed.
-- `audioFolders.ts` — **pure** helpers: `resolveSaveFolder`, favorites,
-  picker ordering (fully unit-tested).
+- `audioFolders.ts` — **pure** helpers: `resolveSaveFolder` (default folder, else
+  next to note), default-folder + favorites toggles, picker ordering (default
+  first, then favorites). Fully unit-tested.
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player

@@ -40,7 +40,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **One smart play button** — **tap** ▶️ to play, pause, or cancel a synthesis that's running; if audio is already loaded it just resumes. **Press and hold for 3 seconds** to regenerate the note from scratch with your current voice and settings — a ring fills around the button as you hold, and there's no separate Regenerate button to hunt for. (The button spins while audio is synthesized.)
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
-- **Download** — save the current audio as an MP3 right from the player.
+- **Download** — **tap** the save button (⬇) to save the current audio as an MP3 right from the player (into your default folder, or next to the note). **Press and hold** it (or right-click) to open the folder picker and choose a different folder — or pin one as your default.
 - **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:

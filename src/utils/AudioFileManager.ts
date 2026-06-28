@@ -61,14 +61,14 @@ export class AudioFileManager {
         // Overwrite existing file
         await this.app.vault.modifyBinary(existingFile, arrayBuffer);
         audioFile = existingFile;
-        new Notice(`Updated: ${audioFileName}`);
+        new Notice(`Updated: ${audioFilePath}`);
       } else {
         // Create new file
         audioFile = await this.app.vault.createBinary(
           audioFilePath,
           arrayBuffer,
         );
-        new Notice(`Created: ${audioFileName}`);
+        new Notice(`Created: ${audioFilePath}`);
       }
 
       return audioFile;
@@ -89,10 +89,10 @@ export class AudioFileManager {
     targetFolder: string | undefined,
     noteFolder: string,
   ): string {
-    if (targetFolder === undefined) {
-      return noteFolder;
-    }
-    const trimmed = targetFolder.trim();
+    const dir = targetFolder === undefined ? noteFolder : targetFolder;
+    const trimmed = dir.trim();
+    // Normalize the vault root ("/" — how Obsidian reports a root note's parent)
+    // to "" so paths never become "//file.mp3".
     return trimmed === "/" ? "" : trimmed;
   }
 

@@ -24,7 +24,7 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
   private plugin: Voice;
   private allFolders: string[];
   private resolve: (value: string | null) => void = () => {};
-  private chosen = false;
+  private settled = false;
 
   private constructor(app: App, plugin: Voice) {
     super(app);
@@ -117,16 +117,25 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
   }
 
   onChooseSuggestion(item: FolderSuggestion): void {
-    this.chosen = true;
-    this.resolve(item.path);
+    this.settle(item.path);
   }
 
   onClose(): void {
     super.onClose();
-    // If the modal closed without a choice (esc / click-away), report a cancel.
-    if (!this.chosen) {
-      this.resolve(null);
+    // Treat the close as a cancel only if no suggestion was chosen. The null is
+    // deferred so that a selection click — which fires onChooseSuggestion right
+    // around the same time the modal closes — always wins the race regardless
+    // of the order Obsidian invokes the two callbacks in.
+    window.setTimeout(() => this.settle(null), 0);
+  }
+
+  /** Resolve the open() promise exactly once with the first settled value. */
+  private settle(value: string | null): void {
+    if (this.settled) {
+      return;
     }
+    this.settled = true;
+    this.resolve(value);
   }
 
   /** Star/unstar a folder and re-render the list in place. */

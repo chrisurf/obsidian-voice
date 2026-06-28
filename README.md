@@ -34,7 +34,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 - **Always within reach** — the player is docked in the right sidebar (next to Backlinks and Outline) right after install, so it's there whenever you need it. On mobile it opens as a full-screen pane.
 - **Chapters from your folder** — every MP3 saved next to the current note appears as a numbered chapter. Listen to a whole folder like an audiobook, and the chapter you're hearing is highlighted.
-- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder Picker Follows Active Note** in settings to keep your chosen folder while you browse.
+- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder list follows note** in settings to keep your chosen folder while you browse.
 - **Rename tracks** — hover a chapter and click the pencil to rename the MP3 right from the player. The file is renamed in place (same folder, `.mp3` kept) and embeds are updated automatically.
 - **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
 - **Play & Regenerate** — press play to listen to the note you're viewing; if its audio is already loaded, play just resumes it. The **Regenerate** button (↻) forces a fresh synthesis from scratch — useful after you've edited the note or changed the voice. The play button spins and a progress bar fills up while audio is synthesized.
@@ -65,8 +65,8 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
   ![voice download](./assets/voice-download.png)
 
-- Prefer a hands-off workflow? Enable **Auto-Save Audio to Note** in settings to save and embed the MP3 automatically after every successful playback — no manual click. Off by default.
-- **Choose where audio is saved** — keep MP3s next to the note (default) or send them to a custom folder. Set **Audio save location → Custom folder** in settings, then **tap** the save button to use your last folder or **hold it** (desktop: or right-click) to pick another. **Star** favorites in the picker for one-tap saving, and type to create a new folder on the spot.
+- Prefer a hands-off workflow? Enable **Save automatically** in settings to save and embed the MP3 automatically after every successful playback — no manual click. Off by default.
+- **Choose where audio is saved** — keep MP3s next to the note (default) or send them to a custom folder. Set **Save location → Custom folder** in settings, then **tap** the save button to use your last folder or **hold it** (desktop: or right-click) to pick another. **Star** favorites in the picker for one-tap saving, and type to create a new folder on the spot.
 - Cached audio prevents repeat synthesis costs until your note content changes.
 
 ### Precision Playback Controls
@@ -93,10 +93,10 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
 These content toggles apply to every provider and are all **off by default**:
 
-- **Spell Out Acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally. (Applies to AWS Polly.)
-- **Read Code Blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- **Skip Website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
-- **Auto-Save Audio to Note** — automatically save and embed the MP3 after each successful playback (see [Save & Play Audio Offline](#save--play-audio-offline)).
+- **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally. (Applies to AWS Polly.)
+- **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
+- **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
+- **Save automatically** — automatically save and embed the MP3 after each successful playback (see [Save & Play Audio Offline](#save--play-audio-offline)).
 
 ### Built for Mobile
 
@@ -123,20 +123,20 @@ Everything is configured in one place: **Settings → Voice**. Pick a provider, 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                               | What it does                                                                                                                                                                                             |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**                   | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                   |
-| **Voice**                             | Pick the voice, gender, and language used for playback.                                                                                                                                                  |
-| **Tempo**                             | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                                                                           |
-| **Rewind interval**                   | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                      |
-| **Fast-forward interval**             | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                               |
-| **Spell Out Acronyms**                | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                                                                       |
-| **Read Code Blocks**                  | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                                                                  |
-| **Skip Website URLs**                 | Remove URLs from spoken output while keeping link labels. Off by default.                                                                                                                                |
-| **Auto-Save Audio to Note**           | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                |
-| **Audio save location**               | Save MP3s next to the note (default) or in a custom folder chosen via a quick folder picker with favorites. Tap the save button for your last folder; hold it (desktop: or right-click) to pick another. |
-| **Folder Picker Follows Active Note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                       |
-| **Test Credentials**                  | Validate your provider keys; on success it reports how many voices are available.                                                                                                                        |
+| Setting                      | What it does                                                                                                                                                                                             |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                   |
+| **Voice**                    | Pick the voice, gender, and language used for playback.                                                                                                                                                  |
+| **Tempo**                    | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                                                                           |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                      |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                               |
+| **Spell out acronyms**       | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                                                                       |
+| **Read code blocks**         | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                                                                  |
+| **Skip website URLs**        | Remove URLs from spoken output while keeping link labels. Off by default.                                                                                                                                |
+| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                |
+| **Save location**            | Save MP3s next to the note (default) or in a custom folder chosen via a quick folder picker with favorites. Tap the save button for your last folder; hold it (desktop: or right-click) to pick another. |
+| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                       |
+| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                        |
 
 ## Keyboard Shortcuts
 

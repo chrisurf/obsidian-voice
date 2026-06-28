@@ -628,19 +628,6 @@
   gap: 10px;
 }
 
-.voice-player-read {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  cursor: pointer;
-}
-
-.voice-player-read .svg-icon {
-  width: 16px;
-  height: 16px;
-}
-
 .voice-player-download {
   display: flex;
   align-items: center;
@@ -878,23 +865,6 @@
 
 .voice-whats-new-body h2:first-child {
   margin-top: 0;
-}
-
-/* "Regenerate" loading animation */
-.voice-player-read.is-loading {
-  opacity: 0.85;
-  cursor: default;
-  animation: voice-player-pulse 1.2s ease-in-out infinite;
-}
-
-@keyframes voice-player-pulse {
-  0%,
-  100% {
-    opacity: 0.55;
-  }
-  50% {
-    opacity: 1;
-  }
 }
 
 /* Determinate loading bar, pinned to the bottom of the panel. The fill grows

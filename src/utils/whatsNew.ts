@@ -20,7 +20,14 @@ export const HERO_IMAGE_URL =
  * (the headline feature many users have not discovered yet), then summarizes
  * everything added since 1.8.0 so long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 📁 Save audio where you want
+export const WHATS_NEW = `## ▶️ One play button, less clutter
+
+Playback is simpler now — the play button does everything, so the separate Regenerate button is gone.
+
+- **Tap** to play, pause, or cancel a generation that is in progress.
+- **Hold for 3 seconds** to regenerate the current note from scratch — always with your current voice and settings.
+
+## 📁 Save audio where you want
 
 Keep your vault tidy — choose a **custom folder** for saved MP3s instead of dropping them next to every note.
 

@@ -57,8 +57,6 @@ export class VoicePlayerView extends ItemView {
   private repeatBtn: HTMLElement;
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
-  private readBtn: HTMLButtonElement;
-  private readLabelEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
@@ -188,10 +186,20 @@ export class VoicePlayerView extends ItemView {
 
     this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
-      attr: { "aria-label": "Play / pause" },
+      attr: {
+        "aria-label": "Play / pause — hold 3s to regenerate",
+        title: "Tap: play, pause or cancel · Hold 3s: regenerate from scratch",
+      },
     });
     setIcon(this.playPauseBtn, "play");
-    this.registerDomEvent(this.playPauseBtn, "click", () => this.togglePlay());
+    // One button does it all: a tap plays / pauses (and cancels an in-progress
+    // synthesis); holding for 3s regenerates the note from scratch with the
+    // current voice and settings (this replaces the separate Regenerate button).
+    attachPressGesture(this.playPauseBtn, {
+      onTap: () => this.togglePlay(),
+      onHold: () => this.regenerate(),
+      holdMs: 3000,
+    });
 
     const forwardBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-skip",
@@ -214,23 +222,8 @@ export class VoicePlayerView extends ItemView {
       this.playNextTrack(),
     );
 
-    // Secondary row: read note + speed
+    // Secondary row: download + repeat + speed
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
-
-    // Regenerate: force a fresh synthesis of the active note. The transport
-    // play button already reads the note when nothing matching is loaded, so
-    // this button's distinct job is to re-render from scratch (e.g. after the
-    // note changed) — hence the reload icon and "Regenerate" label.
-    this.readBtn = secondary.createEl("button", {
-      cls: "voice-player-read",
-      attr: { "aria-label": "Regenerate audio for this note" },
-    });
-    setIcon(this.readBtn, "refresh-cw");
-    this.readLabelEl = this.readBtn.createSpan({
-      cls: "voice-player-read-label",
-      text: "Regenerate",
-    });
-    this.registerDomEvent(this.readBtn, "click", () => this.handleReadClick());
 
     // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
     // (to the last folder in custom mode); holding it — or right-clicking —
@@ -328,6 +321,11 @@ export class VoicePlayerView extends ItemView {
 
   private togglePlay(): void {
     const provider = this.provider();
+    // A tap while a synthesis is running cancels it.
+    if (provider.isOperationInProgress()) {
+      provider.cancelOperation();
+      return;
+    }
     if (provider.isPlaying()) {
       provider.pauseAudio();
       return;
@@ -386,13 +384,17 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Regenerate: force a fresh synthesis of the current note. Ignored while a
-   * synthesis is already running.
+   * Regenerate the current note from scratch (the play button's 3s hold). Always
+   * uses the currently selected voice and settings. Cancels any in-progress
+   * synthesis and stops playback first, so speakText performs a fresh render
+   * instead of just pausing the audio that is already playing.
    */
-  private handleReadClick(): void {
-    if (this.provider().isOperationInProgress()) {
-      return;
+  private regenerate(): void {
+    const provider = this.provider();
+    if (provider.isOperationInProgress()) {
+      provider.cancelOperation();
     }
+    provider.stopAudio();
     // Reading the note replaces any loaded chapter as the active audio, so
     // drop the chapter selection to keep the highlight and play button honest.
     this.currentChapterPath = null;
@@ -855,8 +857,7 @@ export class VoicePlayerView extends ItemView {
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
 
     // Loading feedback while a note is being synthesized: grow the bottom bar to
-    // the real synthesis progress, spin the play button (like the status bar),
-    // and animate (and disable) the "Regenerate" button.
+    // the real synthesis progress and spin the play button (a tap cancels it).
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
     if (loading) {
@@ -870,10 +871,6 @@ export class VoicePlayerView extends ItemView {
       this.playPauseBtn.removeClass("rotating-icon");
       setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }
-    this.readBtn.toggleClass("is-loading", loading);
-    this.readBtn.disabled = loading;
-    // Update only the label span so the reload icon is preserved.
-    this.readLabelEl.setText(loading ? "Regenerating…" : "Regenerate");
 
     // Keep the selectors/toggle in sync if settings changed elsewhere.
     if (this.providerSelect.value !== this.plugin.settings.TTS_PROVIDER) {

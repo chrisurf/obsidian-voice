@@ -96,8 +96,9 @@ orchestrators pick the path by `inputFormat`:
 ### UI layer (`src/ui/` + status bar / mobile)
 
 - `VoicePlayerView.ts` — the player pane (right sidebar on desktop, full-screen
-  on mobile). Transport, scrubber, speed, provider/voice pickers, **Regenerate**,
-  download, repeat modes, and a **chapter list** built from the MP3s in a folder.
+  on mobile). Transport (the play button taps to play / pause / cancel and is
+  **held 3s to regenerate**), scrubber, speed, provider/voice pickers, download,
+  repeat modes, and a **chapter list** built from the MP3s in a folder.
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, starred favorites,
   "create folder") used by the custom-save-location feature.
 - `WhatsNewModal.ts` — renders `utils/whatsNew.ts` once per install/update.
@@ -111,8 +112,10 @@ orchestrators pick the path by `inputFormat`:
 - `audioFolders.ts` — **pure** helpers: `resolveSaveFolder`, favorites,
   picker ordering (fully unit-tested).
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
-- `pressGesture.ts` — reusable tap-vs-hold pointer gesture (tap = save, hold =
-  open the folder picker) shared by the status bar, mobile, and player buttons.
+- `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
+  while holding (e.g. save buttons: tap = save, hold = folder picker; the player
+  play button: tap = play/pause/cancel, hold 3s = regenerate). Shared by the
+  status bar, mobile, and player buttons.
 
 ### Settings (`src/settings/`)
 

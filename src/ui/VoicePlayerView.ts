@@ -15,6 +15,7 @@ import {
   type ChapterFile,
   type Mp3Folder,
 } from "../utils/chapters";
+import { attachPressGesture } from "../utils/pressGesture";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -75,10 +76,6 @@ export class VoicePlayerView extends ItemView {
   private selectedFolderPath: string | null = null;
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
-  // The generated-audio blob that has already been saved via the download
-  // button. Used to disable download once the current audio is saved, while
-  // re-enabling it as soon as a fresh synthesis produces new audio.
-  private lastDownloadedBlob: Blob | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -235,18 +232,20 @@ export class VoicePlayerView extends ItemView {
     });
     this.registerDomEvent(this.readBtn, "click", () => this.handleReadClick());
 
-    // Save the generated audio as an MP3 in the note's folder so it shows up
-    // as a chapter (same behaviour as the status bar / mobile download button).
+    // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
+    // (to the last folder in custom mode); holding it — or right-clicking —
+    // opens the folder picker, so audio can be (re-)saved to a different folder
+    // any time. Same gesture as the status bar / mobile download button.
     this.downloadBtn = secondary.createEl("button", {
       cls: "voice-player-download",
       attr: { "aria-label": "Download as MP3" },
     });
     setIcon(this.downloadBtn, "download");
-    this.registerDomEvent(
-      this.downloadBtn,
-      "click",
-      () => void this.downloadAudio(),
-    );
+    attachPressGesture(this.downloadBtn, {
+      onTap: () => void this.downloadAudio(),
+      onHold: () => void this.downloadAudio({ forcePicker: true }),
+      isHoldEnabled: () => this.plugin.settings.audioSaveMode === "custom",
+    });
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
@@ -373,21 +372,16 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Persist the generated audio for the active note as an MP3 in its folder
-   * and embed it, then refresh so it appears in the chapter list. Reuses the
-   * shared download flow so behaviour matches the status bar / mobile button.
+   * Persist the generated audio for the active note as an MP3 and embed it,
+   * then refresh so it appears in the chapter list. Reuses the shared download
+   * flow so behaviour matches the status bar / mobile button.
+   * @param options.forcePicker - Open the folder picker (the hold/right-click
+   *   gesture) so the audio can be saved to a different folder.
    */
-  private async downloadAudio(): Promise<void> {
-    const active = this.app.workspace.getActiveFile();
-    const blob = active
-      ? this.provider().getLastGeneratedAudio(active.path)
-      : null;
-    await this.plugin.iconEventHandler.handleDownloadAudio();
-    // Remember which audio we saved so the button disables until the next
-    // synthesis produces a new blob.
-    if (blob) {
-      this.lastDownloadedBlob = blob;
-    }
+  private async downloadAudio(options?: {
+    forcePicker?: boolean;
+  }): Promise<void> {
+    await this.plugin.iconEventHandler.handleDownloadAudio(options);
     this.refreshContext();
   }
 
@@ -470,21 +464,18 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Enable the download button only when there is freshly generated audio for
-   * the active note that has not already been saved via this button. A new
-   * synthesis produces a new blob, which re-enables the button; saving it
-   * disables it again.
+   * Enable the download button whenever there is generated audio for the active
+   * note. It stays enabled after a save so the user can re-save (e.g. after an
+   * error) or hold it to save the audio to a different folder.
    */
   private updateDownloadButton(): void {
     if (!this.downloadBtn) {
       return;
     }
-    let enabled = false;
     const active = this.app.workspace.getActiveFile();
-    if (active) {
-      const cached = this.provider().getLastGeneratedAudio(active.path);
-      enabled = cached !== null && cached !== this.lastDownloadedBlob;
-    }
+    const enabled = active
+      ? this.provider().getLastGeneratedAudio(active.path) !== null
+      : false;
     this.downloadBtn.disabled = !enabled;
     this.downloadBtn.toggleClass("is-disabled", !enabled);
   }

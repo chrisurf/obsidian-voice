@@ -1,7 +1,7 @@
 {
   "id": "voice",
   "name": "Voice",
-  "version": "1.15.5",
+  "version": "1.15.6",
   "minAppVersion": "1.5.0",
   "description": "Listen to your notes as natural speech with text-to-speech (TTS). Read notes aloud, play them like an audiobook in the voice player, download MP3 audio and listen offline hands-free on mobile.",
   "author": "Chris Oguntolu",

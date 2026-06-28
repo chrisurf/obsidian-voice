@@ -920,3 +920,59 @@
   background: var(--interactive-accent);
   transition: width 0.2s ease;
 }
+
+/* Tap-vs-hold save gesture (issue #57): a ring fills around the save button
+   while it is held, signalling that the folder picker is about to open. The
+   --press custom property (0→1) is driven from pressGesture.ts. */
+.voice-pressing {
+  position: relative;
+}
+
+.voice-pressing::after {
+  content: "";
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--interactive-accent) calc(var(--press, 0) * 360deg),
+    transparent 0deg
+  );
+  -webkit-mask: radial-gradient(closest-side, transparent 68%, #000 70%);
+  mask: radial-gradient(closest-side, transparent 68%, #000 70%);
+  pointer-events: none;
+}
+
+/* Folder picker (custom audio-folder feature) */
+.voice-folder-suggestion {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-folder-suggestion-icon {
+  display: inline-flex;
+  color: var(--text-muted);
+}
+
+.voice-folder-suggestion .svg-icon {
+  width: 16px;
+  height: 16px;
+}
+
+.voice-folder-suggestion-name {
+  flex: 1;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.voice-folder-suggestion-star {
+  display: inline-flex;
+  color: var(--text-faint);
+  cursor: pointer;
+}
+
+.voice-folder-suggestion-star:hover,
+.voice-folder-suggestion-star.is-favorite {
+  color: var(--text-accent);
+}

@@ -20,7 +20,15 @@ export const HERO_IMAGE_URL =
  * (the headline feature many users have not discovered yet), then summarizes
  * everything added since 1.8.0 so long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🔊 The Voice player is here
+export const WHATS_NEW = `## 📁 Save audio where you want
+
+Keep your vault tidy — choose a **custom folder** for saved MP3s instead of dropping them next to every note.
+
+- **Set it once** in Settings → Voice → **Audio save location → Custom folder**.
+- **Tap** the save button to store in your last folder; **hold it** (or right-click on desktop) to pick another.
+- **Star** your favorite folders in the picker for one-tap saving — and type to create a new folder on the spot.
+
+## 🔊 The Voice player is here
 
 Voice now has a full **audiobook-style player** — and it lives in the right sidebar (next to Backlinks and Outline) by default, so it is always one click away. If you have not updated in a while, this is the big one.
 

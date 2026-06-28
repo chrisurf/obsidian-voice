@@ -17,11 +17,17 @@ export class AudioFileManager {
   }
 
   /**
-   * Save audio blob as MP3 file in the same directory as the active file
+   * Save audio blob as an MP3 file.
    * @param audioBlob - The audio data to save
+   * @param targetFolder - Vault-relative folder to save into ("/" or "" = vault
+   *   root). When omitted, the MP3 is saved next to the active note, preserving
+   *   the original behaviour.
    * @returns The created/modified TFile or null on error
    */
-  async saveAudioFile(audioBlob: Blob): Promise<TFile | null> {
+  async saveAudioFile(
+    audioBlob: Blob,
+    targetFolder?: string,
+  ): Promise<TFile | null> {
     try {
       const activeFile = this.app.workspace.getActiveFile();
       if (!activeFile) {
@@ -31,11 +37,18 @@ export class AudioFileManager {
 
       // Construct MP3 filename based on active file
       const fileName = activeFile.basename;
-      const fileDir = activeFile.parent?.path || "";
+      const fileDir = this.resolveSaveDir(
+        targetFolder,
+        activeFile.parent?.path || "",
+      );
       const audioFileName = `${fileName}.mp3`;
       const audioFilePath = normalizePath(
         fileDir ? `${fileDir}/${audioFileName}` : audioFileName,
       );
+
+      // Make sure the destination folder exists before writing into it
+      // (custom folders may not have been created yet).
+      await this.ensureFolderExists(fileDir);
 
       // Convert Blob to ArrayBuffer
       const arrayBuffer = await audioBlob.arrayBuffer();
@@ -48,14 +61,14 @@ export class AudioFileManager {
         // Overwrite existing file
         await this.app.vault.modifyBinary(existingFile, arrayBuffer);
         audioFile = existingFile;
-        new Notice(`Updated: ${audioFileName}`);
+        new Notice(`Updated: ${audioFilePath}`);
       } else {
         // Create new file
         audioFile = await this.app.vault.createBinary(
           audioFilePath,
           arrayBuffer,
         );
-        new Notice(`Created: ${audioFileName}`);
+        new Notice(`Created: ${audioFilePath}`);
       }
 
       return audioFile;
@@ -64,6 +77,38 @@ export class AudioFileManager {
       new Notice(`Error saving audio file: ${error.message}`);
       return null;
     }
+  }
+
+  /**
+   * Resolve the destination folder for a save.
+   * - `undefined` target → next to the active note (original behaviour).
+   * - "/" or "" target → the vault root.
+   * - otherwise → the given vault-relative folder.
+   */
+  private resolveSaveDir(
+    targetFolder: string | undefined,
+    noteFolder: string,
+  ): string {
+    const dir = targetFolder === undefined ? noteFolder : targetFolder;
+    const trimmed = dir.trim();
+    // Normalize the vault root ("/" — how Obsidian reports a root note's parent)
+    // to "" so paths never become "//file.mp3".
+    return trimmed === "/" ? "" : trimmed;
+  }
+
+  /**
+   * Create the destination folder (and any missing parents) if it does not
+   * already exist. No-op for the vault root.
+   */
+  private async ensureFolderExists(folderPath: string): Promise<void> {
+    if (!folderPath) {
+      return;
+    }
+    const existing = this.app.vault.getAbstractFileByPath(folderPath);
+    if (existing) {
+      return;
+    }
+    await this.app.vault.createFolder(folderPath);
   }
 
   /**
@@ -134,10 +179,14 @@ export class AudioFileManager {
    * @param audioBlob - The audio data to save
    * @param embed - Whether to also insert the `![[file.mp3]]` embed in the
    *   note. Defaults to true to preserve the legacy save-and-embed behaviour.
+   * @param targetFolder - Vault-relative folder to save into. When omitted, the
+   *   MP3 is saved next to the active note. The embed still resolves by file
+   *   name, so it works regardless of the folder.
    */
   async downloadAndEmbed(
     audioBlob: Blob,
     embed: boolean = true,
+    targetFolder?: string,
   ): Promise<void> {
     try {
       const activeFile = this.app.workspace.getActiveFile();
@@ -150,7 +199,7 @@ export class AudioFileManager {
       const audioFileName = `${fileName}.mp3`;
 
       // Save the audio file
-      const savedFile = await this.saveAudioFile(audioBlob);
+      const savedFile = await this.saveAudioFile(audioBlob, targetFolder);
       if (!savedFile) {
         return; // Error already shown in saveAudioFile
       }

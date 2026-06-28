@@ -1,8 +1,8 @@
-import { App, setIcon, Notice, Menu } from "obsidian";
+import { App, setIcon, Menu } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
-import { AudioFileManager } from "./AudioFileManager";
 import { VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
+import { attachPressGesture } from "./pressGesture";
 
 export class MobileControlBar {
   private app: App;
@@ -16,13 +16,11 @@ export class MobileControlBar {
   private progressBarContainer: HTMLElement | null = null;
   private progressBar: HTMLElement | null = null;
   private isErrorState: boolean = false;
-  private audioFileManager: AudioFileManager;
 
   constructor(app: App, plugin: Voice, pollyService: SpeechProvider) {
     this.app = app;
     this.plugin = plugin;
     this.pollyService = pollyService;
-    this.audioFileManager = new AudioFileManager(app);
     this.createOverlayBar();
     this.initializeEventListeners();
 
@@ -85,14 +83,24 @@ export class MobileControlBar {
       },
     );
 
-    // Download MP3 button (initially hidden)
+    // Download MP3 button (initially hidden). Tap saves; hold (custom mode)
+    // opens the folder picker. Both go through the shared handler so desktop
+    // and mobile behave identically. The plain click is handled by the gesture.
     this.downloadIconEl = this.createControlButton(
       controlsWrapper,
       "download",
       "Download Audio",
-      () => void this.handleDownloadAudio(),
+      () => {},
     );
     this.downloadIconEl.addClass("voice-hidden"); // Initially hidden
+    attachPressGesture(this.downloadIconEl, {
+      onTap: () => void this.plugin.iconEventHandler.handleDownloadAudio(),
+      onHold: () =>
+        void this.plugin.iconEventHandler.handleDownloadAudio({
+          forcePicker: true,
+        }),
+      isHoldEnabled: () => this.plugin.settings.audioSaveMode === "custom",
+    });
 
     // Rewind button
     this.createControlButton(
@@ -419,41 +427,6 @@ export class MobileControlBar {
       this.showDownloadButton();
     } else {
       this.hideDownloadButton();
-    }
-  }
-
-  /**
-   * Handle download audio button click
-   */
-  private async handleDownloadAudio(): Promise<void> {
-    try {
-      // Get current file path for validation
-      const activeFile = this.app.workspace.getActiveFile();
-      if (!activeFile) {
-        new Notice("No active file found");
-        return;
-      }
-
-      // Get the cached audio blob from Polly service with file path validation
-      const audioBlob = this.pollyService.getLastGeneratedAudio(
-        activeFile.path,
-      );
-
-      if (!audioBlob) {
-        new Notice(
-          "No audio available for this file. Please generate audio first.",
-        );
-        return;
-      }
-
-      // Use AudioFileManager to save and (optionally) embed
-      await this.audioFileManager.downloadAndEmbed(
-        audioBlob,
-        this.plugin.settings.autoEmbedAudio,
-      );
-    } catch (error) {
-      console.error("Error downloading audio:", error);
-      new Notice(`Failed to download audio: ${error.message}`);
     }
   }
 

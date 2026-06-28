@@ -18,6 +18,45 @@ export class PluginSettingTab {}
 
 export class Setting {}
 
+export class Modal {
+  open(): void {}
+  close(): void {}
+  onClose(): void {}
+}
+
+export class SuggestModal<T> {
+  inputEl = {
+    addEventListener: (): void => {},
+    dispatchEvent: (): boolean => true,
+  };
+  constructor(_app?: unknown) {}
+  setPlaceholder(): void {}
+  setInstructions(): void {}
+  open(): void {}
+  close(): void {}
+  onClose(): void {}
+  getSuggestions(_query: string): T[] {
+    return [];
+  }
+}
+
+export class TAbstractFile {
+  path = "";
+  name = "";
+  parent: TFolder | null = null;
+}
+
+export class TFile extends TAbstractFile {
+  basename = "";
+  extension = "";
+}
+
+export class TFolder extends TAbstractFile {
+  children: TAbstractFile[] = [];
+}
+
+export class App {}
+
 export const Platform = { isMobile: false };
 
 export function setIcon(): void {}

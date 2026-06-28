@@ -6,6 +6,7 @@ import {
   OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  type AudioSaveMode,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
@@ -72,6 +73,20 @@ export class VoiceSettingTab extends PluginSettingTab {
     rightIndicator.title = "Move right to increase speed (faster playback)";
   }
 
+  /**
+   * Platform-aware description for the "Audio save location" setting, so the
+   * tap/hold gesture is explained with the right wording for desktop vs mobile.
+   */
+  private audioSaveLocationDesc(): string {
+    const gesture = this.plugin.isMobile()
+      ? "touch & hold to pick another"
+      : "hold (or right-click) to pick another";
+    return (
+      "Where MP3s are saved. With “Custom folder”, tap save for your last " +
+      `folder or ${gesture}.`
+    );
+  }
+
   display(): void {
     const { containerEl } = this;
     containerEl.empty();
@@ -125,6 +140,8 @@ export class VoiceSettingTab extends PluginSettingTab {
           await this.plugin.persistActiveVoice(value);
         });
       });
+
+    new Setting(containerEl).setName("Playback").setHeading();
 
     const tempoSetting = new Setting(containerEl)
       .setName("Tempo")
@@ -208,10 +225,12 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.formatSecondsValue(this.plugin.settings.forwardSeconds),
     );
 
+    new Setting(containerEl).setName("Reading").setHeading();
+
     new Setting(containerEl)
-      .setName("Spell Out Acronyms")
+      .setName("Spell out acronyms")
       .setDesc(
-        "When enabled, uppercase words like NASA or API are spelled out letter by letter. Disable this if you want uppercase words to be pronounced normally. (Applies to AWS Polly.)",
+        "Read uppercase words like NASA or API letter by letter (AWS Polly).",
       )
       .addToggle((toggle) =>
         toggle
@@ -225,9 +244,9 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Read Code Blocks")
+      .setName("Read code blocks")
       .setDesc(
-        "When enabled, fenced code blocks (such as Mermaid, YAML, or other code) are read aloud. Disable this to skip code blocks and announce them as a short placeholder instead.",
+        "Read fenced code blocks aloud instead of announcing a placeholder.",
       )
       .addToggle((toggle) =>
         toggle
@@ -240,10 +259,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Skip Website URLs")
-      .setDesc(
-        "When enabled, website URLs (such as https://example.com or www.example.com) are removed and not read aloud. Disabled by default.",
-      )
+      .setName("Skip website URLs")
+      .setDesc("Remove website URLs from the spoken text, keeping link labels.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.skipUrls)
@@ -254,11 +271,25 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl).setName("Saving audio").setHeading();
+
     new Setting(containerEl)
-      .setName("Auto-Save Audio to Note")
-      .setDesc(
-        "When enabled, the generated MP3 is automatically saved next to the note after each successful playback—no need to press the download button. Disabled by default.",
-      )
+      .setName("Save location")
+      .setDesc(this.audioSaveLocationDesc())
+      .addDropdown((dropdown) => {
+        dropdown
+          .addOption("note", "Next to note")
+          .addOption("custom", "Custom folder")
+          .setValue(this.plugin.settings.audioSaveMode)
+          .onChange(async (value) => {
+            this.plugin.settings.audioSaveMode = value as AudioSaveMode;
+            await this.plugin.saveSettings();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Save automatically")
+      .setDesc("Save the MP3 after each playback, without pressing save.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.autoDownloadAudio)
@@ -269,10 +300,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName("Embed Audio in Note")
-      .setDesc(
-        "When enabled, saving an MP3 also inserts an audio embed in the note. This applies to both the download button and auto-save. Turn it off to download the MP3 without embedding it. Enabled by default.",
-      )
+      .setName("Embed in note")
+      .setDesc("Add an audio player to the note when its MP3 is saved.")
       .addToggle((toggle) =>
         toggle
           .setValue(this.plugin.settings.autoEmbedAudio)
@@ -282,10 +311,12 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    new Setting(containerEl).setName("Player").setHeading();
+
     new Setting(containerEl)
-      .setName("Folder Picker Follows Active Note")
+      .setName("Folder list follows note")
       .setDesc(
-        "When enabled, the player's folder picker automatically switches to the folder of the note you are viewing. Disable it to keep the folder you selected in the player when you switch notes. Enabled by default.",
+        "The player's folder list jumps to the current note's folder. Off keeps your chosen folder.",
       )
       .addToggle((toggle) =>
         toggle

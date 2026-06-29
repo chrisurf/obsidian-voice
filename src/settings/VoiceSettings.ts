@@ -41,6 +41,11 @@ export interface VoiceSettings {
   AZURE_API_KEY: string;
   AZURE_REGION: string;
   AZURE_VOICE: string;
+  // Azure: the full voice catalog fetched from /voices/list on "Test
+  // Credentials", cached so the picker can offer every voice grouped by
+  // language. Empty/undefined until the user validates; the hardcoded
+  // AZURE_VOICES list is the fallback.
+  azureVoiceCatalog?: VoiceOption[];
 
   // OpenAI Text-to-Speech
   OPENAI_API_KEY: string;
@@ -101,6 +106,12 @@ export interface VoiceOption {
   id: string;
   label: string;
   lang: string;
+  /**
+   * Optional display name of the language used to group the voice in the
+   * picker (e.g. "English (United States)"). Set by dynamically fetched
+   * catalogs; the hardcoded lists leave it undefined and fall back to `lang`.
+   */
+  group?: string;
 }
 
 export interface ModelOption {

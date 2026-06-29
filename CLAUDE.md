@@ -68,6 +68,12 @@ All providers implement one interface so the rest of the plugin is
 - `SpeechProviderFactory.ts` — `createSpeechProvider(settings)` builds the
   provider chosen in settings and applies rewind/forward prefs.
 - `textChunker.ts` — splits long text for the text-input providers.
+- `voiceCatalog.ts` — **pure** helpers (unit-tested) to map a provider's fetched
+  voice list into `VoiceOption[]` and group it by language for the picker.
+  Azure uses it: "Test Credentials" fetches `/voices/list`, the result is cached
+  in `settings.azureVoiceCatalog`, and `getVoiceOptions()` returns it (the
+  hardcoded `AZURE_VOICES` is the fallback). The player renders the catalog as
+  `<optgroup>`s grouped by language.
 
 `inputFormat` selects which content pipeline feeds the provider:
 

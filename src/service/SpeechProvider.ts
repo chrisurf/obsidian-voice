@@ -19,6 +19,13 @@ export interface CredentialValidationResult {
   isValid: boolean;
   error?: string;
   voiceCount?: number;
+  /**
+   * The provider's voices as a ready-to-use catalog, when validation fetched a
+   * voice list (e.g. Azure's /voices/list). Lets the settings tab cache the
+   * full catalog so the voice picker can offer every voice grouped by language,
+   * instead of only the small hardcoded fallback list.
+   */
+  voices?: VoiceOption[];
 }
 
 export interface SpeechProvider {

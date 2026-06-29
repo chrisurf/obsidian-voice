@@ -18,6 +18,7 @@ import {
 } from "../utils/chapters";
 import { attachPressGesture } from "../utils/pressGesture";
 import { noteAudioPath } from "../utils/audioFolders";
+import { groupVoicesByLanguage } from "../service/voiceCatalog";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -609,17 +610,32 @@ export class VoicePlayerView extends ItemView {
     this.updateDownloadButton();
   }
 
-  /** Rebuild the voice dropdown from the active provider's catalog. */
+  /**
+   * Rebuild the voice dropdown from the active provider's catalog, grouped by
+   * language into <optgroup>s so large catalogs (e.g. Azure's full voice list)
+   * stay navigable.
+   */
   private populateVoiceOptions(): void {
     this.voiceSelect.empty();
     const provider = this.provider();
-    provider.getVoiceOptions().forEach((voice) => {
-      this.voiceSelect.createEl("option", {
-        value: voice.id,
-        text: voice.label,
+    groupVoicesByLanguage(provider.getVoiceOptions()).forEach((group) => {
+      const optgroup = this.voiceSelect.createEl("optgroup", {
+        attr: { label: group.label },
+      });
+      group.voices.forEach((voice) => {
+        optgroup.createEl("option", { value: voice.id, text: voice.label });
       });
     });
     this.voiceSelect.value = provider.getVoice();
+  }
+
+  /**
+   * Public hook so the plugin can resync the player's selectors/toggles after
+   * settings change elsewhere (e.g. a freshly fetched voice catalog from the
+   * settings tab's "Test Credentials").
+   */
+  syncControls(): void {
+    this.refreshControls();
   }
 
   private updateCodeButton(): void {

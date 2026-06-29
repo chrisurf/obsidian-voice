@@ -126,6 +126,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
   ![voice picker](./assets/voices.png)
 
 - Switch voices instantly from the player's voice dropdown or the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
+- **Azure: every voice, grouped by language.** Press **Test Credentials** in settings and Voice loads your account's full Azure neural catalog (hundreds of voices), organized by language in the picker — no more being limited to a handful.
 
 ### Fine-Tune What Gets Spoken
 

@@ -193,6 +193,21 @@ export class Voice extends Plugin {
     this.reinitializeTextSpeaker();
   }
 
+  /**
+   * Resync any open Voice player panes with the current settings/provider —
+   * used after the settings tab changes something the player shows (e.g. a
+   * freshly fetched voice catalog), so its voice picker updates immediately.
+   */
+  public refreshVoicePlayerControls(): void {
+    this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_VOICE_PLAYER)
+      .forEach((leaf) => {
+        if (leaf.view instanceof VoicePlayerView) {
+          leaf.view.syncControls();
+        }
+      });
+  }
+
   public reinitializeTextSpeaker(): void {
     // Recreate TextSpeaker with updated settings + current provider
     this.textSpeaker = new TextSpeaker(

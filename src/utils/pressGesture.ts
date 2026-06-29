@@ -16,7 +16,7 @@ export interface PressGestureHandlers {
   onHold: () => void;
   /** When false, the hold path is disabled and only taps fire. Default: on. */
   isHoldEnabled?: () => boolean;
-  /** Milliseconds to hold before `onHold` fires. Default 450. */
+  /** Milliseconds to hold before `onHold` fires. Default 1500. */
   holdMs?: number;
 }
 
@@ -30,7 +30,7 @@ export function attachPressGesture(
   el: HTMLElement,
   handlers: PressGestureHandlers,
 ): () => void {
-  const holdMs = handlers.holdMs ?? 450;
+  const holdMs = handlers.holdMs ?? 1500;
   let pointerId: number | null = null;
   let startX = 0;
   let startY = 0;

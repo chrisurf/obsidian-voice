@@ -224,14 +224,14 @@ export class VoicePlayerView extends ItemView {
       this.playNextTrack(),
     );
 
-    // Controls row: download + repeat + speed, then the on/off toggles
-    // (code / acronyms / embed) after a divider.
+    // Controls row: download + folder + repeat + speed, then the on/off
+    // toggles (code / acronyms / embed), spread evenly across the row.
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
     // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
-    // (to the last folder in custom mode); holding it — or right-clicking —
-    // opens the folder picker, so audio can be (re-)saved to a different folder
-    // any time. Same gesture as the status bar / mobile download button.
+    // (to the default folder, or next to the note); holding it — or
+    // right-clicking — opens the folder picker. Same gesture as the status bar /
+    // mobile download button.
     this.downloadBtn = secondary.createEl("button", {
       cls: "voice-player-download",
       attr: { "aria-label": "Download as MP3" },
@@ -241,6 +241,15 @@ export class VoicePlayerView extends ItemView {
       onTap: () => void this.downloadAudio(),
       onHold: () => void this.downloadAudio({ forcePicker: true }),
     });
+
+    // Folder: a one-click shortcut that opens the folder picker directly, so
+    // choosing a folder / pinning a default does not require holding download.
+    const folderBtn = secondary.createEl("button", {
+      cls: "voice-player-folder-btn",
+      attr: { "aria-label": "Choose save folder" },
+    });
+    setIcon(folderBtn, "folder-open");
+    this.registerDomEvent(folderBtn, "click", () => this.openFolderPicker());
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
@@ -397,6 +406,15 @@ export class VoicePlayerView extends ItemView {
   }): Promise<void> {
     await this.plugin.iconEventHandler.handleDownloadAudio(options);
     this.refreshContext();
+  }
+
+  /**
+   * Open the folder picker with a single click (the dedicated folder button) —
+   * a discoverable shortcut for holding the download button. Reuses the same
+   * flow, so choosing a folder saves there and pinning sets the default.
+   */
+  private openFolderPicker(): void {
+    void this.downloadAudio({ forcePicker: true });
   }
 
   /**

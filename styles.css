@@ -650,7 +650,8 @@
   color: var(--interactive-accent);
 }
 
-.voice-player-download {
+.voice-player-download,
+.voice-player-folder-btn {
   display: flex;
   align-items: center;
   justify-content: center;
@@ -662,7 +663,8 @@
   color: var(--text-muted);
 }
 
-.voice-player-download:hover {
+.voice-player-download:hover,
+.voice-player-folder-btn:hover {
   color: var(--text-normal);
 }
 

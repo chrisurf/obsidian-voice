@@ -41,6 +41,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — **tap** the save button (⬇) to save the current audio as an MP3 right from the player (into your default folder, or next to the note). **Press and hold** it (or right-click) to open the folder picker and choose a different folder — or pin one as your default.
+- **Save to custom folder** — click the folder button (📂) for a one-click way to save the current audio into a folder you choose (and optionally pin it as your default) — no long press needed.
 - **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:
@@ -65,9 +66,11 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 The **save button** (the download arrow ⬇, in the player, the status bar, and the mobile bar) writes the current audio to an MP3, embeds it right after the front matter, and adds it to the chapter list — so you can replay it anytime, offline. It has **two gestures**:
 
 - 👆 **Tap** → save now. By default the MP3 lands **next to your note**. If you've set a **default folder**, every tap saves there instead.
-- ✋ **Press and hold ~½ second** (or right-click on desktop) → open the **folder picker** to save somewhere else just this once — or to set your default folder.
+- ✋ **Press and hold ~1.5 seconds** (or right-click on desktop) → open the **folder picker** to save somewhere else just this once — or to set your default folder.
 
-  ![voice download](./assets/voice-download.png)
+In the Voice player there's also a dedicated **folder button** (📂, next to the download arrow): one click opens the folder picker and saves to the folder you choose — a quick **Save to custom folder** without the long press.
+
+![voice download](./assets/voice-download.png)
 
 **Set a default folder (optional).** In the folder picker, every folder row has a **pin** 📌 and a **star** ⭐:
 

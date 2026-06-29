@@ -97,8 +97,10 @@ orchestrators pick the path by `inputFormat`:
 
 - `VoicePlayerView.ts` — the player pane (right sidebar on desktop, full-screen
   on mobile). Transport (the play button taps to play / pause / cancel and is
-  **held to regenerate**), scrubber, speed, provider/voice pickers, download,
-  repeat modes, and a **chapter list** built from the MP3s in a folder.
+  **held to regenerate**), scrubber, speed, provider/voice pickers, a download
+  button (tap saves, hold opens the picker), a **folder button** ("save to a
+  custom folder"), code/acronym/embed toggles, repeat modes, and a **chapter
+  list** built from the MP3s in a folder.
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
   default-folder **pin**, starred favorites, "create folder") used by the
   custom-save-location feature.

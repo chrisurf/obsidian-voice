@@ -34,7 +34,7 @@ And new **quick toggles** sit right in the player — flip **Read code blocks** 
 The save button (the download arrow) now has two simple gestures, and you can pick a **default folder** so every save lands in the same place.
 
 - 👆 **Tap** to save now — next to your note, or in your default folder if you've set one.
-- ✋ **Press and hold** the save button (or right-click on desktop) to open the folder picker.
+- ✋ **Press and hold** the save button (or right-click on desktop) to open the folder picker. In the player you can also just click the new **folder button** (📂) to **save to a custom folder** in one click.
 - 📌 In the picker, **pin** a folder to make it your default (only one at a time; tap the pin again to clear it). ⭐ **Star** folders for quick access, or type to create a new folder.
 
 ## 🔊 The Voice player is here

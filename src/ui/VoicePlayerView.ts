@@ -242,14 +242,18 @@ export class VoicePlayerView extends ItemView {
       onHold: () => void this.downloadAudio({ forcePicker: true }),
     });
 
-    // Folder: a one-click shortcut that opens the folder picker directly, so
-    // choosing a folder / pinning a default does not require holding download.
+    // Save to custom folder: one click opens the folder picker and saves the
+    // audio to the folder you choose (you can also pin a default there). A
+    // discoverable alternative to holding the download button.
     const folderBtn = secondary.createEl("button", {
       cls: "voice-player-folder-btn",
-      attr: { "aria-label": "Choose save folder" },
+      attr: {
+        "aria-label": "Save to custom folder",
+        title: "Save to a folder you choose (and optionally pin it as default)",
+      },
     });
     setIcon(folderBtn, "folder-open");
-    this.registerDomEvent(folderBtn, "click", () => this.openFolderPicker());
+    this.registerDomEvent(folderBtn, "click", () => this.saveToCustomFolder());
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
@@ -409,11 +413,12 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Open the folder picker with a single click (the dedicated folder button) —
-   * a discoverable shortcut for holding the download button. Reuses the same
-   * flow, so choosing a folder saves there and pinning sets the default.
+   * Save the current audio to a folder chosen in the picker (the dedicated
+   * folder button) — a one-click "Save to custom folder". Reuses the shared
+   * download flow, so choosing a folder saves there and pinning sets the
+   * default.
    */
-  private openFolderPicker(): void {
+  private saveToCustomFolder(): void {
     void this.downloadAudio({ forcePicker: true });
   }
 

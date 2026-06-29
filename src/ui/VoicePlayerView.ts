@@ -189,18 +189,18 @@ export class VoicePlayerView extends ItemView {
     this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
       attr: {
-        "aria-label": "Play / pause — hold 3s to regenerate",
-        title: "Tap: play, pause or cancel · Hold 3s: regenerate from scratch",
+        "aria-label": "Play / pause — hold to regenerate",
+        title: "Tap: play, pause or cancel · Hold: regenerate from scratch",
       },
     });
     setIcon(this.playPauseBtn, "play");
     // One button does it all: a tap plays / pauses (and cancels an in-progress
-    // synthesis); holding for 3s regenerates the note from scratch with the
+    // synthesis); a short hold regenerates the note from scratch with the
     // current voice and settings (this replaces the separate Regenerate button).
+    // Uses the same hold duration as the save button so the two feel alike.
     attachPressGesture(this.playPauseBtn, {
       onTap: () => this.togglePlay(),
       onHold: () => this.regenerate(),
-      holdMs: 3000,
     });
 
     const forwardBtn = transport.createEl("button", {
@@ -264,11 +264,8 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // Divider between the action controls (download / repeat / speed) and the
-    // on/off content toggles, so the single row stays scannable.
-    secondary.createDiv({ cls: "voice-player-divider" });
-
-    // On/off toggles, grouped: read code blocks, spell out acronyms, embed MP3.
+    // On/off toggles: read code blocks, spell out acronyms, embed MP3. They sit
+    // in the same row as the action controls, spread evenly across its width.
     this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
     setIcon(this.codeBtn, "code");
     this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
@@ -403,7 +400,7 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Regenerate the current note from scratch (the play button's 3s hold). Always
+   * Regenerate the current note from scratch (the play button's hold). Always
    * uses the currently selected voice and settings. Cancels any in-progress
    * synthesis and stops playback first, so speakText performs a fresh render
    * instead of just pausing the audio that is already playing.

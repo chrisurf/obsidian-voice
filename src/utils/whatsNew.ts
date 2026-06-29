@@ -25,7 +25,7 @@ export const WHATS_NEW = `## ▶️ One play button, less clutter
 Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 
 - **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
-- **Press and hold for 3 seconds** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
+- **Press and hold** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
 
 And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), and **Embed MP3 in note** (📎) with one click, no trip to settings.
 

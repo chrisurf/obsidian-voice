@@ -624,16 +624,8 @@
 .voice-player-secondary {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
+  justify-content: space-between;
   gap: 6px;
-}
-
-/* Thin separator between the action controls and the on/off toggles. */
-.voice-player-divider {
-  width: 1px;
-  height: 18px;
-  margin: 0 2px;
-  background: var(--background-modifier-border);
 }
 
 /* On/off icon toggles in the controls row (code / acronyms / embed). */

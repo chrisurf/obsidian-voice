@@ -97,7 +97,7 @@ orchestrators pick the path by `inputFormat`:
 
 - `VoicePlayerView.ts` — the player pane (right sidebar on desktop, full-screen
   on mobile). Transport (the play button taps to play / pause / cancel and is
-  **held 3s to regenerate**), scrubber, speed, provider/voice pickers, download,
+  **held to regenerate**), scrubber, speed, provider/voice pickers, download,
   repeat modes, and a **chapter list** built from the MP3s in a folder.
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
   default-folder **pin**, starred favorites, "create folder") used by the
@@ -116,7 +116,7 @@ orchestrators pick the path by `inputFormat`:
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
-  play button: tap = play/pause/cancel, hold 3s = regenerate). Shared by the
+  play button: tap = play/pause/cancel, hold = regenerate). Shared by the
   status bar, mobile, and player buttons.
 
 ### Settings (`src/settings/`)

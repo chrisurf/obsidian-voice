@@ -565,22 +565,28 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Enable the download and folder (save-to-custom-folder) buttons whenever
-   * there is generated audio for the active note. They stay enabled after a
-   * save so the user can re-save, and grey out when there's nothing to save.
+   * Enable the download button when there is generated audio for the active
+   * note (its tap saves that audio). The folder button is also enabled when a
+   * saved chapter is loaded, so that chapter can be moved to another folder.
+   * Both grey out when there's nothing to act on.
    */
   private updateDownloadButton(): void {
     if (!this.downloadBtn) {
       return;
     }
     const active = this.app.workspace.getActiveFile();
-    const enabled = active
+    const hasGeneratedAudio = active
       ? this.provider().getLastGeneratedAudio(active.path) !== null
       : false;
-    this.downloadBtn.disabled = !enabled;
-    this.downloadBtn.toggleClass("is-disabled", !enabled);
-    this.folderBtn.disabled = !enabled;
-    this.folderBtn.toggleClass("is-disabled", !enabled);
+    const hasLoadedChapter = this.currentChapterPath !== null;
+
+    this.downloadBtn.disabled = !hasGeneratedAudio;
+    this.downloadBtn.toggleClass("is-disabled", !hasGeneratedAudio);
+
+    // Folder button works for both saving fresh audio and moving a chapter.
+    const folderEnabled = hasGeneratedAudio || hasLoadedChapter;
+    this.folderBtn.disabled = !folderEnabled;
+    this.folderBtn.toggleClass("is-disabled", !folderEnabled);
 
     const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
 

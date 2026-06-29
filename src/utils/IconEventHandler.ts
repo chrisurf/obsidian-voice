@@ -636,45 +636,6 @@ export class IconEventHandler {
     moveFromPath?: string;
   }): Promise<void> {
     try {
-      const activeFile = this.plugin.app.workspace.getActiveFile();
-      if (!activeFile) {
-        new Notice("No active file found");
-        return;
-      }
-
-      // Plain tap: save the synthesized audio to the default/note folder,
-      // overwriting silently (re-saving the same note's audio is expected).
-      if (!options?.forcePicker) {
-        const audioBlob = this.pollyService.getLastGeneratedAudio(
-          activeFile.path,
-        );
-        if (!audioBlob) {
-          new Notice(
-            "No audio available for this file. Please generate audio first.",
-          );
-          return;
-        }
-        const folder = resolveSaveFolder(
-          this.voice.settings.defaultAudioFolder,
-          activeFile.parent?.path || "",
-        );
-        await this.audioFileManager.downloadAndEmbed(
-          audioBlob,
-          this.voice.settings.autoEmbedAudio,
-          folder,
-        );
-        return;
-      }
-
-      // Hold / folder button: pick a folder, then save (synthesized audio) or
-      // move (an already-saved chapter), prompting on same-name conflicts.
-      const folder = await FolderPickerModal.open(this.plugin.app, this.voice);
-      // The picker may have changed the default folder via the pin button.
-      this.refreshSaveAffordances();
-      if (folder === null) {
-        return; // User dismissed the picker.
-      }
-
       const resolveConflict: ConflictResolver = (info) =>
         FileConflictModal.open(
           this.plugin.app,
@@ -683,8 +644,17 @@ export class IconEventHandler {
           info.suggested,
         );
 
-      // Move an already-saved file (a chapter loaded in the player).
-      if (options.moveFromPath) {
+      // Move an already-saved file (a chapter loaded in the player). This does
+      // not need synthesized audio or an active note — it relocates the file.
+      if (options?.forcePicker && options.moveFromPath) {
+        const folder = await FolderPickerModal.open(
+          this.plugin.app,
+          this.voice,
+        );
+        this.refreshSaveAffordances();
+        if (folder === null) {
+          return;
+        }
         const file = this.plugin.app.vault.getAbstractFileByPath(
           options.moveFromPath,
         );
@@ -701,7 +671,12 @@ export class IconEventHandler {
         return;
       }
 
-      // Otherwise save the freshly synthesized audio into the chosen folder.
+      // Saving (tap or hold without a loaded chapter) needs the note's audio.
+      const activeFile = this.plugin.app.workspace.getActiveFile();
+      if (!activeFile) {
+        new Notice("No active file found");
+        return;
+      }
       const audioBlob = this.pollyService.getLastGeneratedAudio(
         activeFile.path,
       );
@@ -709,6 +684,29 @@ export class IconEventHandler {
         new Notice(
           "No audio available for this file. Please generate audio first.",
         );
+        return;
+      }
+
+      // Plain tap: save to the default/note folder, overwriting silently
+      // (re-saving the same note's audio is expected).
+      if (!options?.forcePicker) {
+        const folder = resolveSaveFolder(
+          this.voice.settings.defaultAudioFolder,
+          activeFile.parent?.path || "",
+        );
+        await this.audioFileManager.downloadAndEmbed(
+          audioBlob,
+          this.voice.settings.autoEmbedAudio,
+          folder,
+        );
+        return;
+      }
+
+      // Hold / folder button: pick a folder, then save into it (with a prompt
+      // on same-name conflicts).
+      const folder = await FolderPickerModal.open(this.plugin.app, this.voice);
+      this.refreshSaveAffordances();
+      if (folder === null) {
         return;
       }
       await this.audioFileManager.saveOrMove({

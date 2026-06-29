@@ -28,21 +28,35 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
 ## The Voice Player
 
-The Voice player is the heart of the plugin: an audiobook-style pane that turns your notes into chapters you can listen to back to back.
+The Voice player is the heart of the plugin: an audiobook-style pane that turns your notes into chapters you can listen to back to back. It's docked in the right sidebar (next to Backlinks and Outline) right after install — open it from the audio-waveform ribbon icon — and on mobile it opens full-screen.
 
 ![Voice player on desktop](./assets/voice-player.png)
 
-- **Always within reach** — the player is docked in the right sidebar (next to Backlinks and Outline) right after install, so it's there whenever you need it. On mobile it opens as a full-screen pane.
-- **Chapters from your folder** — every MP3 saved next to the current note appears as a numbered chapter. Listen to a whole folder like an audiobook, and the chapter you're hearing is highlighted.
-- **Folder picker** — jump between any folders in your vault that contain audio straight from the player, and the chapter list updates to that folder's MP3s. Each folder is shown leaf-first with its path trailing to the right, so same-named folders stay distinct. It follows the note you're viewing by default; turn off **Folder list follows note** in settings to keep your chosen folder while you browse.
-- **Manage tracks** — click the **⋮** on a chapter for an action bar with **Move** (open the folder picker for that file), **Rename** (in place, `.mp3` kept, embeds updated), and **Delete** (with a quick confirmation). The bar appears right over the track so it's clear which file it acts on.
-- **Transport controls** — previous / next chapter, rewind, play / pause, and fast-forward, with a draggable progress bar and live time display.
-- **One smart play button** — **tap** ▶️ to play, pause, or cancel a synthesis that's running; if audio is already loaded it just resumes. **Press and hold** it to regenerate the note from scratch with your current voice and settings — a ring fills around the button as you hold, and there's no separate Regenerate button to hunt for. (The button spins while audio is synthesized.)
-- **Repeat modes** — cycle through _off → repeat one → repeat all_ to loop a single chapter or play through every chapter in the folder.
-- **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
-- **Download** — **tap** the save button (⬇) to save the current audio as an MP3 right from the player (into your default folder, or next to the note). **Press and hold** it (or right-click) to open the folder picker and choose a different folder — or pin one as your default.
-- **Save to custom folder** — click the folder button (📂) for a one-click way to save the current audio into a folder you choose (and optionally pin it as your default) — no long press needed.
-- **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
+#### Controls at a glance
+
+Every control is a single button. Some do **two things**: a quick **tap** and a **press & hold** (~1.5 s; right-click works too on desktop). A ring fills around a button while you hold it.
+
+| Button                                        | Tap                                                              | Press & hold                                                            |
+| --------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                | **Regenerate** the note from scratch with your current voice & settings |
+| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                                       |
+| ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                                       |
+| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                                       |
+| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                                       |
+| ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default           |
+| 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                                       |
+| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                                       |
+| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                                       |
+| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                                       |
+| 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                                       |
+| ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                                       |
+
+Each toggle (`</>` `Aa` 🔗 📎) **highlights when it's on**, so you can see your reading options at a glance — no trip to settings.
+
+Above the chapter list sit the **provider** and **voice** dropdowns (switch engine or voice instantly) and a **folder dropdown** that points the chapter list at any folder in your vault that contains audio.
+
+- **Chapters from your folder** — every MP3 in the selected folder appears as a numbered chapter; the one you're hearing is highlighted. The folder list follows the note you're viewing by default — turn off **Folder list follows note** in settings to keep your chosen folder while you browse.
+- **Manage tracks** — the **⋮** action bar appears right over the track, so it's clear which file it acts on. **Move** opens the folder picker for that file, **Rename** edits it in place (`.mp3` kept, embeds updated), and **Delete** asks for a quick confirmation.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:
 
@@ -113,14 +127,14 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Fine-Tune What Gets Spoken
 
-These content toggles apply to every provider and are all **off by default**:
+Flip these as **one-click icon toggles in the Voice player** — they light up when on. All are **off by default** and apply to every provider:
 
-- **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally. (Applies to AWS Polly.)
-- **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
-- **Save automatically** — automatically save and embed the MP3 after each successful playback (see [Save & Play Audio Offline](#save--play-audio-offline)).
+- `</>` **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
+- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally. (Applies to AWS Polly.)
+- 🔗 **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
+- 📎 **Embed MP3 in note** — add an audio player to the note whenever you save its MP3. Off saves the file without embedding.
 
-> **Tip:** **Read code blocks**, **Spell out acronyms**, **Skip website URLs**, and **Embed MP3 in note** are one-click icon toggles in the Voice player, so they no longer clutter the settings tab — flip them while you listen.
+> **Tip:** prefer a hands-off archive? Turn on **Save automatically** in settings to save and embed after every playback — see [Save & Play Audio Offline](#save--play-audio-offline).
 
 ### Built for Mobile
 

@@ -46,16 +46,23 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 
 - **Play your notes like chapters** — every MP3 in a folder shows up as a numbered chapter you can play, skip, and repeat.
 - **Browse audio across your vault** — a folder picker lets you jump between any folders that contain audio, right from the player.
-- **Transport controls** — play / pause, previous / next, rewind, fast-forward, a draggable progress bar, and on-the-fly speed.
-- **Read this note & download** — generate speech and save an MP3 without leaving the player.
 - **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, or Azure Speech (and the voice) right in the player.
+
+**Know your buttons** — every control is one button; a few do double duty (tap vs. press & hold):
+
+- ▶️ **Play** — tap to play / pause; **hold** to regenerate.
+- ⏮ ⏭ **Prev / next** · ⏪ ⏩ **rewind / forward** · 🔁 **repeat** · **− / +** **speed**.
+- ⬇️ **Save** — tap to save; **hold** for the folder picker. (Shows 💾 when a default folder is set.)
+- 📂 **Folder** — save into a folder you pick, in one click.
+- ⋮ **Track menu** — move, rename, or delete a saved chapter.
+- Toggles that light up when on: \`</>\` **code** · \`Aa\` **acronyms** · 🔗 **skip URLs** · 📎 **embed**.
 
 ## ✨ Everything you need to know
 
 **Player & playback**
 
 - **Voice player shows by default** in the right sidebar, with a **folder picker** to browse audio across the vault.
-- **In-player controls**: switch provider, voice, and read-code-blocks, with live loading feedback while a note is synthesized.
+- **In-player controls**: switch provider and voice, and flip the content toggles, with live loading feedback while a note is synthesized.
 - **Collapsible, audiobook-style player** with chapters, transport controls, scrubber, and repeat modes (off / one / all).
 - **Configurable rewind & fast-forward** intervals (1–60 seconds each).
 

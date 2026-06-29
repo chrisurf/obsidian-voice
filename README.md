@@ -70,12 +70,12 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
 ### Listen Instantly
 
-- Start playback from the left-hand **Voice** ribbon icon (**Voice read text**) whenever you need it.
+- Two **ribbon icons on the left** get you going: **Voice read text** (▶️) starts reading the active note, and **Open Voice player** (the audio-waveform icon) opens the player.
 
-  ![ribbon icon](./assets/ribbon-icon.png)
+  ![ribbon icons](./assets/ribbon-icon.png)
 
 - Default playback reads the entire note. In Source mode, select text first and only your selection is read.
-- The ribbon icon shows a refresh indicator while synthesizing and flips to a pause icon when playback is ready.
+- The **Voice read text** icon shows a refresh indicator while synthesizing and flips to a pause icon when playback is ready.
 
 ### Save & Play Audio Offline
 

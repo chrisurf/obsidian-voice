@@ -767,19 +767,25 @@
   cursor: pointer;
 }
 
-/* Action bar laid over a chapter row: Move / Rename / Delete. */
+/* Action bar over a chapter row: Move / Rename / Delete. Right-aligned and only
+   as wide as its buttons, with the background fading out to the left so the
+   start of the file name stays readable underneath. */
 .voice-player-chapter-actions {
   position: absolute;
-  inset: 0;
+  top: 0;
+  bottom: 0;
+  right: 0;
   z-index: 5;
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: 6px;
-  padding: 0 6px;
+  padding: 0 6px 0 28px;
   border-radius: var(--radius-s);
-  background: var(--background-secondary-alt);
-  box-shadow: 0 0 0 1px var(--background-modifier-border);
+  background: linear-gradient(
+    to right,
+    transparent 0,
+    var(--background-secondary-alt) 28px
+  );
 }
 
 .voice-player-chapter-action {

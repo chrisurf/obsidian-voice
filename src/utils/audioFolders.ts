@@ -27,6 +27,28 @@ export function resolveSaveFolder(
 }
 
 /**
+ * Vault path of the MP3 that a save for a note would (re)use: the note's base
+ * name, in the folder where saves land (the default folder when set, otherwise
+ * the note's own folder). Pure string logic so the player can look the file up
+ * and replay it instead of re-synthesizing when it already exists on disk.
+ *
+ * @param defaultFolder The user's default audio folder (may be empty).
+ * @param noteFolder    The note's folder (vault-relative; "" or "/" = root).
+ * @param baseName      The note's base name (no extension).
+ */
+export function noteAudioPath(
+  defaultFolder: string,
+  noteFolder: string,
+  baseName: string,
+): string {
+  const folder = resolveSaveFolder(defaultFolder, noteFolder);
+  // resolveSaveFolder reports the vault root as "/"; an empty dir keeps the
+  // path from becoming "/file.mp3".
+  const dir = folder === "/" ? "" : folder;
+  return dir ? `${dir}/${baseName}.mp3` : `${baseName}.mp3`;
+}
+
+/**
  * Whether a folder is the current default (path-normalized comparison).
  */
 export function isDefaultFolder(defaultFolder: string, path: string): boolean {

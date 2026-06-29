@@ -1,5 +1,6 @@
 import {
   resolveSaveFolder,
+  noteAudioPath,
   isDefaultFolder,
   toggleDefaultFolder,
   isFavoriteFolder,
@@ -22,6 +23,26 @@ describe("Unit Tests - Custom Audio Folder", () => {
 
     test("normalizes the vault root to '/'", () => {
       expect(resolveSaveFolder("", "")).toBe("/");
+    });
+  });
+
+  describe("noteAudioPath", () => {
+    test("points next to the note when no default folder is set", () => {
+      expect(noteAudioPath("", "Notes", "My Note")).toBe("Notes/My Note.mp3");
+    });
+
+    test("uses the default folder when one is set", () => {
+      expect(noteAudioPath("Media/Audio", "Notes", "My Note")).toBe(
+        "Media/Audio/My Note.mp3",
+      );
+    });
+
+    test("a root note with no default lands at the vault root", () => {
+      expect(noteAudioPath("", "", "My Note")).toBe("My Note.mp3");
+    });
+
+    test("a default folder still applies to a root note", () => {
+      expect(noteAudioPath("Media", "", "My Note")).toBe("Media/My Note.mp3");
     });
   });
 

@@ -17,6 +17,7 @@ import {
   type Mp3Folder,
 } from "../utils/chapters";
 import { attachPressGesture } from "../utils/pressGesture";
+import { noteAudioPath } from "../utils/audioFolders";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -388,12 +389,44 @@ export class VoicePlayerView extends ItemView {
     }
 
     // Nothing loaded, or the loaded audio was generated for a different note
-    // than the one now open → read the currently open note instead of
+    // than the one now open. Before paying to synthesize, reuse an MP3 already
+    // saved for this note (same name, in the folder where a save would land) so
+    // a download that's already on disk just plays. Holding the play button
+    // still forces a fresh render via regenerate().
+    const active = this.app.workspace.getActiveFile();
+    const existing =
+      active && active.extension === "md"
+        ? this.existingNoteAudio(active)
+        : null;
+    if (existing) {
+      this.playChapter(existing.path);
+      return;
+    }
+
+    // No saved audio to reuse → read the currently open note instead of
     // replaying the previous one (issue #59).
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
     this.updateTitle();
     void this.plugin.speakText();
+  }
+
+  /**
+   * The MP3 already saved for the active note, if any: a file named after the
+   * note in the folder where a tap-save would write it (the default folder when
+   * set, otherwise next to the note). Returns null when no such file exists, so
+   * the player falls back to synthesizing.
+   */
+  private existingNoteAudio(active: TFile): TFile | null {
+    const path = normalizePath(
+      noteAudioPath(
+        this.plugin.settings.defaultAudioFolder,
+        active.parent?.path ?? "",
+        active.basename,
+      ),
+    );
+    const file = this.app.vault.getAbstractFileByPath(path);
+    return file instanceof TFile ? file : null;
   }
 
   /**

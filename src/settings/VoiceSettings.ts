@@ -59,6 +59,12 @@ export interface VoiceSettings {
   // Player: when true, the player's folder picker follows the active note's
   // folder; when false the chosen folder stays put across note switches.
   folderSelectorFollowsNote: boolean;
+  // Player: when true (default), a tap on the play button plays the note you
+  // are viewing — its already-saved MP3 if one exists (matched by name in the
+  // save folder), otherwise a fresh render — even when another chapter is
+  // loaded, so jumping between notes picks up each note's saved audio. When
+  // false, a loaded chapter keeps playing and notes are always synthesized.
+  playNoteSavedAudio: boolean;
   // Audio files: the default folder for saved MP3s. When set, a tap on the save
   // button always saves here (and auto-save writes here silently); when empty,
   // saves go next to the active note. Managed from the folder picker's pin
@@ -364,6 +370,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   rewindSeconds: DEFAULT_SKIP_SECONDS,
   forwardSeconds: DEFAULT_SKIP_SECONDS,
   folderSelectorFollowsNote: true,
+  playNoteSavedAudio: true,
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,

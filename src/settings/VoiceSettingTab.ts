@@ -154,6 +154,20 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("Player").setHeading();
 
     new Setting(containerEl)
+      .setName("Play the note's saved audio")
+      .setDesc(
+        "When you press play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — even if another chapter is loaded. Off keeps the loaded chapter playing and always re-generates notes.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.playNoteSavedAudio)
+          .onChange(async (value) => {
+            this.plugin.settings.playNoteSavedAudio = value;
+            await this.plugin.saveSettings();
+          }),
+      );
+
+    new Setting(containerEl)
       .setName("Folder list follows note")
       .setDesc(
         "The player's folder list jumps to the current note's folder. Off keeps your chosen folder.",

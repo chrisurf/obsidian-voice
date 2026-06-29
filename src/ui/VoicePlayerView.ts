@@ -380,31 +380,71 @@ export class VoicePlayerView extends ItemView {
       return;
     }
 
-    // Resume the loaded audio only when it still matches what the player is
-    // showing. (Note: audio.src resolves an empty value to the page URL, so we
-    // check currentSrc, which is "" until a real media resource is selected.)
+    const active = this.app.workspace.getActiveFile();
+    const activeNote = active && active.extension === "md" ? active : null;
+
+    // "Play the note's saved audio" (default on): a tap always plays the note
+    // you're viewing — its already-saved MP3 if one exists, otherwise a fresh
+    // render — even when a different chapter is currently loaded. This is what
+    // makes jumping between notes pick up each note's saved audio. Holding the
+    // play button (regenerate) still forces a fresh render.
+    if (this.plugin.settings.playNoteSavedAudio && activeNote) {
+      this.playActiveNote(activeNote);
+      return;
+    }
+
+    // Toggle off: resume the loaded audio while it still matches what the
+    // player is showing. (audio.src resolves an empty value to the page URL, so
+    // we check currentSrc, which is "" until a real media resource is selected.)
     if (this.audio().currentSrc && !this.loadedAudioIsStale()) {
       void provider.playAudio();
       return;
     }
 
     // Nothing loaded, or the loaded audio was generated for a different note
-    // than the one now open. Before paying to synthesize, reuse an MP3 already
-    // saved for this note (same name, in the folder where a save would land) so
-    // a download that's already on disk just plays. Holding the play button
-    // still forces a fresh render via regenerate().
-    const active = this.app.workspace.getActiveFile();
-    const existing =
-      active && active.extension === "md"
-        ? this.existingNoteAudio(active)
-        : null;
+    // than the one now open → read the active note instead of replaying the
+    // previous one (issue #59).
+    this.readActiveNoteFresh();
+  }
+
+  /**
+   * Play the note the user is viewing: resume it if its audio is already
+   * loaded, reuse its saved MP3 when one exists on disk, otherwise synthesize.
+   * Used by the play-button tap when "Play the note's saved audio" is on, so
+   * switching notes always plays the note in front of you.
+   */
+  private playActiveNote(activeNote: TFile): void {
+    const provider = this.provider();
+    const existing = this.existingNoteAudio(activeNote);
     if (existing) {
-      this.playChapter(existing.path);
+      // Already showing that file → just resume; otherwise load and play it.
+      if (
+        this.currentChapterPath === existing.path &&
+        this.audio().currentSrc
+      ) {
+        void provider.playAudio();
+      } else {
+        this.playChapter(existing.path);
+      }
       return;
     }
 
-    // No saved audio to reuse → read the currently open note instead of
-    // replaying the previous one (issue #59).
+    // No saved MP3 on disk. Resume fresh, unsaved audio already rendered for
+    // this note; otherwise synthesize it. (Any loaded chapter belongs to a
+    // different note here, so we follow the active note rather than resume it.)
+    if (
+      this.currentChapterPath === null &&
+      provider.getLastGeneratedAudio(activeNote.path) !== null &&
+      this.audio().currentSrc
+    ) {
+      void provider.playAudio();
+      return;
+    }
+    this.readActiveNoteFresh();
+  }
+
+  /** Drop any loaded chapter and synthesize the active note from scratch. */
+  private readActiveNoteFresh(): void {
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
     this.updateTitle();

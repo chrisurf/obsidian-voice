@@ -9,6 +9,7 @@ import {
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
 import {
+  chapterName,
   listChapters,
   listMp3Folders,
   normalizeFolderPath,
@@ -58,6 +59,7 @@ export class VoicePlayerView extends ItemView {
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
+  private folderBtn: HTMLButtonElement;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
@@ -245,15 +247,17 @@ export class VoicePlayerView extends ItemView {
     // Save to custom folder: one click opens the folder picker and saves the
     // audio to the folder you choose (you can also pin a default there). A
     // discoverable alternative to holding the download button.
-    const folderBtn = secondary.createEl("button", {
+    this.folderBtn = secondary.createEl("button", {
       cls: "voice-player-folder-btn",
       attr: {
         "aria-label": "Save to custom folder",
         title: "Save to a folder you choose (and optionally pin it as default)",
       },
     });
-    setIcon(folderBtn, "folder-open");
-    this.registerDomEvent(folderBtn, "click", () => this.saveToCustomFolder());
+    setIcon(this.folderBtn, "folder-open");
+    this.registerDomEvent(this.folderBtn, "click", () =>
+      this.saveToCustomFolder(),
+    );
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
@@ -373,6 +377,7 @@ export class VoicePlayerView extends ItemView {
     // replaying the previous one (issue #59).
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
+    this.updateTitle();
     void this.plugin.speakText();
   }
 
@@ -438,6 +443,7 @@ export class VoicePlayerView extends ItemView {
     // drop the chapter selection to keep the highlight and play button honest.
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
+    this.updateTitle();
     void this.plugin.speakText();
   }
 
@@ -547,9 +553,9 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Enable the download button whenever there is generated audio for the active
-   * note. It stays enabled after a save so the user can re-save (e.g. after an
-   * error) or hold it to save the audio to a different folder.
+   * Enable the download and folder (save-to-custom-folder) buttons whenever
+   * there is generated audio for the active note. They stay enabled after a
+   * save so the user can re-save, and grey out when there's nothing to save.
    */
   private updateDownloadButton(): void {
     if (!this.downloadBtn) {
@@ -561,6 +567,8 @@ export class VoicePlayerView extends ItemView {
       : false;
     this.downloadBtn.disabled = !enabled;
     this.downloadBtn.toggleClass("is-disabled", !enabled);
+    this.folderBtn.disabled = !enabled;
+    this.folderBtn.toggleClass("is-disabled", !enabled);
   }
 
   private changeSpeed(delta: number): void {
@@ -586,8 +594,9 @@ export class VoicePlayerView extends ItemView {
     if (!this.titleEl) {
       return;
     }
+    this.updateTitle();
+
     const active = this.app.workspace.getActiveFile();
-    this.titleEl.setText(active ? active.basename : "Voice player");
 
     // Collect every folder in the vault that holds at least one MP3.
     const mp3Files = this.app.vault
@@ -815,6 +824,24 @@ export class VoicePlayerView extends ItemView {
     this.currentChapterPath = path;
     void this.provider().playAudio();
     this.highlightCurrentChapter();
+    // Reflect the playing chapter in the header instead of the active note.
+    this.updateTitle();
+  }
+
+  /**
+   * Title shows the loaded chapter's name while one is playing, otherwise the
+   * active note (or a placeholder when none is open).
+   */
+  private updateTitle(): void {
+    if (!this.titleEl) {
+      return;
+    }
+    if (this.currentChapterPath) {
+      this.titleEl.setText(chapterName(this.currentChapterPath));
+      return;
+    }
+    const active = this.app.workspace.getActiveFile();
+    this.titleEl.setText(active ? active.basename : "Voice player");
   }
 
   private highlightCurrentChapter(): void {

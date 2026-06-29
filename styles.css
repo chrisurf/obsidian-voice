@@ -669,7 +669,9 @@
 }
 
 .voice-player-download:disabled,
-.voice-player-download.is-disabled {
+.voice-player-download.is-disabled,
+.voice-player-folder-btn:disabled,
+.voice-player-folder-btn.is-disabled {
   opacity: 0.3;
   cursor: default;
   pointer-events: none;

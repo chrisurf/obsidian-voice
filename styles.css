@@ -668,6 +668,11 @@
   color: var(--text-normal);
 }
 
+/* Tinted when a default folder is set, so a tap clearly saves into it. */
+.voice-player-folder-btn.is-active {
+  color: var(--interactive-accent);
+}
+
 .voice-player-download:disabled,
 .voice-player-download.is-disabled,
 .voice-player-folder-btn:disabled,

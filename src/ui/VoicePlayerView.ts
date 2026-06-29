@@ -569,6 +569,17 @@ export class VoicePlayerView extends ItemView {
     this.downloadBtn.toggleClass("is-disabled", !enabled);
     this.folderBtn.disabled = !enabled;
     this.folderBtn.toggleClass("is-disabled", !enabled);
+
+    // Tint the folder button when a default folder is set, so it's clear a tap
+    // saves into that folder rather than next to the note.
+    const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
+    this.folderBtn.toggleClass("is-active", hasDefault);
+    this.folderBtn.setAttribute(
+      "aria-label",
+      hasDefault
+        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
+        : "Save to custom folder",
+    );
   }
 
   private changeSpeed(delta: number): void {

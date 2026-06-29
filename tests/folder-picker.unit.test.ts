@@ -13,7 +13,10 @@ function makeDeps() {
     vault: { getAllLoadedFiles: () => [] },
   };
   const plugin = {
-    settings: { favoriteAudioFolders: [] as string[] },
+    settings: {
+      favoriteAudioFolders: [] as string[],
+      defaultAudioFolder: "",
+    },
     saveSettings: jest.fn(async () => {}),
   };
   // The constructor is private at the type level only; instantiate for testing.

@@ -20,13 +20,25 @@ export const HERO_IMAGE_URL =
  * (the headline feature many users have not discovered yet), then summarizes
  * everything added since 1.8.0 so long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 📁 Save audio where you want
+export const WHATS_NEW = `## ▶️ One play button, less clutter
 
-Keep your vault tidy — choose a **custom folder** for saved MP3s instead of dropping them next to every note.
+Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 
-- **Set it once** in Settings → Voice → **Audio save location → Custom folder**.
-- **Tap** the save button to store in your last folder; **hold it** (or right-click on desktop) to pick another.
-- **Star** your favorite folders in the picker for one-tap saving — and type to create a new folder on the spot.
+- **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
+- **Press and hold** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
+
+And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) with one click. The settings tab is leaner now, because the things you change while listening live in the player.
+
+## 📁 Save audio where you want
+
+The save button (the download arrow) now has two simple gestures, and you can pick a **default folder** so every save lands in the same place.
+
+- 👆 **Tap** to save now — next to your note, or in your default folder if you've set one.
+- ✋ **Press and hold** the save button (or right-click on desktop) to open the folder picker. In the player you can also just click the new **folder button** (📂) to **save to a custom folder** in one click.
+- 📌 In the picker, **pin** a folder to make it your default (only one at a time; tap the pin again to clear it). ⭐ **Star** folders for quick access, or type to create a new folder.
+- 🔀 Picking a folder **saves** new audio there, or **moves** an already-saved recording (a chapter) into it — no duplicates. If a file with the same name exists, you can **Replace**, **Save as new**, or **Cancel**.
+- 💾 When a default folder is set, the save button shows a **floppy-disk** icon so you can tell at a glance where a tap will save.
+- 🗂️ Manage a saved track from its **⋮** menu in the player: **Move** it to another folder, **Rename** it, or **Delete** it (with a quick confirmation).
 
 ## 🔊 The Voice player is here
 
@@ -34,16 +46,23 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 
 - **Play your notes like chapters** — every MP3 in a folder shows up as a numbered chapter you can play, skip, and repeat.
 - **Browse audio across your vault** — a folder picker lets you jump between any folders that contain audio, right from the player.
-- **Transport controls** — play / pause, previous / next, rewind, fast-forward, a draggable progress bar, and on-the-fly speed.
-- **Read this note & download** — generate speech and save an MP3 without leaving the player.
 - **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, or Azure Speech (and the voice) right in the player.
+
+**Know your buttons** — every control is one button; a few do double duty (tap vs. press & hold):
+
+- ▶️ **Play** — tap to play / pause; **hold** to regenerate.
+- ⏮ ⏭ **Prev / next** · ⏪ ⏩ **rewind / forward** · 🔁 **repeat** · **− / +** **speed**.
+- ⬇️ **Save** — tap to save; **hold** for the folder picker. (Shows 💾 when a default folder is set.)
+- 📂 **Folder** — save into a folder you pick, in one click.
+- ⋮ **Track menu** — move, rename, or delete a saved chapter.
+- Toggles that light up when on: \`</>\` **code** · \`Aa\` **acronyms** · 🔗 **skip URLs** · 📎 **embed**.
 
 ## ✨ Everything you need to know
 
 **Player & playback**
 
 - **Voice player shows by default** in the right sidebar, with a **folder picker** to browse audio across the vault.
-- **In-player controls**: switch provider, voice, and read-code-blocks, with live loading feedback while a note is synthesized.
+- **In-player controls**: switch provider and voice, and flip the content toggles, with live loading feedback while a note is synthesized.
 - **Collapsible, audiobook-style player** with chapters, transport controls, scrubber, and repeat modes (off / one / all).
 - **Configurable rewind & fast-forward** intervals (1–60 seconds each).
 

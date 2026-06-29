@@ -9,6 +9,7 @@ import {
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
 import {
+  chapterName,
   listChapters,
   listMp3Folders,
   normalizeFolderPath,
@@ -16,6 +17,7 @@ import {
   type Mp3Folder,
 } from "../utils/chapters";
 import { attachPressGesture } from "../utils/pressGesture";
+import { noteAudioPath } from "../utils/audioFolders";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -57,13 +59,18 @@ export class VoicePlayerView extends ItemView {
   private repeatBtn: HTMLElement;
   private speedEl: HTMLElement;
   private chaptersListEl: HTMLElement;
-  private readBtn: HTMLButtonElement;
-  private readLabelEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
+  private folderBtn: HTMLButtonElement;
+  // Tracks which icon the download button currently shows, so we only swap it
+  // when the save target changes (the update poller runs every 250ms).
+  private downloadShowsSave = false;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
+  private acronymBtn: HTMLElement;
+  private urlBtn: HTMLElement;
+  private embedBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
   private loadingFillEl: HTMLElement;
 
@@ -76,6 +83,10 @@ export class VoicePlayerView extends ItemView {
   private selectedFolderPath: string | null = null;
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
+  // The open per-chapter action bar (Move / Rename / Delete) and a disposer for
+  // its outside-click / Escape listeners, if one is currently shown.
+  private openActionsEl: HTMLElement | null = null;
+  private chapterActionsCleanup: (() => void) | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -188,10 +199,20 @@ export class VoicePlayerView extends ItemView {
 
     this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
-      attr: { "aria-label": "Play / pause" },
+      attr: {
+        "aria-label": "Play / pause — hold to regenerate",
+        title: "Tap: play, pause or cancel · Hold: regenerate from scratch",
+      },
     });
     setIcon(this.playPauseBtn, "play");
-    this.registerDomEvent(this.playPauseBtn, "click", () => this.togglePlay());
+    // One button does it all: a tap plays / pauses (and cancels an in-progress
+    // synthesis); a short hold regenerates the note from scratch with the
+    // current voice and settings (this replaces the separate Regenerate button).
+    // Uses the same hold duration as the save button so the two feel alike.
+    attachPressGesture(this.playPauseBtn, {
+      onTap: () => this.togglePlay(),
+      onHold: () => this.regenerate(),
+    });
 
     const forwardBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-skip",
@@ -214,28 +235,14 @@ export class VoicePlayerView extends ItemView {
       this.playNextTrack(),
     );
 
-    // Secondary row: read note + speed
+    // Controls row: download + folder + repeat + speed, then the on/off
+    // toggles (code / acronyms / embed), spread evenly across the row.
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
-    // Regenerate: force a fresh synthesis of the active note. The transport
-    // play button already reads the note when nothing matching is loaded, so
-    // this button's distinct job is to re-render from scratch (e.g. after the
-    // note changed) — hence the reload icon and "Regenerate" label.
-    this.readBtn = secondary.createEl("button", {
-      cls: "voice-player-read",
-      attr: { "aria-label": "Regenerate audio for this note" },
-    });
-    setIcon(this.readBtn, "refresh-cw");
-    this.readLabelEl = this.readBtn.createSpan({
-      cls: "voice-player-read-label",
-      text: "Regenerate",
-    });
-    this.registerDomEvent(this.readBtn, "click", () => this.handleReadClick());
-
     // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
-    // (to the last folder in custom mode); holding it — or right-clicking —
-    // opens the folder picker, so audio can be (re-)saved to a different folder
-    // any time. Same gesture as the status bar / mobile download button.
+    // (to the default folder, or next to the note); holding it — or
+    // right-clicking — opens the folder picker. Same gesture as the status bar /
+    // mobile download button.
     this.downloadBtn = secondary.createEl("button", {
       cls: "voice-player-download",
       attr: { "aria-label": "Download as MP3" },
@@ -244,8 +251,22 @@ export class VoicePlayerView extends ItemView {
     attachPressGesture(this.downloadBtn, {
       onTap: () => void this.downloadAudio(),
       onHold: () => void this.downloadAudio({ forcePicker: true }),
-      isHoldEnabled: () => this.plugin.settings.audioSaveMode === "custom",
     });
+
+    // Save to custom folder: one click opens the folder picker and saves the
+    // audio to the folder you choose (you can also pin a default there). A
+    // discoverable alternative to holding the download button.
+    this.folderBtn = secondary.createEl("button", {
+      cls: "voice-player-folder-btn",
+      attr: {
+        "aria-label": "Save to custom folder",
+        title: "Save to a folder you choose (and optionally pin it as default)",
+      },
+    });
+    setIcon(this.folderBtn, "folder-open");
+    this.registerDomEvent(this.folderBtn, "click", () =>
+      this.saveToCustomFolder(),
+    );
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
@@ -269,7 +290,34 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // Options row: provider + voice selectors and the read-code-blocks toggle
+    // On/off toggles: read code blocks, spell out acronyms, skip URLs, embed
+    // MP3. They sit in the same row as the action controls, spread evenly
+    // across its width.
+    this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
+    setIcon(this.codeBtn, "code");
+    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
+
+    this.acronymBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.acronymBtn, "case-sensitive");
+    this.registerDomEvent(this.acronymBtn, "click", () =>
+      this.toggleAcronyms(),
+    );
+
+    this.urlBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.urlBtn, "unlink");
+    this.registerDomEvent(this.urlBtn, "click", () => this.toggleSkipUrls());
+
+    this.embedBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.embedBtn, "paperclip");
+    this.registerDomEvent(this.embedBtn, "click", () => this.toggleEmbed());
+
+    // Options row: provider + voice selectors.
     const options = root.createDiv({ cls: "voice-player-options" });
 
     this.providerSelect = options.createEl("select", {
@@ -290,12 +338,6 @@ export class VoicePlayerView extends ItemView {
     this.registerDomEvent(this.voiceSelect, "change", () =>
       this.changeVoice(this.voiceSelect.value),
     );
-
-    this.codeBtn = options.createEl("button", {
-      cls: "voice-player-code",
-    });
-    setIcon(this.codeBtn, "code");
-    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
 
     // Folder picker: choose any vault folder that contains MP3s and list its
     // tracks as chapters, so the player can browse audio across the vault.
@@ -328,25 +370,103 @@ export class VoicePlayerView extends ItemView {
 
   private togglePlay(): void {
     const provider = this.provider();
+    // A tap while a synthesis is running cancels it.
+    if (provider.isOperationInProgress()) {
+      provider.cancelOperation();
+      return;
+    }
     if (provider.isPlaying()) {
       provider.pauseAudio();
       return;
     }
 
-    // Resume the loaded audio only when it still matches what the player is
-    // showing. (Note: audio.src resolves an empty value to the page URL, so we
-    // check currentSrc, which is "" until a real media resource is selected.)
+    const active = this.app.workspace.getActiveFile();
+    const activeNote = active && active.extension === "md" ? active : null;
+
+    // "Play the note's saved audio" (default on): a tap always plays the note
+    // you're viewing — its already-saved MP3 if one exists, otherwise a fresh
+    // render — even when a different chapter is currently loaded. This is what
+    // makes jumping between notes pick up each note's saved audio. Holding the
+    // play button (regenerate) still forces a fresh render.
+    if (this.plugin.settings.playNoteSavedAudio && activeNote) {
+      this.playActiveNote(activeNote);
+      return;
+    }
+
+    // Toggle off: resume the loaded audio while it still matches what the
+    // player is showing. (audio.src resolves an empty value to the page URL, so
+    // we check currentSrc, which is "" until a real media resource is selected.)
     if (this.audio().currentSrc && !this.loadedAudioIsStale()) {
       void provider.playAudio();
       return;
     }
 
     // Nothing loaded, or the loaded audio was generated for a different note
-    // than the one now open → read the currently open note instead of
-    // replaying the previous one (issue #59).
+    // than the one now open → read the active note instead of replaying the
+    // previous one (issue #59).
+    this.readActiveNoteFresh();
+  }
+
+  /**
+   * Play the note the user is viewing: resume it if its audio is already
+   * loaded, reuse its saved MP3 when one exists on disk, otherwise synthesize.
+   * Used by the play-button tap when "Play the note's saved audio" is on, so
+   * switching notes always plays the note in front of you.
+   */
+  private playActiveNote(activeNote: TFile): void {
+    const provider = this.provider();
+    const existing = this.existingNoteAudio(activeNote);
+    if (existing) {
+      // Already showing that file → just resume; otherwise load and play it.
+      if (
+        this.currentChapterPath === existing.path &&
+        this.audio().currentSrc
+      ) {
+        void provider.playAudio();
+      } else {
+        this.playChapter(existing.path);
+      }
+      return;
+    }
+
+    // No saved MP3 on disk. Resume fresh, unsaved audio already rendered for
+    // this note; otherwise synthesize it. (Any loaded chapter belongs to a
+    // different note here, so we follow the active note rather than resume it.)
+    if (
+      this.currentChapterPath === null &&
+      provider.getLastGeneratedAudio(activeNote.path) !== null &&
+      this.audio().currentSrc
+    ) {
+      void provider.playAudio();
+      return;
+    }
+    this.readActiveNoteFresh();
+  }
+
+  /** Drop any loaded chapter and synthesize the active note from scratch. */
+  private readActiveNoteFresh(): void {
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
+    this.updateTitle();
     void this.plugin.speakText();
+  }
+
+  /**
+   * The MP3 already saved for the active note, if any: a file named after the
+   * note in the folder where a tap-save would write it (the default folder when
+   * set, otherwise next to the note). Returns null when no such file exists, so
+   * the player falls back to synthesizing.
+   */
+  private existingNoteAudio(active: TFile): TFile | null {
+    const path = normalizePath(
+      noteAudioPath(
+        this.plugin.settings.defaultAudioFolder,
+        active.parent?.path ?? "",
+        active.basename,
+      ),
+    );
+    const file = this.app.vault.getAbstractFileByPath(path);
+    return file instanceof TFile ? file : null;
   }
 
   /**
@@ -381,22 +501,46 @@ export class VoicePlayerView extends ItemView {
   private async downloadAudio(options?: {
     forcePicker?: boolean;
   }): Promise<void> {
-    await this.plugin.iconEventHandler.handleDownloadAudio(options);
+    // When picking a folder and a saved chapter is loaded, move that file into
+    // the chosen folder instead of saving a fresh copy.
+    const moveFromPath =
+      options?.forcePicker && this.currentChapterPath
+        ? this.currentChapterPath
+        : undefined;
+    await this.plugin.iconEventHandler.handleDownloadAudio({
+      ...options,
+      moveFromPath,
+    });
     this.refreshContext();
   }
 
   /**
-   * Regenerate: force a fresh synthesis of the current note. Ignored while a
-   * synthesis is already running.
+   * Save the current audio to a folder chosen in the picker (the dedicated
+   * folder button) — a one-click "Save to custom folder". Reuses the shared
+   * download flow, so choosing a folder saves there and pinning sets the
+   * default.
    */
-  private handleReadClick(): void {
-    if (this.provider().isOperationInProgress()) {
-      return;
+  private saveToCustomFolder(): void {
+    void this.downloadAudio({ forcePicker: true });
+  }
+
+  /**
+   * Regenerate the current note from scratch (the play button's hold). Always
+   * uses the currently selected voice and settings. Cancels any in-progress
+   * synthesis and stops playback first, so speakText performs a fresh render
+   * instead of just pausing the audio that is already playing.
+   */
+  private regenerate(): void {
+    const provider = this.provider();
+    if (provider.isOperationInProgress()) {
+      provider.cancelOperation();
     }
+    provider.stopAudio();
     // Reading the note replaces any loaded chapter as the active audio, so
     // drop the chapter selection to keep the highlight and play button honest.
     this.currentChapterPath = null;
     this.highlightCurrentChapter();
+    this.updateTitle();
     void this.plugin.speakText();
   }
 
@@ -427,7 +571,31 @@ export class VoicePlayerView extends ItemView {
     this.updateCodeButton();
   }
 
-  /** Resync the provider/voice selectors and the code-blocks toggle. */
+  /** Toggle whether acronyms (NASA, API) are spelled out letter by letter. */
+  private toggleAcronyms(): void {
+    this.plugin.settings.spellOutAcronyms =
+      !this.plugin.settings.spellOutAcronyms;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeTextSpeaker();
+    this.updateAcronymButton();
+  }
+
+  /** Toggle whether website URLs are skipped (link labels are kept). */
+  private toggleSkipUrls(): void {
+    this.plugin.settings.skipUrls = !this.plugin.settings.skipUrls;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeTextSpeaker();
+    this.updateUrlButton();
+  }
+
+  /** Toggle whether saving an MP3 also embeds an audio player in the note. */
+  private toggleEmbed(): void {
+    this.plugin.settings.autoEmbedAudio = !this.plugin.settings.autoEmbedAudio;
+    void this.plugin.saveSettings();
+    this.updateEmbedButton();
+  }
+
+  /** Resync the provider/voice selectors and the toggle buttons. */
   private refreshControls(): void {
     if (!this.providerSelect) {
       return;
@@ -435,6 +603,9 @@ export class VoicePlayerView extends ItemView {
     this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
     this.populateVoiceOptions();
     this.updateCodeButton();
+    this.updateAcronymButton();
+    this.updateUrlButton();
+    this.updateEmbedButton();
     this.updateDownloadButton();
   }
 
@@ -463,21 +634,90 @@ export class VoicePlayerView extends ItemView {
     );
   }
 
+  private updateAcronymButton(): void {
+    if (!this.acronymBtn) {
+      return;
+    }
+    const on = this.plugin.settings.spellOutAcronyms;
+    this.acronymBtn.toggleClass("is-active", on);
+    this.acronymBtn.setAttribute(
+      "aria-label",
+      on ? "Spell out acronyms: on" : "Spell out acronyms: off",
+    );
+  }
+
+  private updateUrlButton(): void {
+    if (!this.urlBtn) {
+      return;
+    }
+    const on = this.plugin.settings.skipUrls;
+    this.urlBtn.toggleClass("is-active", on);
+    this.urlBtn.setAttribute(
+      "aria-label",
+      on ? "Skip website URLs: on" : "Skip website URLs: off",
+    );
+  }
+
+  private updateEmbedButton(): void {
+    if (!this.embedBtn) {
+      return;
+    }
+    const on = this.plugin.settings.autoEmbedAudio;
+    this.embedBtn.toggleClass("is-active", on);
+    this.embedBtn.setAttribute(
+      "aria-label",
+      on ? "Embed MP3 in note: on" : "Embed MP3 in note: off",
+    );
+  }
+
   /**
-   * Enable the download button whenever there is generated audio for the active
-   * note. It stays enabled after a save so the user can re-save (e.g. after an
-   * error) or hold it to save the audio to a different folder.
+   * Enable the download button when there is generated audio for the active
+   * note (its tap saves that audio). The folder button is also enabled when a
+   * saved chapter is loaded, so that chapter can be moved to another folder.
+   * Both grey out when there's nothing to act on.
    */
   private updateDownloadButton(): void {
     if (!this.downloadBtn) {
       return;
     }
     const active = this.app.workspace.getActiveFile();
-    const enabled = active
+    const hasGeneratedAudio = active
       ? this.provider().getLastGeneratedAudio(active.path) !== null
       : false;
-    this.downloadBtn.disabled = !enabled;
-    this.downloadBtn.toggleClass("is-disabled", !enabled);
+    const hasLoadedChapter = this.currentChapterPath !== null;
+
+    this.downloadBtn.disabled = !hasGeneratedAudio;
+    this.downloadBtn.toggleClass("is-disabled", !hasGeneratedAudio);
+
+    // Folder button works for both saving fresh audio and moving a chapter.
+    const folderEnabled = hasGeneratedAudio || hasLoadedChapter;
+    this.folderBtn.disabled = !folderEnabled;
+    this.folderBtn.toggleClass("is-disabled", !folderEnabled);
+
+    const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
+
+    // Download button: a floppy-disk icon signals "save to the default folder",
+    // the download arrow signals "save next to the note". Only swap on change.
+    if (hasDefault !== this.downloadShowsSave) {
+      this.downloadShowsSave = hasDefault;
+      setIcon(this.downloadBtn, hasDefault ? "save" : "download");
+    }
+    this.downloadBtn.setAttribute(
+      "aria-label",
+      hasDefault
+        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
+        : "Save next to the note",
+    );
+
+    // Tint the folder button when a default folder is set, so it's clear a tap
+    // saves into that folder rather than next to the note.
+    this.folderBtn.toggleClass("is-active", hasDefault);
+    this.folderBtn.setAttribute(
+      "aria-label",
+      hasDefault
+        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
+        : "Save to custom folder",
+    );
   }
 
   private changeSpeed(delta: number): void {
@@ -503,8 +743,9 @@ export class VoicePlayerView extends ItemView {
     if (!this.titleEl) {
       return;
     }
+    this.updateTitle();
+
     const active = this.app.workspace.getActiveFile();
-    this.titleEl.setText(active ? active.basename : "Voice player");
 
     // Collect every folder in the vault that holds at least one MP3.
     const mp3Files = this.app.vault
@@ -603,6 +844,7 @@ export class VoicePlayerView extends ItemView {
   }
 
   private renderChapters(chapters: ChapterFile[]): void {
+    this.closeChapterActions();
     this.chaptersListEl.empty();
     if (chapters.length === 0) {
       this.chaptersListEl
@@ -625,19 +867,143 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
-      // Rename control: edit the MP3's file name (kept in the same folder, the
-      // .mp3 extension is preserved). Stops propagation so it doesn't play.
-      const editBtn = item.createDiv({
+      // Actions control: opens a small bar over this row with Move / Rename /
+      // Delete for this track. Stops propagation so it doesn't play.
+      const actionsBtn = item.createDiv({
         cls: "voice-player-chapter-edit",
-        attr: { "aria-label": "Rename track" },
+        attr: { "aria-label": "Track actions" },
       });
-      setIcon(editBtn, "pencil");
-      this.registerDomEvent(editBtn, "click", (evt) => {
+      setIcon(actionsBtn, "more-vertical");
+      this.registerDomEvent(actionsBtn, "click", (evt) => {
         evt.stopPropagation();
-        this.beginRenameChapter(item, chapter);
+        this.openChapterActions(item, chapter);
       });
     });
     this.highlightCurrentChapter();
+  }
+
+  /**
+   * Show a small action bar laid over the chapter row with Move / Rename /
+   * Delete for that track, so the actions clearly belong to that file. Only one
+   * bar is open at a time; clicking elsewhere or pressing Escape closes it.
+   */
+  private openChapterActions(item: HTMLElement, chapter: ChapterFile): void {
+    this.closeChapterActions();
+
+    const bar = item.createDiv({ cls: "voice-player-chapter-actions" });
+    const addBtn = (label: string, onClick: () => void): HTMLButtonElement => {
+      const btn = bar.createEl("button", {
+        cls: "voice-player-chapter-action",
+        text: label,
+      });
+      this.registerDomEvent(btn, "click", (evt) => {
+        evt.stopPropagation();
+        onClick();
+      });
+      return btn;
+    };
+
+    addBtn("Move", () => {
+      this.closeChapterActions();
+      void this.moveChapter(chapter);
+    });
+    addBtn("Rename", () => {
+      this.closeChapterActions();
+      this.beginRenameChapter(item, chapter);
+    });
+    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
+      "mod-warning",
+    );
+
+    this.openActionsEl = bar;
+
+    // Close on outside click / Escape. Deferred so the opening click finishes.
+    const onDocClick = (evt: MouseEvent) => {
+      if (!bar.contains(evt.target as Node)) {
+        this.closeChapterActions();
+      }
+    };
+    const onKey = (evt: KeyboardEvent) => {
+      if (evt.key === "Escape") {
+        this.closeChapterActions();
+      }
+    };
+    window.setTimeout(() => {
+      activeDocument.addEventListener("click", onDocClick, true);
+      activeDocument.addEventListener("keydown", onKey, true);
+    }, 0);
+    this.chapterActionsCleanup = () => {
+      activeDocument.removeEventListener("click", onDocClick, true);
+      activeDocument.removeEventListener("keydown", onKey, true);
+    };
+  }
+
+  /** Remove the open chapter action bar and its listeners, if any. */
+  private closeChapterActions(): void {
+    if (this.chapterActionsCleanup) {
+      this.chapterActionsCleanup();
+      this.chapterActionsCleanup = null;
+    }
+    this.openActionsEl?.remove();
+    this.openActionsEl = null;
+  }
+
+  /** Replace the action bar with a short "Delete this track?" confirmation. */
+  private showDeleteConfirm(bar: HTMLElement, chapter: ChapterFile): void {
+    bar.empty();
+    bar.createSpan({
+      cls: "voice-player-chapter-confirm",
+      text: "Delete this track?",
+    });
+    const del = bar.createEl("button", {
+      cls: "voice-player-chapter-action",
+      text: "Delete",
+    });
+    del.addClass("mod-warning");
+    this.registerDomEvent(del, "click", (evt) => {
+      evt.stopPropagation();
+      this.closeChapterActions();
+      void this.deleteChapter(chapter);
+    });
+    const cancel = bar.createEl("button", {
+      cls: "voice-player-chapter-action",
+      text: "Cancel",
+    });
+    this.registerDomEvent(cancel, "click", (evt) => {
+      evt.stopPropagation();
+      this.closeChapterActions();
+    });
+  }
+
+  /** Open the folder picker for a single chapter and move it there. */
+  private async moveChapter(chapter: ChapterFile): Promise<void> {
+    await this.plugin.iconEventHandler.handleDownloadAudio({
+      forcePicker: true,
+      moveFromPath: chapter.path,
+    });
+    this.refreshContext();
+  }
+
+  /** Delete a chapter's MP3 (after confirmation) and refresh the list. */
+  private async deleteChapter(chapter: ChapterFile): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(chapter.path);
+    if (file instanceof TFile) {
+      try {
+        // fileManager.trashFile() needs a newer Obsidian than minAppVersion.
+        // eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file
+        await this.app.vault.delete(file);
+        new Notice(`Deleted: ${chapter.name}`);
+      } catch (error) {
+        new Notice(
+          `Could not delete: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    if (this.currentChapterPath === chapter.path) {
+      this.currentChapterPath = null;
+      this.updateTitle();
+    }
+    this.refreshContext();
   }
 
   /**
@@ -732,6 +1098,24 @@ export class VoicePlayerView extends ItemView {
     this.currentChapterPath = path;
     void this.provider().playAudio();
     this.highlightCurrentChapter();
+    // Reflect the playing chapter in the header instead of the active note.
+    this.updateTitle();
+  }
+
+  /**
+   * Title shows the loaded chapter's name while one is playing, otherwise the
+   * active note (or a placeholder when none is open).
+   */
+  private updateTitle(): void {
+    if (!this.titleEl) {
+      return;
+    }
+    if (this.currentChapterPath) {
+      this.titleEl.setText(chapterName(this.currentChapterPath));
+      return;
+    }
+    const active = this.app.workspace.getActiveFile();
+    this.titleEl.setText(active ? active.basename : "Voice player");
   }
 
   private highlightCurrentChapter(): void {
@@ -855,8 +1239,7 @@ export class VoicePlayerView extends ItemView {
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
 
     // Loading feedback while a note is being synthesized: grow the bottom bar to
-    // the real synthesis progress, spin the play button (like the status bar),
-    // and animate (and disable) the "Regenerate" button.
+    // the real synthesis progress and spin the play button (a tap cancels it).
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
     if (loading) {
@@ -870,17 +1253,15 @@ export class VoicePlayerView extends ItemView {
       this.playPauseBtn.removeClass("rotating-icon");
       setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }
-    this.readBtn.toggleClass("is-loading", loading);
-    this.readBtn.disabled = loading;
-    // Update only the label span so the reload icon is preserved.
-    this.readLabelEl.setText(loading ? "Regenerating…" : "Regenerate");
 
-    // Keep the selectors/toggle in sync if settings changed elsewhere.
+    // Keep the selectors/toggles in sync if settings changed elsewhere.
     if (this.providerSelect.value !== this.plugin.settings.TTS_PROVIDER) {
       this.refreshControls();
     } else {
       this.voiceSelect.value = provider.getVoice();
       this.updateCodeButton();
+      this.updateAcronymButton();
+      this.updateEmbedButton();
     }
     this.updateDownloadButton();
 

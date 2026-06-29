@@ -59,17 +59,27 @@ export interface VoiceSettings {
   // Player: when true, the player's folder picker follows the active note's
   // folder; when false the chosen folder stays put across note switches.
   folderSelectorFollowsNote: boolean;
-  // Audio files: where saved MP3s go. "note" (default) keeps the original
-  // behaviour of saving next to the active note; "custom" routes saves to a
-  // folder chosen via the folder picker.
-  audioSaveMode: AudioSaveMode;
+  // Player: when true (default), a tap on the play button plays the note you
+  // are viewing — its already-saved MP3 if one exists (matched by name in the
+  // save folder), otherwise a fresh render — even when another chapter is
+  // loaded, so jumping between notes picks up each note's saved audio. When
+  // false, a loaded chapter keeps playing and notes are always synthesized.
+  playNoteSavedAudio: boolean;
+  // Audio files: the default folder for saved MP3s. When set, a tap on the save
+  // button always saves here (and auto-save writes here silently); when empty,
+  // saves go next to the active note. Managed from the folder picker's pin
+  // button. Stored vault-relative ("/" for the vault root).
+  defaultAudioFolder: string;
   // Audio files: folders the user starred in the picker, shown first for
-  // one-tap access. Stored vault-relative ("/" for the vault root).
+  // one-tap access. Independent of the default folder. Vault-relative paths.
   favoriteAudioFolders: string[];
-  // Audio files: the folder used for the most recent custom save. A tap on the
-  // save button reuses it (and auto-save writes here silently) without
-  // re-opening the picker. Empty until the first custom save.
-  lastAudioFolder: string;
+  // Internal: tracks the one-time migration of the legacy "custom save mode"
+  // (audioSaveMode + lastAudioFolder) into defaultAudioFolder.
+  audioFolderMigrated: boolean;
+  // Legacy (no longer drives behaviour; kept so the one-time migration above
+  // can read pre-existing values). Removed from the settings UI.
+  audioSaveMode?: AudioSaveMode;
+  lastAudioFolder?: string;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
@@ -360,9 +370,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   rewindSeconds: DEFAULT_SKIP_SECONDS,
   forwardSeconds: DEFAULT_SKIP_SECONDS,
   folderSelectorFollowsNote: true,
-  audioSaveMode: "note",
+  playNoteSavedAudio: true,
+  defaultAudioFolder: "",
   favoriteAudioFolders: [],
-  lastAudioFolder: "",
+  audioFolderMigrated: false,
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",

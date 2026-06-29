@@ -1,4 +1,14 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
+import { suggestFreeBaseName } from "./audioFolders";
+import { normalizeFolderPath } from "./chapters";
+import type { ConflictChoice } from "../ui/FileConflictModal";
+
+/** Asks the user how to resolve a same-name conflict in the target folder. */
+export type ConflictResolver = (info: {
+  fileName: string;
+  folder: string;
+  suggested: string;
+}) => Promise<ConflictChoice>;
 
 /**
  * AudioFileManager - Handles saving audio files and managing audio embeds
@@ -14,6 +24,128 @@ export class AudioFileManager {
 
   constructor(app: App) {
     this.app = app;
+  }
+
+  /**
+   * Save a freshly generated blob to a folder, or move an existing MP3 into it,
+   * prompting via `resolveConflict` when a file of the same name already exists.
+   * Used by the folder picker: synthesized audio is saved (and embedded when
+   * requested); an already-saved file (a loaded chapter) is moved with its
+   * embeds/links updated.
+   */
+  async saveOrMove(params: {
+    kind: "save" | "move";
+    blob?: Blob;
+    sourceFile?: TFile;
+    baseName: string;
+    folder: string;
+    embed: boolean;
+    resolveConflict: ConflictResolver;
+  }): Promise<void> {
+    try {
+      const dir = this.resolveSaveDir(params.folder, "");
+      await this.ensureFolderExists(dir);
+
+      const pathFor = (base: string): string =>
+        normalizePath(dir ? `${dir}/${base}.mp3` : `${base}.mp3`);
+      const sourcePath = params.sourceFile?.path;
+
+      // Resolve same-name conflicts (a rename can still collide, so loop).
+      let baseName = params.baseName;
+      for (;;) {
+        const existing = this.app.vault.getAbstractFileByPath(
+          pathFor(baseName),
+        );
+        const collides =
+          existing instanceof TFile && existing.path !== sourcePath;
+        if (!collides) {
+          break;
+        }
+        const choice = await params.resolveConflict({
+          fileName: `${baseName}.mp3`,
+          folder: dir === "" ? "the vault root" : dir,
+          suggested: suggestFreeBaseName(
+            baseName,
+            this.mp3BaseNamesInFolder(dir),
+          ),
+        });
+        if (choice.action === "cancel") {
+          return;
+        }
+        if (choice.action === "rename") {
+          baseName = choice.baseName;
+          continue;
+        }
+        break; // replace → keep the name and overwrite below
+      }
+
+      const finalPath = pathFor(baseName);
+
+      if (params.kind === "move") {
+        await this.performMove(params.sourceFile, finalPath);
+        return;
+      }
+
+      await this.writeBlob(params.blob, finalPath);
+      if (params.embed) {
+        await this.insertAudioEmbed(`${baseName}.mp3`);
+      }
+    } catch (error) {
+      console.error("Error saving/moving audio:", error);
+      new Notice(`Error saving audio: ${error.message}`);
+    }
+  }
+
+  /** Move an existing file to finalPath, replacing any file already there. */
+  private async performMove(
+    source: TFile | undefined,
+    finalPath: string,
+  ): Promise<void> {
+    if (!source || source.path === finalPath) {
+      return;
+    }
+    const existing = this.app.vault.getAbstractFileByPath(finalPath);
+    if (existing instanceof TFile && existing.path !== source.path) {
+      // fileManager.trashFile() would be preferable but requires a newer
+      // Obsidian than the plugin's minAppVersion (1.5.0).
+      // eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file
+      await this.app.vault.delete(existing);
+    }
+    // fileManager.renameFile updates embeds/links that point at the file.
+    await this.app.fileManager.renameFile(source, finalPath);
+    new Notice(`Moved: ${finalPath}`);
+  }
+
+  /** Create or overwrite the MP3 at finalPath with the blob's bytes. */
+  private async writeBlob(
+    blob: Blob | undefined,
+    finalPath: string,
+  ): Promise<void> {
+    if (!blob) {
+      return;
+    }
+    const arrayBuffer = await blob.arrayBuffer();
+    const existing = this.app.vault.getAbstractFileByPath(finalPath);
+    if (existing instanceof TFile) {
+      await this.app.vault.modifyBinary(existing, arrayBuffer);
+      new Notice(`Updated: ${finalPath}`);
+    } else {
+      await this.app.vault.createBinary(finalPath, arrayBuffer);
+      new Notice(`Created: ${finalPath}`);
+    }
+  }
+
+  /** Base names (no extension) of the MP3s already in a vault folder. */
+  private mp3BaseNamesInFolder(dir: string): string[] {
+    const target = normalizeFolderPath(dir === "" ? "/" : dir);
+    return this.app.vault
+      .getFiles()
+      .filter(
+        (f) =>
+          f.extension === "mp3" &&
+          normalizeFolderPath(f.parent?.path ?? "/") === target,
+      )
+      .map((f) => f.basename);
   }
 
   /**

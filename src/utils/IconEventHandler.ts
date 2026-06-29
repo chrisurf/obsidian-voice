@@ -1,9 +1,10 @@
-import { Plugin, setIcon, Notice, Menu } from "obsidian";
+import { Plugin, setIcon, Notice, Menu, TFile } from "obsidian";
 import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { MobileControlBar } from "./MobileControlBar";
-import { AudioFileManager } from "./AudioFileManager";
+import { AudioFileManager, type ConflictResolver } from "./AudioFileManager";
 import { FolderPickerModal } from "../ui/FolderPickerModal";
+import { FileConflictModal } from "../ui/FileConflictModal";
 import { resolveSaveFolder } from "./audioFolders";
 import { attachPressGesture } from "./pressGesture";
 
@@ -24,6 +25,9 @@ export class IconEventHandler {
   private isErrorState: boolean = false;
   private mobileControlBar?: MobileControlBar;
   private audioFileManager: AudioFileManager;
+  // Tracks whether the status-bar download icon currently shows the save
+  // (floppy) glyph, so it is only swapped when the default folder changes.
+  private downloadShowsSave = false;
   private onPlayListener = () => this.onPlay();
   private onPauseListener = () => this.onPause();
   private onCanPlayThroughListener = () => this.onCanPlayThrough();
@@ -567,8 +571,8 @@ export class IconEventHandler {
    * Update download button visibility based on whether cached audio exists for current file
    */
   private updateDownloadButtonVisibility(): void {
-    // Keep the tooltip in sync with the current save mode / last folder.
-    this.updateSaveTooltip();
+    // Keep the tooltip + icon in sync with the current default folder.
+    this.refreshSaveAffordances();
 
     const activeFile = this.plugin.app.workspace.getActiveFile();
     if (!activeFile) {
@@ -608,10 +612,9 @@ export class IconEventHandler {
     }
 
     // Auto-save never prompts: it writes to the resolved folder silently
-    // (custom mode → last used folder, falling back to the note's folder).
+    // (the default folder when set, otherwise next to the note).
     const folder = resolveSaveFolder(
-      this.voice.settings.audioSaveMode,
-      this.voice.settings.lastAudioFolder,
+      this.voice.settings.defaultAudioFolder,
       activeFile.parent?.path || "",
     );
     await this.audioFileManager.downloadAndEmbed(
@@ -625,25 +628,58 @@ export class IconEventHandler {
    * Handle download audio button click (also exposed as a command).
    * Retrieves cached audio blob and saves it as an MP3 file in the resolved
    * folder.
-   * @param options.forcePicker - Open the folder picker even when a last folder
-   *   exists (the "hold"/right-click gesture). Ignored in "next to note" mode.
+   * @param options.forcePicker - Open the folder picker (the "hold"/right-click
+   *   gesture) and save to the chosen folder for this one save.
    */
   public async handleDownloadAudio(options?: {
     forcePicker?: boolean;
+    moveFromPath?: string;
   }): Promise<void> {
     try {
-      // Get current file path for validation
+      const resolveConflict: ConflictResolver = (info) =>
+        FileConflictModal.open(
+          this.plugin.app,
+          info.fileName,
+          info.folder,
+          info.suggested,
+        );
+
+      // Move an already-saved file (a chapter loaded in the player). This does
+      // not need synthesized audio or an active note — it relocates the file.
+      if (options?.forcePicker && options.moveFromPath) {
+        const folder = await FolderPickerModal.open(
+          this.plugin.app,
+          this.voice,
+        );
+        this.refreshSaveAffordances();
+        if (folder === null) {
+          return;
+        }
+        const file = this.plugin.app.vault.getAbstractFileByPath(
+          options.moveFromPath,
+        );
+        if (file instanceof TFile) {
+          await this.audioFileManager.saveOrMove({
+            kind: "move",
+            sourceFile: file,
+            baseName: file.basename,
+            folder,
+            embed: false,
+            resolveConflict,
+          });
+        }
+        return;
+      }
+
+      // Saving (tap or hold without a loaded chapter) needs the note's audio.
       const activeFile = this.plugin.app.workspace.getActiveFile();
       if (!activeFile) {
         new Notice("No active file found");
         return;
       }
-
-      // Get the cached audio blob from Polly service with file path validation
       const audioBlob = this.pollyService.getLastGeneratedAudio(
         activeFile.path,
       );
-
       if (!audioBlob) {
         new Notice(
           "No audio available for this file. Please generate audio first.",
@@ -651,20 +687,36 @@ export class IconEventHandler {
         return;
       }
 
-      const folder = await this.resolveManualSaveFolder(
-        activeFile.parent?.path || "",
-        options?.forcePicker ?? false,
-      );
-      if (folder === null) {
-        return; // User dismissed the folder picker.
+      // Plain tap: save to the default/note folder, overwriting silently
+      // (re-saving the same note's audio is expected).
+      if (!options?.forcePicker) {
+        const folder = resolveSaveFolder(
+          this.voice.settings.defaultAudioFolder,
+          activeFile.parent?.path || "",
+        );
+        await this.audioFileManager.downloadAndEmbed(
+          audioBlob,
+          this.voice.settings.autoEmbedAudio,
+          folder,
+        );
+        return;
       }
 
-      // Use AudioFileManager to save and (optionally) embed
-      await this.audioFileManager.downloadAndEmbed(
-        audioBlob,
-        this.voice.settings.autoEmbedAudio,
+      // Hold / folder button: pick a folder, then save into it (with a prompt
+      // on same-name conflicts).
+      const folder = await FolderPickerModal.open(this.plugin.app, this.voice);
+      this.refreshSaveAffordances();
+      if (folder === null) {
+        return;
+      }
+      await this.audioFileManager.saveOrMove({
+        kind: "save",
+        blob: audioBlob,
+        baseName: activeFile.basename,
         folder,
-      );
+        embed: this.voice.settings.autoEmbedAudio,
+        resolveConflict,
+      });
     } catch (error) {
       console.error("Error downloading audio:", error);
       new Notice(`Failed to download audio: ${error.message}`);
@@ -672,55 +724,45 @@ export class IconEventHandler {
   }
 
   /**
-   * Resolve the destination folder for a manual save. In "next to note" mode
-   * this is always the note's folder. In "custom" mode a tap reuses the last
-   * folder (opening the picker only the first time), while a hold/right-click
-   * forces the picker. Returns null when the user dismisses the picker.
-   */
-  private async resolveManualSaveFolder(
-    noteFolder: string,
-    forcePicker: boolean,
-  ): Promise<string | null> {
-    const settings = this.voice.settings;
-    if (settings.audioSaveMode === "note") {
-      return noteFolder;
-    }
-
-    const needsPicker = forcePicker || settings.lastAudioFolder.trim() === "";
-    if (needsPicker) {
-      const chosen = await FolderPickerModal.open(this.plugin.app, this.voice);
-      if (chosen === null) {
-        return null;
-      }
-      settings.lastAudioFolder = chosen;
-      await this.voice.saveSettings();
-      this.updateSaveTooltip();
-      return chosen;
-    }
-
-    return resolveSaveFolder(
-      settings.audioSaveMode,
-      settings.lastAudioFolder,
-      noteFolder,
-    );
-  }
-
-  /**
-   * Wire the tap-vs-hold gesture onto a save button: tap saves, hold (or
-   * right-click) opens the folder picker. Holding is only active in custom
-   * mode.
+   * Wire the tap-vs-hold gesture onto a save button: tap saves (to the default
+   * folder, or next to the note), hold (or right-click) opens the folder picker.
    */
   private attachSaveGesture(el: HTMLElement): void {
     attachPressGesture(el, {
       onTap: () => void this.handleDownloadAudio(),
       onHold: () => void this.handleDownloadAudio({ forcePicker: true }),
-      isHoldEnabled: () => this.voice.settings.audioSaveMode === "custom",
     });
   }
 
   /**
-   * Refresh the download button's tooltip to reflect the current save mode and
-   * target folder, including a platform-appropriate hint about the hold gesture.
+   * Sync the save button's tooltip and icon (status bar + mobile) with the
+   * current default folder.
+   */
+  private refreshSaveAffordances(): void {
+    this.updateSaveTooltip();
+    this.updateSaveIcon();
+    this.mobileControlBar?.updateSaveIcon();
+  }
+
+  /**
+   * Show a floppy-disk (save) glyph when a default folder is set, otherwise the
+   * download arrow — so the status bar mirrors the player. Only swaps on change.
+   */
+  private updateSaveIcon(): void {
+    if (!this.downloadIconEl) {
+      return;
+    }
+    const hasDefault = this.voice.settings.defaultAudioFolder.trim() !== "";
+    if (hasDefault === this.downloadShowsSave) {
+      return;
+    }
+    this.downloadShowsSave = hasDefault;
+    setIcon(this.downloadIconEl, hasDefault ? "save" : "download");
+  }
+
+  /**
+   * Refresh the download button's tooltip to reflect the current default folder,
+   * with a platform-appropriate hint about the hold gesture.
    */
   private updateSaveTooltip(): void {
     if (!this.downloadIconEl) {
@@ -730,17 +772,11 @@ export class IconEventHandler {
   }
 
   private saveTooltip(): string {
-    const settings = this.voice.settings;
-    if (settings.audioSaveMode === "note") {
-      return "Download audio as MP3";
-    }
-    const folder =
-      settings.lastAudioFolder.trim() === ""
-        ? "a folder you pick"
-        : settings.lastAudioFolder;
+    const def = this.voice.settings.defaultAudioFolder.trim();
+    const target = def === "" ? "the note's folder" : def;
     const hint = this.voice.isMobile()
-      ? "touch & hold to choose folder"
-      : "hold or right-click to choose folder";
-    return `Save to ${folder} — ${hint}`;
+      ? "touch & hold to choose a folder"
+      : "hold (or right-click) to choose a folder";
+    return `Save to ${target} — ${hint}`;
   }
 }

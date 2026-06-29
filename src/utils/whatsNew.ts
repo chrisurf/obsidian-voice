@@ -36,6 +36,8 @@ The save button (the download arrow) now has two simple gestures, and you can pi
 - 👆 **Tap** to save now — next to your note, or in your default folder if you've set one.
 - ✋ **Press and hold** the save button (or right-click on desktop) to open the folder picker. In the player you can also just click the new **folder button** (📂) to **save to a custom folder** in one click.
 - 📌 In the picker, **pin** a folder to make it your default (only one at a time; tap the pin again to clear it). ⭐ **Star** folders for quick access, or type to create a new folder.
+- 🔀 Picking a folder **saves** new audio there, or **moves** an already-saved recording (a chapter) into it — no duplicates. If a file with the same name exists, you can **Replace**, **Save as new**, or **Cancel**.
+- 💾 When a default folder is set, the save button shows a **floppy-disk** icon so you can tell at a glance where a tap will save.
 
 ## 🔊 The Voice player is here
 

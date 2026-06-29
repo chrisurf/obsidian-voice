@@ -5,6 +5,7 @@ import {
   isFavoriteFolder,
   toggleFavorite,
   orderFoldersForPicker,
+  suggestFreeBaseName,
 } from "../src/utils/audioFolders";
 import { DEFAULT_SETTINGS } from "../src/settings/VoiceSettings";
 
@@ -92,6 +93,22 @@ describe("Unit Tests - Custom Audio Folder", () => {
     test("no default → plain favorites-first ordering", () => {
       const result = orderFoldersForPicker(["b", "a"], ["b"], "");
       expect(result.map((f) => f.path)).toEqual(["b", "a"]);
+    });
+  });
+
+  describe("suggestFreeBaseName", () => {
+    test("returns the name unchanged when it's free", () => {
+      expect(suggestFreeBaseName("Note", [])).toBe("Note");
+      expect(suggestFreeBaseName("Note", ["Other"])).toBe("Note");
+    });
+
+    test("appends the first free numeric suffix", () => {
+      expect(suggestFreeBaseName("Note", ["Note"])).toBe("Note 1");
+      expect(suggestFreeBaseName("Note", ["Note", "Note 1"])).toBe("Note 2");
+    });
+
+    test("comparison is case-insensitive", () => {
+      expect(suggestFreeBaseName("Note", ["note"])).toBe("Note 1");
     });
   });
 

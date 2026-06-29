@@ -104,6 +104,8 @@ orchestrators pick the path by `inputFormat`:
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
   default-folder **pin**, starred favorites, "create folder") used by the
   custom-save-location feature.
+- `FileConflictModal.ts` — Replace / Save-as-new / Cancel prompt shown when a
+  picked folder already holds a file of the same name.
 - `WhatsNewModal.ts` — renders `utils/whatsNew.ts` once per install/update.
 - The **status bar** controls are created in `utils/IconEventHandler.ts`; the
   **mobile** control bar is `utils/MobileControlBar.ts`.
@@ -112,6 +114,9 @@ orchestrators pick the path by `inputFormat`:
 
 - `AudioFileManager.ts` — writes the MP3 (into the note's folder or a custom
   target, creating it if missing) and inserts the `![[file.mp3]]` embed.
+  `saveOrMove()` handles the picker flow: **save** fresh audio or **move** an
+  already-saved file (via `fileManager.renameFile`, keeping embeds), prompting
+  on same-name conflicts.
 - `audioFolders.ts` — **pure** helpers: `resolveSaveFolder` (default folder, else
   next to note), default-folder + favorites toggles, picker ordering (default
   first, then favorites). Fully unit-tested.

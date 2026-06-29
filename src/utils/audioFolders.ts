@@ -68,6 +68,30 @@ export function toggleFavorite(favorites: string[], path: string): string[] {
   return [...favorites, target];
 }
 
+/**
+ * Suggest a non-colliding base name (no extension) for a folder. If `baseName`
+ * is free it's returned unchanged; otherwise " 1", " 2", … is appended until a
+ * free name is found. Comparison is case-insensitive to match how file systems
+ * commonly treat names.
+ *
+ * @param baseName  Desired base name (without extension).
+ * @param takenBaseNames Base names already present in the target folder.
+ */
+export function suggestFreeBaseName(
+  baseName: string,
+  takenBaseNames: string[],
+): string {
+  const taken = new Set(takenBaseNames.map((n) => n.toLowerCase()));
+  if (!taken.has(baseName.toLowerCase())) {
+    return baseName;
+  }
+  let i = 1;
+  while (taken.has(`${baseName} ${i}`.toLowerCase())) {
+    i++;
+  }
+  return `${baseName} ${i}`;
+}
+
 export interface PickerFolder {
   /** Vault-relative folder path ("/" for the vault root). */
   path: string;

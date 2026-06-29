@@ -80,6 +80,14 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 > **Example.** You keep recordings in `Media/Audio`. Hold the save button, then tap the **pin 📌** next to `Media/Audio`. Done — now a single tap of the save button always stores there. Need to drop one file elsewhere? Hold again and tap a different folder; your default stays put.
 
+**Save or move, your choice.** When you pick a folder in the picker:
+
+- If the audio hasn't been saved yet, it's **saved** into that folder.
+- If you loaded an existing recording (a **chapter** in the player), that file is **moved** into the folder — no duplicate, and its embeds are updated automatically.
+- If a file with the same name is already there, a prompt lets you **Replace**, **Save as new** (a different name), or **Cancel**.
+
+> **Tip:** When a default folder is set, the save button shows a **floppy-disk** icon (💾) — in the player, the status bar, and the mobile bar — so you can tell at a glance that a tap saves into your default folder rather than next to the note.
+
 - Prefer a hands-off workflow? Turn on **Save automatically** in settings to save and embed after every playback (it uses your default folder too).
 - Cached audio prevents repeat synthesis costs until your note content changes.
 

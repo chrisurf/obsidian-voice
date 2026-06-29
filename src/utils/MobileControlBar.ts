@@ -16,6 +16,8 @@ export class MobileControlBar {
   private progressBarContainer: HTMLElement | null = null;
   private progressBar: HTMLElement | null = null;
   private isErrorState: boolean = false;
+  // Tracks whether the download icon currently shows the save (floppy) glyph.
+  private downloadShowsSave = false;
 
   constructor(app: App, plugin: Voice, pollyService: SpeechProvider) {
     this.app = app;
@@ -414,6 +416,8 @@ export class MobileControlBar {
    * Update download button visibility based on cached audio
    */
   public updateDownloadButtonVisibility(): void {
+    this.updateSaveIcon();
+
     const activeFile = this.app.workspace.getActiveFile();
     if (!activeFile) {
       this.hideDownloadButton();
@@ -427,6 +431,22 @@ export class MobileControlBar {
     } else {
       this.hideDownloadButton();
     }
+  }
+
+  /**
+   * Show a floppy-disk (save) glyph when a default folder is set, otherwise the
+   * download arrow — mirroring the player and status bar. Only swaps on change.
+   */
+  public updateSaveIcon(): void {
+    if (!this.downloadIconEl) {
+      return;
+    }
+    const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
+    if (hasDefault === this.downloadShowsSave) {
+      return;
+    }
+    this.downloadShowsSave = hasDefault;
+    setIcon(this.downloadIconEl, hasDefault ? "save" : "download");
   }
 
   destroy(): void {

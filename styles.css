@@ -922,6 +922,12 @@
   pointer-events: none;
 }
 
+/* File-conflict modal: the ".mp3" suffix shown next to the rename field. */
+.voice-conflict-ext {
+  margin-left: 6px;
+  color: var(--text-muted);
+}
+
 /* Folder picker (custom audio-folder feature) */
 .voice-folder-suggestion {
   display: flex;

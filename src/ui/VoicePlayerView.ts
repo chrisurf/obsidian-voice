@@ -416,7 +416,16 @@ export class VoicePlayerView extends ItemView {
   private async downloadAudio(options?: {
     forcePicker?: boolean;
   }): Promise<void> {
-    await this.plugin.iconEventHandler.handleDownloadAudio(options);
+    // When picking a folder and a saved chapter is loaded, move that file into
+    // the chosen folder instead of saving a fresh copy.
+    const moveFromPath =
+      options?.forcePicker && this.currentChapterPath
+        ? this.currentChapterPath
+        : undefined;
+    await this.plugin.iconEventHandler.handleDownloadAudio({
+      ...options,
+      moveFromPath,
+    });
     this.refreshContext();
   }
 

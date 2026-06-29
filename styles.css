@@ -758,12 +758,41 @@
 }
 
 .voice-player-chapter {
+  position: relative;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 8px 8px;
   border-radius: var(--radius-s);
   cursor: pointer;
+}
+
+/* Action bar laid over a chapter row: Move / Rename / Delete. */
+.voice-player-chapter-actions {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 6px;
+  border-radius: var(--radius-s);
+  background: var(--background-secondary-alt);
+  box-shadow: 0 0 0 1px var(--background-modifier-border);
+}
+
+.voice-player-chapter-action {
+  flex: 0 1 auto;
+  padding: 2px 10px;
+  font-size: var(--font-ui-smaller);
+  cursor: pointer;
+}
+
+.voice-player-chapter-confirm {
+  margin-right: 4px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
 }
 
 .voice-player-chapter:hover {

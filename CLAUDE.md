@@ -100,7 +100,8 @@ orchestrators pick the path by `inputFormat`:
   **held to regenerate**), scrubber, speed, provider/voice pickers, a download
   button (tap saves, hold opens the picker), a **folder button** ("save to a
   custom folder"), code/acronym/embed toggles, repeat modes, and a **chapter
-  list** built from the MP3s in a folder.
+  list** built from the MP3s in a folder (each chapter has a **⋮** action bar:
+  move / rename / delete).
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
   default-folder **pin**, starred favorites, "create folder") used by the
   custom-save-location feature.

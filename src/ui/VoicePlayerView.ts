@@ -81,6 +81,10 @@ export class VoicePlayerView extends ItemView {
   private selectedFolderPath: string | null = null;
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
+  // The open per-chapter action bar (Move / Rename / Delete) and a disposer for
+  // its outside-click / Escape listeners, if one is currently shown.
+  private openActionsEl: HTMLElement | null = null;
+  private chapterActionsCleanup: (() => void) | null = null;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -738,6 +742,7 @@ export class VoicePlayerView extends ItemView {
   }
 
   private renderChapters(chapters: ChapterFile[]): void {
+    this.closeChapterActions();
     this.chaptersListEl.empty();
     if (chapters.length === 0) {
       this.chaptersListEl
@@ -760,19 +765,143 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
-      // Rename control: edit the MP3's file name (kept in the same folder, the
-      // .mp3 extension is preserved). Stops propagation so it doesn't play.
-      const editBtn = item.createDiv({
+      // Actions control: opens a small bar over this row with Move / Rename /
+      // Delete for this track. Stops propagation so it doesn't play.
+      const actionsBtn = item.createDiv({
         cls: "voice-player-chapter-edit",
-        attr: { "aria-label": "Rename track" },
+        attr: { "aria-label": "Track actions" },
       });
-      setIcon(editBtn, "pencil");
-      this.registerDomEvent(editBtn, "click", (evt) => {
+      setIcon(actionsBtn, "more-vertical");
+      this.registerDomEvent(actionsBtn, "click", (evt) => {
         evt.stopPropagation();
-        this.beginRenameChapter(item, chapter);
+        this.openChapterActions(item, chapter);
       });
     });
     this.highlightCurrentChapter();
+  }
+
+  /**
+   * Show a small action bar laid over the chapter row with Move / Rename /
+   * Delete for that track, so the actions clearly belong to that file. Only one
+   * bar is open at a time; clicking elsewhere or pressing Escape closes it.
+   */
+  private openChapterActions(item: HTMLElement, chapter: ChapterFile): void {
+    this.closeChapterActions();
+
+    const bar = item.createDiv({ cls: "voice-player-chapter-actions" });
+    const addBtn = (label: string, onClick: () => void): HTMLButtonElement => {
+      const btn = bar.createEl("button", {
+        cls: "voice-player-chapter-action",
+        text: label,
+      });
+      this.registerDomEvent(btn, "click", (evt) => {
+        evt.stopPropagation();
+        onClick();
+      });
+      return btn;
+    };
+
+    addBtn("Move", () => {
+      this.closeChapterActions();
+      void this.moveChapter(chapter);
+    });
+    addBtn("Rename", () => {
+      this.closeChapterActions();
+      this.beginRenameChapter(item, chapter);
+    });
+    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
+      "mod-warning",
+    );
+
+    this.openActionsEl = bar;
+
+    // Close on outside click / Escape. Deferred so the opening click finishes.
+    const onDocClick = (evt: MouseEvent) => {
+      if (!bar.contains(evt.target as Node)) {
+        this.closeChapterActions();
+      }
+    };
+    const onKey = (evt: KeyboardEvent) => {
+      if (evt.key === "Escape") {
+        this.closeChapterActions();
+      }
+    };
+    window.setTimeout(() => {
+      activeDocument.addEventListener("click", onDocClick, true);
+      activeDocument.addEventListener("keydown", onKey, true);
+    }, 0);
+    this.chapterActionsCleanup = () => {
+      activeDocument.removeEventListener("click", onDocClick, true);
+      activeDocument.removeEventListener("keydown", onKey, true);
+    };
+  }
+
+  /** Remove the open chapter action bar and its listeners, if any. */
+  private closeChapterActions(): void {
+    if (this.chapterActionsCleanup) {
+      this.chapterActionsCleanup();
+      this.chapterActionsCleanup = null;
+    }
+    this.openActionsEl?.remove();
+    this.openActionsEl = null;
+  }
+
+  /** Replace the action bar with a short "Delete this track?" confirmation. */
+  private showDeleteConfirm(bar: HTMLElement, chapter: ChapterFile): void {
+    bar.empty();
+    bar.createSpan({
+      cls: "voice-player-chapter-confirm",
+      text: "Delete this track?",
+    });
+    const del = bar.createEl("button", {
+      cls: "voice-player-chapter-action",
+      text: "Delete",
+    });
+    del.addClass("mod-warning");
+    this.registerDomEvent(del, "click", (evt) => {
+      evt.stopPropagation();
+      this.closeChapterActions();
+      void this.deleteChapter(chapter);
+    });
+    const cancel = bar.createEl("button", {
+      cls: "voice-player-chapter-action",
+      text: "Cancel",
+    });
+    this.registerDomEvent(cancel, "click", (evt) => {
+      evt.stopPropagation();
+      this.closeChapterActions();
+    });
+  }
+
+  /** Open the folder picker for a single chapter and move it there. */
+  private async moveChapter(chapter: ChapterFile): Promise<void> {
+    await this.plugin.iconEventHandler.handleDownloadAudio({
+      forcePicker: true,
+      moveFromPath: chapter.path,
+    });
+    this.refreshContext();
+  }
+
+  /** Delete a chapter's MP3 (after confirmation) and refresh the list. */
+  private async deleteChapter(chapter: ChapterFile): Promise<void> {
+    const file = this.app.vault.getAbstractFileByPath(chapter.path);
+    if (file instanceof TFile) {
+      try {
+        // fileManager.trashFile() needs a newer Obsidian than minAppVersion.
+        // eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file
+        await this.app.vault.delete(file);
+        new Notice(`Deleted: ${chapter.name}`);
+      } catch (error) {
+        new Notice(
+          `Could not delete: ${error instanceof Error ? error.message : String(error)}`,
+        );
+      }
+    }
+    if (this.currentChapterPath === chapter.path) {
+      this.currentChapterPath = null;
+      this.updateTitle();
+    }
+    this.refreshContext();
   }
 
   /**

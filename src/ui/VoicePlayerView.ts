@@ -60,6 +60,9 @@ export class VoicePlayerView extends ItemView {
   private chaptersListEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
   private folderBtn: HTMLButtonElement;
+  // Tracks which icon the download button currently shows, so we only swap it
+  // when the save target changes (the update poller runs every 250ms).
+  private downloadShowsSave = false;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
@@ -570,9 +573,23 @@ export class VoicePlayerView extends ItemView {
     this.folderBtn.disabled = !enabled;
     this.folderBtn.toggleClass("is-disabled", !enabled);
 
+    const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
+
+    // Download button: a floppy-disk icon signals "save to the default folder",
+    // the download arrow signals "save next to the note". Only swap on change.
+    if (hasDefault !== this.downloadShowsSave) {
+      this.downloadShowsSave = hasDefault;
+      setIcon(this.downloadBtn, hasDefault ? "save" : "download");
+    }
+    this.downloadBtn.setAttribute(
+      "aria-label",
+      hasDefault
+        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
+        : "Save next to the note",
+    );
+
     // Tint the folder button when a default folder is set, so it's clear a tap
     // saves into that folder rather than next to the note.
-    const hasDefault = this.plugin.settings.defaultAudioFolder.trim() !== "";
     this.folderBtn.toggleClass("is-active", hasDefault);
     this.folderBtn.setAttribute(
       "aria-label",

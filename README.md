@@ -113,19 +113,19 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
   ![status bar controls](./assets/status-bar-complete.png)
 
-- Use rewind / fast-forward controls and on-the-fly tempo changes for quick navigation.
+- Use rewind / fast-forward and on-the-fly speed changes for quick navigation — from the player or the status bar.
 - Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
-- Adjust speech speed from 0.5× to 1.9× without leaving the status bar.
+- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×) or from the status bar; hotkeys can also jump to preset tempos.
 
-  ![tempo control](./assets/tempo.png)
+  ![speed control](./assets/tempo.png)
 
 ### Personalize the Voice
 
-- Choose from dozens of natural voices across many languages — American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
+- **Pick your voice in the player** — choose from dozens of natural voices across many languages: American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
 
-  ![voice languages](./assets/voices.png)
+  ![voice picker](./assets/voices.png)
 
-- Switch voices instantly from the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
+- Switch voices instantly from the player's voice dropdown or the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
 
 ### Fine-Tune What Gets Spoken
 

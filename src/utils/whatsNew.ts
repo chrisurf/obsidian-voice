@@ -27,7 +27,7 @@ Playback is simpler now — the play button does everything, so the separate Reg
 - **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
 - **Press and hold** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
 
-And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), and **Embed MP3 in note** (📎) with one click, no trip to settings.
+And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) with one click. The settings tab is leaner now, because the things you change while listening live in the player.
 
 ## 📁 Save audio where you want
 

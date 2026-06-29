@@ -99,7 +99,7 @@ orchestrators pick the path by `inputFormat`:
   on mobile). Transport (the play button taps to play / pause / cancel and is
   **held to regenerate**), scrubber, speed, provider/voice pickers, a download
   button (tap saves, hold opens the picker), a **folder button** ("save to a
-  custom folder"), code/acronym/embed toggles, repeat modes, and a **chapter
+  custom folder"), code/acronym/skip-URL/embed toggles, repeat modes, and a **chapter
   list** built from the MP3s in a folder (each chapter has a **⋮** action bar:
   move / rename / delete).
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
@@ -132,7 +132,9 @@ orchestrators pick the path by `inputFormat`:
 - `VoiceSettings.ts` — the `VoiceSettings` interface, `DEFAULT_SETTINGS`, and the
   curated voice/model/region catalogs per provider.
 - `VoiceSettingTab.ts` — the settings UI, grouped under headings
-  (Playback / Reading / Saving audio / Player) plus provider-specific credentials.
+  (Playback / Saving audio / Player) plus provider-specific credentials. Kept
+  deliberately lean: voice, tempo, and the content toggles (read code blocks,
+  spell out acronyms, skip URLs, embed) live in the player, not here.
 - `HotkeySettings.ts` — command registration.
 
 ### Directory map

@@ -17,24 +17,6 @@ export class VoiceSettingTab extends PluginSettingTab {
     this.plugin = plugin;
   }
 
-  private formatSpeedText(speed: number): string {
-    if (speed === 1.0) {
-      return "normal";
-    } else if (speed > 1.0) {
-      const percentage = Math.round((speed - 1) * 100);
-      return `${percentage}% faster`;
-    } else {
-      const percentage = Math.round((1 - speed) * 100);
-      return `${percentage}% slower`;
-    }
-  }
-
-  /** Human-readable tempo label, e.g. "1.0× · normal" or "1.3× · 30% faster". */
-  private formatTempoValue(speed: number): string {
-    const rounded = Math.round(speed * 10) / 10;
-    return `${rounded.toFixed(1)}× · ${this.formatSpeedText(rounded)}`;
-  }
-
   /** Seconds label, e.g. "3s". */
   private formatSecondsValue(seconds: number): string {
     return `${seconds}s`;
@@ -45,31 +27,6 @@ export class VoiceSettingTab extends PluginSettingTab {
     const valueEl = setting.controlEl.createSpan({ cls: "voice-slider-value" });
     valueEl.setText(text);
     return valueEl;
-  }
-
-  private addSliderDirectionalIndicators(sliderEl: HTMLElement): void {
-    // Wrap the slider with directional indicators (styling lives in styles.css)
-    const sliderContainer = sliderEl.parentElement;
-    if (!sliderContainer) return;
-
-    const sliderWrapper = sliderContainer.createDiv({
-      cls: "voice-slider-wrapper",
-    });
-
-    const leftIndicator = sliderWrapper.createSpan({
-      cls: "voice-slider-indicator left",
-    });
-    leftIndicator.textContent = "− slower";
-    leftIndicator.title = "Move left to decrease speed (slower playback)";
-
-    // Move the slider into the wrapper
-    sliderWrapper.appendChild(sliderEl);
-
-    const rightIndicator = sliderWrapper.createSpan({
-      cls: "voice-slider-indicator right",
-    });
-    rightIndicator.textContent = "faster +";
-    rightIndicator.title = "Move right to increase speed (faster playback)";
   }
 
   /**
@@ -128,61 +85,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           });
       });
 
-    // Voice (provider-aware)
-    const provider = this.plugin.getSpeechProvider();
-    new Setting(containerEl)
-      .setName("Voice")
-      .setDesc(
-        "Choose a voice tone, gender, and language for a personalized audio experience.",
-      )
-      .addDropdown((dropdown) => {
-        provider.getVoiceOptions().forEach((voice) => {
-          dropdown.addOption(voice.id, voice.label);
-        });
-        dropdown.setValue(provider.getVoice()).onChange(async (value) => {
-          await this.plugin.persistActiveVoice(value);
-        });
-      });
-
     new Setting(containerEl).setName("Playback").setHeading();
-
-    const tempoSetting = new Setting(containerEl)
-      .setName("Tempo")
-      .setDesc(
-        "Set a preferred reading tempo for pleasant and comfortable audio playback.",
-      );
-    let tempoValueEl: HTMLElement;
-    tempoSetting.addSlider((slider) =>
-      slider
-        .setLimits(0.5, 1.9, 0.1)
-        .setValue(
-          this.plugin.settings.SPEED ||
-            this.plugin.getSpeechProvider().getSpeed(),
-        )
-        .onChange(async (value) => {
-          // Round to nearest 0.1 for clean values
-          const roundedValue = Math.round(value * 10) / 10;
-          this.plugin.settings.SPEED = roundedValue;
-          await this.plugin.saveSettings();
-          this.plugin.getSpeechProvider().setSpeed(roundedValue);
-
-          // Update the status bar speed display
-          this.plugin.iconEventHandler.updateSpeedDisplayFromSettings();
-
-          tempoValueEl.setText(this.formatTempoValue(roundedValue));
-        })
-        .then((slider) => {
-          // Add directional indicators
-          this.addSliderDirectionalIndicators(slider.sliderEl);
-        }),
-    );
-    tempoValueEl = this.appendSliderValue(
-      tempoSetting,
-      this.formatTempoValue(
-        this.plugin.settings.SPEED ||
-          this.plugin.getSpeechProvider().getSpeed(),
-      ),
-    );
 
     const rewindSetting = new Setting(containerEl)
       .setName("Rewind interval")
@@ -228,52 +131,6 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.formatSecondsValue(this.plugin.settings.forwardSeconds),
     );
 
-    new Setting(containerEl).setName("Reading").setHeading();
-
-    new Setting(containerEl)
-      .setName("Spell out acronyms")
-      .setDesc(
-        "Read uppercase words like NASA or API letter by letter (AWS Polly).",
-      )
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.spellOutAcronyms)
-          .onChange(async (value) => {
-            this.plugin.settings.spellOutAcronyms = value;
-            await this.plugin.saveSettings();
-            // Reinitialize TextSpeaker to apply the new setting
-            this.plugin.reinitializeTextSpeaker();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Read code blocks")
-      .setDesc(
-        "Read fenced code blocks aloud instead of announcing a placeholder.",
-      )
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.readCodeBlocks)
-          .onChange(async (value) => {
-            this.plugin.settings.readCodeBlocks = value;
-            await this.plugin.saveSettings();
-            this.plugin.reinitializeTextSpeaker();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Skip website URLs")
-      .setDesc("Remove website URLs from the spoken text, keeping link labels.")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.skipUrls)
-          .onChange(async (value) => {
-            this.plugin.settings.skipUrls = value;
-            await this.plugin.saveSettings();
-            this.plugin.reinitializeTextSpeaker();
-          }),
-      );
-
     new Setting(containerEl).setName("Saving audio").setHeading();
 
     // Informational only — the save location is managed from the player's
@@ -290,18 +147,6 @@ export class VoiceSettingTab extends PluginSettingTab {
           .setValue(this.plugin.settings.autoDownloadAudio)
           .onChange(async (value) => {
             this.plugin.settings.autoDownloadAudio = value;
-            await this.plugin.saveSettings();
-          }),
-      );
-
-    new Setting(containerEl)
-      .setName("Embed in note")
-      .setDesc("Add an audio player to the note when its MP3 is saved.")
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.autoEmbedAudio)
-          .onChange(async (value) => {
-            this.plugin.settings.autoEmbedAudio = value;
             await this.plugin.saveSettings();
           }),
       );

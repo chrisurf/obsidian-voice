@@ -42,7 +42,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 - **Speed on the spot** — nudge playback from 0.5× to 2.0× with the − / + buttons.
 - **Download** — **tap** the save button (⬇) to save the current audio as an MP3 right from the player (into your default folder, or next to the note). **Press and hold** it (or right-click) to open the folder picker and choose a different folder — or pin one as your default.
 - **Save to custom folder** — click the folder button (📂) for a one-click way to save the current audio into a folder you choose (and optionally pin it as your default) — no long press needed.
-- **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
+- **Quick toggles** — flip **Read code blocks** (`</>`), **Spell out acronyms** (`Aa`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) right from the player; each icon highlights when it's on, so there's no trip to settings.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:
 
@@ -120,7 +120,7 @@ These content toggles apply to every provider and are all **off by default**:
 - **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
 - **Save automatically** — automatically save and embed the MP3 after each successful playback (see [Save & Play Audio Offline](#save--play-audio-offline)).
 
-> **Tip:** **Read code blocks**, **Spell out acronyms**, and **Embed MP3 in note** are also one-click icon toggles in the Voice player — no need to open settings.
+> **Tip:** **Read code blocks**, **Spell out acronyms**, **Skip website URLs**, and **Embed MP3 in note** are one-click icon toggles in the Voice player, so they no longer clutter the settings tab — flip them while you listen.
 
 ### Built for Mobile
 
@@ -143,20 +143,15 @@ These content toggles apply to every provider and are all **off by default**:
 
 ## Settings
 
-Everything is configured in one place: **Settings → Voice**. Pick a provider, enter its credentials, choose a voice, and tune playback to your taste.
+Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **content toggles** (read code blocks, spell out acronyms, skip website URLs, embed MP3) — live as one-click controls in the Voice player.
 
 ![Voice settings](./assets/settings.png)
 
 | Setting                      | What it does                                                                                                                                                                                                 |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                       |
-| **Voice**                    | Pick the voice, gender, and language used for playback.                                                                                                                                                      |
-| **Tempo**                    | Set your preferred reading speed (0.5× to 1.9×, default 1.0×).                                                                                                                                               |
 | **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                          |
 | **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
-| **Spell out acronyms**       | Read uppercase words letter by letter (AWS Polly). Off by default.                                                                                                                                           |
-| **Read code blocks**         | Read fenced code blocks aloud instead of skipping them. Off by default.                                                                                                                                      |
-| **Skip website URLs**        | Remove URLs from spoken output while keeping link labels. Off by default.                                                                                                                                    |
 | **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
 | **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
 | **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |

@@ -68,6 +68,7 @@ export class VoicePlayerView extends ItemView {
   private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
   private acronymBtn: HTMLElement;
+  private urlBtn: HTMLElement;
   private embedBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
   private loadingFillEl: HTMLElement;
@@ -288,8 +289,9 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // On/off toggles: read code blocks, spell out acronyms, embed MP3. They sit
-    // in the same row as the action controls, spread evenly across its width.
+    // On/off toggles: read code blocks, spell out acronyms, skip URLs, embed
+    // MP3. They sit in the same row as the action controls, spread evenly
+    // across its width.
     this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
     setIcon(this.codeBtn, "code");
     this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
@@ -301,6 +303,12 @@ export class VoicePlayerView extends ItemView {
     this.registerDomEvent(this.acronymBtn, "click", () =>
       this.toggleAcronyms(),
     );
+
+    this.urlBtn = secondary.createEl("button", {
+      cls: "voice-player-toggle",
+    });
+    setIcon(this.urlBtn, "unlink");
+    this.registerDomEvent(this.urlBtn, "click", () => this.toggleSkipUrls());
 
     this.embedBtn = secondary.createEl("button", {
       cls: "voice-player-toggle",
@@ -499,6 +507,14 @@ export class VoicePlayerView extends ItemView {
     this.updateAcronymButton();
   }
 
+  /** Toggle whether website URLs are skipped (link labels are kept). */
+  private toggleSkipUrls(): void {
+    this.plugin.settings.skipUrls = !this.plugin.settings.skipUrls;
+    void this.plugin.saveSettings();
+    this.plugin.reinitializeTextSpeaker();
+    this.updateUrlButton();
+  }
+
   /** Toggle whether saving an MP3 also embeds an audio player in the note. */
   private toggleEmbed(): void {
     this.plugin.settings.autoEmbedAudio = !this.plugin.settings.autoEmbedAudio;
@@ -515,6 +531,7 @@ export class VoicePlayerView extends ItemView {
     this.populateVoiceOptions();
     this.updateCodeButton();
     this.updateAcronymButton();
+    this.updateUrlButton();
     this.updateEmbedButton();
     this.updateDownloadButton();
   }
@@ -553,6 +570,18 @@ export class VoicePlayerView extends ItemView {
     this.acronymBtn.setAttribute(
       "aria-label",
       on ? "Spell out acronyms: on" : "Spell out acronyms: off",
+    );
+  }
+
+  private updateUrlButton(): void {
+    if (!this.urlBtn) {
+      return;
+    }
+    const on = this.plugin.settings.skipUrls;
+    this.urlBtn.toggleClass("is-active", on);
+    this.urlBtn.setAttribute(
+      "aria-label",
+      on ? "Skip website URLs: on" : "Skip website URLs: off",
     );
   }
 

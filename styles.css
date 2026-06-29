@@ -767,9 +767,11 @@
   cursor: pointer;
 }
 
-/* Action bar over a chapter row: Move / Rename / Delete. Right-aligned and only
+/* Action bar over a chapter row: Delete / Move / Rename. Right-aligned and only
    as wide as its buttons, with the background fading out to the left so the
-   start of the file name stays readable underneath. */
+   start of the file name stays readable underneath. The buttons share the bar's
+   surface as flat text labels (no separate button pills), so nothing spills
+   outside the bar. */
 .voice-player-chapter-actions {
   position: absolute;
   top: 0;
@@ -778,21 +780,44 @@
   z-index: 5;
   display: flex;
   align-items: center;
-  gap: 6px;
-  padding: 0 6px 0 28px;
+  gap: 2px;
+  padding: 0 4px 0 32px;
   border-radius: var(--radius-s);
   background: linear-gradient(
     to right,
     transparent 0,
-    var(--background-secondary-alt) 28px
+    var(--background-secondary-alt) 32px
   );
 }
 
 .voice-player-chapter-action {
-  flex: 0 1 auto;
-  padding: 2px 10px;
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  height: auto;
   font-size: var(--font-ui-smaller);
+  line-height: 1.2;
+  color: var(--text-muted);
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  border-radius: var(--radius-s);
   cursor: pointer;
+}
+
+.voice-player-chapter-action:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.voice-player-chapter-action.mod-warning {
+  color: var(--text-error);
+  background: transparent;
+  box-shadow: none;
+}
+
+.voice-player-chapter-action.mod-warning:hover {
+  color: var(--text-error);
+  background: var(--background-modifier-hover);
 }
 
 .voice-player-chapter-confirm {

@@ -867,8 +867,8 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
-      // Actions control: opens a small bar over this row with Move / Rename /
-      // Delete for this track. Stops propagation so it doesn't play.
+      // Actions control: opens a small bar over this row with Delete / Move /
+      // Rename for this track. Stops propagation so it doesn't play.
       const actionsBtn = item.createDiv({
         cls: "voice-player-chapter-edit",
         attr: { "aria-label": "Track actions" },
@@ -883,8 +883,8 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Show a small action bar laid over the chapter row with Move / Rename /
-   * Delete for that track, so the actions clearly belong to that file. Only one
+   * Show a small action bar laid over the chapter row with Delete / Move /
+   * Rename for that track, so the actions clearly belong to that file. Only one
    * bar is open at a time; clicking elsewhere or pressing Escape closes it.
    */
   private openChapterActions(item: HTMLElement, chapter: ChapterFile): void {
@@ -903,6 +903,11 @@ export class VoicePlayerView extends ItemView {
       return btn;
     };
 
+    // Order left → right: Delete, Move, Rename. Delete is left-most (next to the
+    // faded file name); Rename sits at the screen edge.
+    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
+      "mod-warning",
+    );
     addBtn("Move", () => {
       this.closeChapterActions();
       void this.moveChapter(chapter);
@@ -911,9 +916,6 @@ export class VoicePlayerView extends ItemView {
       this.closeChapterActions();
       this.beginRenameChapter(item, chapter);
     });
-    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
-      "mod-warning",
-    );
 
     this.openActionsEl = bar;
 

@@ -1,6 +1,6 @@
 {
   "name": "voice",
-  "version": "1.15.6",
+  "version": "1.15.7",
   "description": "Obsidian Voice — Text-to-Speech (TTS) plugin that reads your notes aloud in natural, lifelike speech. Turn notes into an audiobook: a podcast-style voice player with chapters, MP3 audio download, offline listening, and speed control. Listen hands-free on desktop, iOS & Android. Powered by AWS Polly, ElevenLabs, OpenAI, Google Cloud Text-to-Speech & Azure Speech — your credentials stay private. Great for learning, accessibility, and reinforcing ideas by listening.",
   "main": "main.js",
   "scripts": {

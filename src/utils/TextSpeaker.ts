@@ -3,6 +3,12 @@ import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { MarkdownToSSMLProcessor } from "../processors/MarkdownToSSMLProcessor";
 import { MarkdownToTextProcessor } from "../processors/MarkdownToTextProcessor";
+import {
+  NO_NOTE_MESSAGE,
+  EMPTY_NOTE_MESSAGE,
+  READ_ERROR_MESSAGE,
+  friendlySpeechError,
+} from "./speechFeedback";
 import { Notice } from "obsidian";
 
 /**
@@ -79,11 +85,25 @@ export class TextSpeaker {
     const requestId = this.provider.startOperation();
 
     try {
-      // Get raw markdown content
-      const rawText = await this.markdownHelper.getMarkdownView();
+      // Get the note text to read (or a reason it couldn't be read)
+      const read = await this.markdownHelper.getMarkdownView();
 
       // Validate request still active after async operation
       if (!this.provider.isCurrentRequest(requestId)) {
+        return;
+      }
+
+      // Friendly feedback instead of reading an error string aloud: no note
+      // open, an unreadable note, or a note with no text to speak.
+      if (!read.ok) {
+        new Notice(
+          read.reason === "no-note" ? NO_NOTE_MESSAGE : READ_ERROR_MESSAGE,
+        );
+        return;
+      }
+      const rawText = read.text;
+      if (rawText.trim() === "") {
+        new Notice(EMPTY_NOTE_MESSAGE);
         return;
       }
 
@@ -123,7 +143,7 @@ export class TextSpeaker {
       console.error("Error in text-to-speech processing:", error);
       const errorMessage =
         error instanceof Error ? error.message : String(error);
-      new Notice(`Voice Plugin Error: ${errorMessage}`);
+      new Notice(friendlySpeechError(errorMessage));
     } finally {
       // Always cleanup operation, even if cancelled or error occurred
       this.provider.endOperation(requestId);
@@ -144,7 +164,9 @@ export class TextSpeaker {
     if (!result.isValid) {
       console.error("SSML validation errors:", result.errors);
       new Notice(
-        `Voice Plugin: SSML validation failed\n${result.errors.join("\n")}`,
+        friendlySpeechError(
+          `SSML validation failed: ${result.errors.join("; ")}`,
+        ),
       );
       return null;
     }

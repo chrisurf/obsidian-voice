@@ -201,8 +201,8 @@ export class VoicePlayerView extends ItemView {
     this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
       attr: {
-        "aria-label": "Play / pause — hold to regenerate",
-        title: "Tap: play, pause or cancel · Hold: regenerate from scratch",
+        "aria-label":
+          "Tap: play, pause or cancel · Hold: regenerate from scratch",
       },
     });
     setIcon(this.playPauseBtn, "play");
@@ -260,8 +260,8 @@ export class VoicePlayerView extends ItemView {
     this.folderBtn = secondary.createEl("button", {
       cls: "voice-player-folder-btn",
       attr: {
-        "aria-label": "Save to custom folder",
-        title: "Save to a folder you choose (and optionally pin it as default)",
+        "aria-label":
+          "Save or move audio to a folder you choose (optionally pin it as your default)",
       },
     });
     setIcon(this.folderBtn, "folder-open");
@@ -725,15 +725,10 @@ export class VoicePlayerView extends ItemView {
         : "Save next to the note",
     );
 
-    // Tint the folder button when a default folder is set, so it's clear a tap
-    // saves into that folder rather than next to the note.
+    // Tint the folder button when a default folder is set, so it's clear one is
+    // configured. Its tooltip stays the descriptive save/move text set at
+    // creation — the button always opens the picker regardless of the default.
     this.folderBtn.toggleClass("is-active", hasDefault);
-    this.folderBtn.setAttribute(
-      "aria-label",
-      hasDefault
-        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
-        : "Save to custom folder",
-    );
   }
 
   private changeSpeed(delta: number): void {

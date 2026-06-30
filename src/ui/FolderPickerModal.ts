@@ -41,9 +41,9 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       .filter((f): f is TFolder => f instanceof TFolder)
       .map((f) => normalizeFolderPath(f.path));
 
-    this.setPlaceholder("Search folders to save audio…");
+    this.setPlaceholder("Search folders to save / move audio…");
     this.setInstructions([
-      { command: "↵", purpose: "save here" },
+      { command: "↵", purpose: "save / move here" },
       { command: "📌", purpose: "set default" },
       { command: "★", purpose: "favorite" },
       { command: "esc", purpose: "cancel" },

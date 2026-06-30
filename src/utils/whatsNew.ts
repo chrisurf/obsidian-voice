@@ -73,7 +73,7 @@ Voice started out as AWS Polly only — now it supports all the major engines, s
 - **ElevenLabs** — premade & multilingual voices.
 - **OpenAI** — built-in voices (Alloy, Nova, …) with GPT-4o mini TTS.
 - **Google Cloud Text-to-Speech** — plus extra hotkey commands.
-- **Azure AI Speech** — neural voices across many languages.
+- **Azure AI Speech** — neural voices across many languages. **New:** press **Test Credentials** and Voice loads your account's full Azure catalog (hundreds of voices), grouped by language in the picker.
 
 **Your audio files**
 

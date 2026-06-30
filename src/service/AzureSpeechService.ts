@@ -6,6 +6,7 @@ import {
 } from "../settings/VoiceSettings";
 import { BaseSpeechService } from "./BaseSpeechService";
 import type { CredentialValidationResult } from "./SpeechProvider";
+import { mapAzureVoices } from "./voiceCatalog";
 
 /**
  * Azure AI Speech (Cognitive Services) Text-to-Speech integration.
@@ -30,20 +31,35 @@ export class AzureSpeechService extends BaseSpeechService {
 
   private apiKey: string;
   private region: string;
+  // The full catalog fetched on "Test Credentials" (cached in settings). Falls
+  // back to the curated AZURE_VOICES list until the user has validated.
+  private dynamicVoices: VoiceOption[] | null;
 
-  constructor(apiKey: string, region: string, voice: string, speed?: number) {
+  constructor(
+    apiKey: string,
+    region: string,
+    voice: string,
+    speed?: number,
+    voiceCatalog?: VoiceOption[],
+  ) {
     super(voice, speed);
     this.apiKey = apiKey;
     this.region = region;
+    this.dynamicVoices =
+      voiceCatalog && voiceCatalog.length > 0 ? voiceCatalog : null;
   }
 
   getVoiceOptions(): VoiceOption[] {
-    return AZURE_VOICES;
+    return this.dynamicVoices ?? AZURE_VOICES;
   }
 
   updateCredentials(settings: VoiceSettings): void {
     this.apiKey = settings.AZURE_API_KEY;
     this.region = settings.AZURE_REGION;
+    this.dynamicVoices =
+      settings.azureVoiceCatalog && settings.azureVoiceCatalog.length > 0
+        ? settings.azureVoiceCatalog
+        : null;
   }
 
   /**
@@ -180,10 +196,11 @@ export class AzureSpeechService extends BaseSpeechService {
       });
 
       if (response.status === 200) {
-        const voices = response.json ?? [];
+        const mapped = mapAzureVoices(response.json);
         return {
           isValid: true,
-          voiceCount: Array.isArray(voices) ? voices.length : undefined,
+          voiceCount: mapped.length,
+          voices: mapped,
         };
       }
       if (response.status === 401 || response.status === 403) {

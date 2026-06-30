@@ -18,6 +18,7 @@ import {
 } from "../utils/chapters";
 import { attachPressGesture } from "../utils/pressGesture";
 import { noteAudioPath } from "../utils/audioFolders";
+import { groupVoicesByLanguage } from "../service/voiceCatalog";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -200,8 +201,8 @@ export class VoicePlayerView extends ItemView {
     this.playPauseBtn = transport.createEl("button", {
       cls: "voice-player-btn voice-player-play",
       attr: {
-        "aria-label": "Play / pause — hold to regenerate",
-        title: "Tap: play, pause or cancel · Hold: regenerate from scratch",
+        "aria-label":
+          "Tap: play, pause or cancel · Hold: regenerate from scratch",
       },
     });
     setIcon(this.playPauseBtn, "play");
@@ -259,8 +260,8 @@ export class VoicePlayerView extends ItemView {
     this.folderBtn = secondary.createEl("button", {
       cls: "voice-player-folder-btn",
       attr: {
-        "aria-label": "Save to custom folder",
-        title: "Save to a folder you choose (and optionally pin it as default)",
+        "aria-label":
+          "Save or move audio to a folder you choose (optionally pin it as your default)",
       },
     });
     setIcon(this.folderBtn, "folder-open");
@@ -609,17 +610,32 @@ export class VoicePlayerView extends ItemView {
     this.updateDownloadButton();
   }
 
-  /** Rebuild the voice dropdown from the active provider's catalog. */
+  /**
+   * Rebuild the voice dropdown from the active provider's catalog, grouped by
+   * language into <optgroup>s so large catalogs (e.g. Azure's full voice list)
+   * stay navigable.
+   */
   private populateVoiceOptions(): void {
     this.voiceSelect.empty();
     const provider = this.provider();
-    provider.getVoiceOptions().forEach((voice) => {
-      this.voiceSelect.createEl("option", {
-        value: voice.id,
-        text: voice.label,
+    groupVoicesByLanguage(provider.getVoiceOptions()).forEach((group) => {
+      const optgroup = this.voiceSelect.createEl("optgroup", {
+        attr: { label: group.label },
+      });
+      group.voices.forEach((voice) => {
+        optgroup.createEl("option", { value: voice.id, text: voice.label });
       });
     });
     this.voiceSelect.value = provider.getVoice();
+  }
+
+  /**
+   * Public hook so the plugin can resync the player's selectors/toggles after
+   * settings change elsewhere (e.g. a freshly fetched voice catalog from the
+   * settings tab's "Test Credentials").
+   */
+  syncControls(): void {
+    this.refreshControls();
   }
 
   private updateCodeButton(): void {
@@ -709,15 +725,10 @@ export class VoicePlayerView extends ItemView {
         : "Save next to the note",
     );
 
-    // Tint the folder button when a default folder is set, so it's clear a tap
-    // saves into that folder rather than next to the note.
+    // Tint the folder button when a default folder is set, so it's clear one is
+    // configured. Its tooltip stays the descriptive save/move text set at
+    // creation — the button always opens the picker regardless of the default.
     this.folderBtn.toggleClass("is-active", hasDefault);
-    this.folderBtn.setAttribute(
-      "aria-label",
-      hasDefault
-        ? `Save to default folder (${this.plugin.settings.defaultAudioFolder})`
-        : "Save to custom folder",
-    );
   }
 
   private changeSpeed(delta: number): void {
@@ -867,8 +878,8 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
-      // Actions control: opens a small bar over this row with Move / Rename /
-      // Delete for this track. Stops propagation so it doesn't play.
+      // Actions control: opens a small bar over this row with Delete / Move /
+      // Rename for this track. Stops propagation so it doesn't play.
       const actionsBtn = item.createDiv({
         cls: "voice-player-chapter-edit",
         attr: { "aria-label": "Track actions" },
@@ -883,8 +894,8 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Show a small action bar laid over the chapter row with Move / Rename /
-   * Delete for that track, so the actions clearly belong to that file. Only one
+   * Show a small action bar laid over the chapter row with Delete / Move /
+   * Rename for that track, so the actions clearly belong to that file. Only one
    * bar is open at a time; clicking elsewhere or pressing Escape closes it.
    */
   private openChapterActions(item: HTMLElement, chapter: ChapterFile): void {
@@ -903,6 +914,11 @@ export class VoicePlayerView extends ItemView {
       return btn;
     };
 
+    // Order left → right: Delete, Move, Rename. Delete is left-most (next to the
+    // faded file name); Rename sits at the screen edge.
+    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
+      "mod-warning",
+    );
     addBtn("Move", () => {
       this.closeChapterActions();
       void this.moveChapter(chapter);
@@ -911,9 +927,6 @@ export class VoicePlayerView extends ItemView {
       this.closeChapterActions();
       this.beginRenameChapter(item, chapter);
     });
-    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
-      "mod-warning",
-    );
 
     this.openActionsEl = bar;
 

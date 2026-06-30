@@ -44,8 +44,13 @@ jobs:
         with:
           bump_each_commit: false
           tag_prefix: ""
-          major_pattern: "BREAKING CHANGE:"
-          minor_pattern: "feat:"
+          # Patterns are regular expressions (wrapped in /.../). Plain strings
+          # would be matched literally, so a scoped Conventional Commit like
+          # "feat(player): …" would NOT contain the substring "feat:" and would
+          # be missed — bumping only the patch instead of the minor. The regexes
+          # below allow an optional scope "(...)" and the breaking-change "!".
+          major_pattern: "/^[a-z]+(\\([^)]+\\))?!:|BREAKING CHANGE:/"
+          minor_pattern: "/^feat(\\([^)]+\\))?!?:/"
           bump_each_commit_patch_pattern: "fix:|docs:|style:|refactor:|perf:|test:|build:|ci:|chore:"
 
       - name: Verify version does not exist

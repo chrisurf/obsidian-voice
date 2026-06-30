@@ -9,7 +9,14 @@ import {
 
 /** A pickable vault folder, or the "create a new folder" affordance. */
 type FolderSuggestion =
-  | { kind: "folder"; path: string; isFavorite: boolean; isDefault: boolean }
+  | {
+      kind: "folder";
+      path: string;
+      isFavorite: boolean;
+      isDefault: boolean;
+      /** First "plain" folder below the default/favorite block — draws a divider. */
+      sectionStart?: boolean;
+    }
   | { kind: "create"; path: string };
 
 /**
@@ -34,9 +41,9 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       .filter((f): f is TFolder => f instanceof TFolder)
       .map((f) => normalizeFolderPath(f.path));
 
-    this.setPlaceholder("Search folders to save audio…");
+    this.setPlaceholder("Search folders to save / move audio…");
     this.setInstructions([
-      { command: "↵", purpose: "save here" },
+      { command: "↵", purpose: "save / move here" },
       { command: "📌", purpose: "set default" },
       { command: "★", purpose: "favorite" },
       { command: "esc", purpose: "cancel" },
@@ -77,6 +84,19 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       }),
     );
 
+    // Mark the first plain folder (neither default nor favorite) so the list
+    // shows a divider between the picked-out block at the top and the rest.
+    // Ordering puts default/favorites first, so anything before it is "picked".
+    const firstOther = matches.findIndex(
+      (m) => m.kind === "folder" && !m.isFavorite && !m.isDefault,
+    );
+    if (firstOther > 0) {
+      const item = matches[firstOther];
+      if (item.kind === "folder") {
+        item.sectionStart = true;
+      }
+    }
+
     // Offer to create a folder when the query does not name an existing one.
     const normalizedQuery = normalizeFolderPath(query.trim());
     if (q !== "" && !this.allFolders.some((p) => p.toLowerCase() === q)) {
@@ -99,8 +119,11 @@ export class FolderPickerModal extends SuggestModal<FolderSuggestion> {
       return;
     }
 
-    // Highlight the active default folder so it stands out at the top.
+    // Highlight the active default folder and favorites so they stand out at
+    // the top, and start a new section at the first plain folder below them.
     el.toggleClass("is-default", item.isDefault);
+    el.toggleClass("is-favorite", item.isFavorite);
+    el.toggleClass("is-section-start", !!item.sectionStart);
 
     const icon = el.createSpan({ cls: "voice-folder-suggestion-icon" });
     setIcon(icon, item.path === "/" ? "home" : "folder");

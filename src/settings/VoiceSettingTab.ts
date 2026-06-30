@@ -599,6 +599,18 @@ export class VoiceSettingTab extends PluginSettingTab {
         const result = await tempProvider.validateCredentials();
 
         if (result.isValid) {
+          // Cache a freshly fetched voice catalog (Azure) so the picker can
+          // offer every voice grouped by language, then resync the player.
+          if (
+            result.voices &&
+            result.voices.length > 0 &&
+            this.plugin.settings.TTS_PROVIDER === "azure"
+          ) {
+            this.plugin.settings.azureVoiceCatalog = result.voices;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+            this.plugin.refreshVoicePlayerControls();
+          }
           updateStatus(true, "", false, result.voiceCount);
         } else {
           updateStatus(false, result.error || "Validation failed", false);

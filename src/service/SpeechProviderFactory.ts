@@ -35,6 +35,7 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.AZURE_REGION,
       settings.AZURE_VOICE,
       Number(settings.SPEED),
+      settings.azureVoiceCatalog,
     );
   } else if (settings.TTS_PROVIDER === "openai") {
     provider = new OpenAiSpeechService(

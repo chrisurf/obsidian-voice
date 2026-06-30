@@ -41,10 +41,33 @@ describe("Unit Tests - Azure Speech Provider", () => {
       expect(mockRequestUrl).not.toHaveBeenCalled();
     });
 
-    test("reports voice count on a successful response", async () => {
+    test("reports the mapped voices and count on a successful response", async () => {
       mockRequestUrl.mockResolvedValue({
         status: 200,
-        json: [{ ShortName: "a" }, { ShortName: "b" }],
+        json: [
+          {
+            ShortName: "en-US-JennyNeural",
+            DisplayName: "Jenny",
+            Gender: "Female",
+            Locale: "en-US",
+            LocaleName: "English (United States)",
+            VoiceType: "Neural",
+          },
+          {
+            ShortName: "de-DE-ConradNeural",
+            DisplayName: "Conrad",
+            Gender: "Male",
+            Locale: "de-DE",
+            LocaleName: "German (Germany)",
+            VoiceType: "Neural",
+          },
+          // Legacy non-Neural voice — excluded from the catalog and the count.
+          {
+            ShortName: "en-US-ZiraRUS",
+            Locale: "en-US",
+            VoiceType: "Standard",
+          },
+        ],
       });
       const service = new AzureSpeechService(
         "key",
@@ -54,6 +77,10 @@ describe("Unit Tests - Azure Speech Provider", () => {
       const result = await service.validateCredentials();
       expect(result.isValid).toBe(true);
       expect(result.voiceCount).toBe(2);
+      expect(result.voices?.map((v) => v.id)).toEqual([
+        "en-US-JennyNeural",
+        "de-DE-ConradNeural",
+      ]);
     });
 
     test("treats HTTP 401 as an invalid key/region", async () => {

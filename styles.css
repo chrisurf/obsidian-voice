@@ -1043,7 +1043,37 @@
 
 .voice-folder-suggestion-pin:hover,
 .voice-folder-suggestion-pin.is-default,
-.voice-folder-suggestion-star:hover,
-.voice-folder-suggestion-star.is-favorite {
+.voice-folder-suggestion-star:hover {
   color: var(--text-accent);
+}
+
+/* Favorites use a distinct gold accent so they read differently from the
+   purple default: the star and the folder icon on the left both pick it up.
+   The default (purple) wins on the icon when a folder is both. */
+.voice-folder-suggestion-star.is-favorite {
+  color: var(--color-yellow);
+}
+
+.voice-folder-suggestion.is-favorite:not(.is-default)
+  .voice-folder-suggestion-icon {
+  color: var(--color-yellow);
+}
+
+/* Visual break between the default/favorite block at the top and all other
+   folders, with a small caption so the two sections read distinctly. */
+.voice-folder-suggestion.is-section-start {
+  position: relative;
+  margin-top: 22px;
+  border-top: 1px solid var(--background-modifier-border);
+}
+
+.voice-folder-suggestion.is-section-start::before {
+  content: "Other folders";
+  position: absolute;
+  left: 0;
+  top: -18px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }

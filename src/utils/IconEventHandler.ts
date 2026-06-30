@@ -7,6 +7,7 @@ import { FolderPickerModal } from "../ui/FolderPickerModal";
 import { FileConflictModal } from "../ui/FileConflictModal";
 import { resolveSaveFolder } from "./audioFolders";
 import { attachPressGesture } from "./pressGesture";
+import { friendlySpeechError } from "./speechFeedback";
 
 export class IconEventHandler {
   private pollyService: SpeechProvider;
@@ -524,8 +525,10 @@ export class IconEventHandler {
     // Reset spinning icons back to play state
     this.resetIconsToPlayState();
 
-    // Show error notification to user
-    new Notice(`🔊 Voice Plugin: ${errorMessage}`, 5000);
+    // Show error notification to user. Map internal synthesis details (SSML
+    // build/chunking) to a friendly message; actionable provider messages
+    // (invalid key, quota) pass through unchanged.
+    new Notice(`🔊 Voice Plugin: ${friendlySpeechError(errorMessage)}`, 5000);
 
     // Auto-hide error after 3 seconds
     window.setTimeout(() => {

@@ -129,8 +129,20 @@ export class TextSpeaker {
       // Get current file path for caching
       const activeFilePath = this.markdownHelper.getActiveFilePath();
 
-      // Hand the processed content to the active provider
-      await this.provider.speak(content, speed, activeFilePath || undefined);
+      // Hand the processed content to the active provider. The provider already
+      // surfaces its own failures through the error callback (a single friendly
+      // notice via IconEventHandler), so swallow the re-thrown error here rather
+      // than showing a duplicate notice; the outer catch only handles errors
+      // that don't come from synthesis (e.g. the content pipeline).
+      try {
+        await this.provider.speak(content, speed, activeFilePath || undefined);
+      } catch (speakError) {
+        if (speakError instanceof Error && speakError.name === "AbortError") {
+          return;
+        }
+        console.error("Speech synthesis failed:", speakError);
+        return;
+      }
 
       // Auto-save the generated audio to the note if the user enabled it
       await this.iconEventHandler.maybeAutoDownloadAudio();

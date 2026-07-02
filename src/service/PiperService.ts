@@ -51,20 +51,16 @@ export class PiperService extends BaseSpeechService {
    * "/synthesize" for OHF-Voice/piper1-gpl; "/" for legacy rhasspy/piper.
    */
   private synthesisPath: string | null = null;
+  private voiceCatalog: VoiceOption[];
 
-  constructor(serverUrl: string, voice: string, speed?: number) {
+  constructor(serverUrl: string, voice: string, speed?: number, voiceCatalog?: VoiceOption[]) {
     super(voice, speed);
     this.serverUrl = normalizeUrl(serverUrl);
+    this.voiceCatalog = voiceCatalog ?? [];
   }
 
   getVoiceOptions(): VoiceOption[] {
-    // Piper voices are local model files with no fixed catalog. The list is
-    // populated at runtime by validateCredentials() fetching /voices from the
-    // running server, and cached in settings.piperVoiceCatalog by the settings
-    // tab (same pattern as Azure). An empty array here is intentional - the
-    // player always uses getVoiceOptions() from the live provider instance,
-    // which VoicePlugin keeps in sync via reinitializeProviderCredentials().
-    return [];
+    return this.voiceCatalog;
   }
 
   updateCredentials(settings: VoiceSettings): void {
@@ -75,6 +71,7 @@ export class PiperService extends BaseSpeechService {
     }
     this.serverUrl = newUrl;
     this.voice = settings.PIPER_VOICE ?? "";
+    this.voiceCatalog = settings.piperVoiceCatalog ?? [];
   }
 
   /**

@@ -50,6 +50,7 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.PIPER_URL,
       settings.PIPER_VOICE,
       Number(settings.SPEED),
+      settings.piperVoiceCatalog,
     );
   } else {
     provider = new AwsPollyService(

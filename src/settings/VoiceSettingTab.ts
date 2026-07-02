@@ -6,6 +6,7 @@ import {
   OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  PIPER_DEFAULT_URL,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
@@ -64,6 +65,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("google", "Google Cloud")
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
+          .addOption("piper", "Piper (local)")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as
@@ -71,7 +73,8 @@ export class VoiceSettingTab extends PluginSettingTab {
               | "elevenlabs"
               | "google"
               | "azure"
-              | "openai";
+              | "openai"
+              | "piper";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -190,9 +193,57 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayAzureSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
       this.displayOpenAISettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "piper") {
+      this.displayPiperSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
+  }
+
+  private displayPiperSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Piper (local)").setHeading();
+
+    new Setting(containerEl)
+      .setName("Server URL")
+      .setDesc("URL of the running Piper HTTP server.")
+      .addText((text) =>
+        text
+          .setPlaceholder(PIPER_DEFAULT_URL)
+          .setValue(this.plugin.settings.PIPER_URL)
+          .onChange(async (value) => {
+            this.plugin.settings.PIPER_URL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Voice")
+      .setDesc(
+        'Model name to request from the server, e.g. "en_US-lessac-medium". Leave blank to use the server\'s loaded default.',
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("en_US-lessac-medium")
+          .setValue(this.plugin.settings.PIPER_VOICE)
+          .onChange(async (value) => {
+            this.plugin.settings.PIPER_VOICE = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          }),
+      );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Piper",
+      isConfigured: () => !!this.plugin.settings.PIPER_URL,
+      missingMessage: "Please enter the Piper server URL before testing.",
+      promptMessage: `Enter the server URL above (default: ${PIPER_DEFAULT_URL}), then click "Test Connection" to verify`,
+      helpText: "New to Piper? ",
+      helpUrl:
+        "https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/API_HTTP.md",
+      sectionTitle: "Connection Test",
+      testButtonLabel: "Test Connection",
+    });
   }
 
   private displayOpenAISettings(containerEl: HTMLElement): void {
@@ -494,6 +545,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       promptMessage: string;
       helpText: string;
       helpUrl: string;
+      sectionTitle?: string;
+      testButtonLabel?: string;
     },
   ): void {
     const validationContainer = containerEl.createDiv({
@@ -506,12 +559,13 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     headerRow.createDiv({
       cls: "voice-validation-title",
-      text: "Credential Validation",
+      text: opts.sectionTitle ?? "Credential Validation",
     });
 
+    const buttonLabel = opts.testButtonLabel ?? "Test Credentials";
     const testButton = headerRow.createEl("button", {
       cls: "voice-validation-test-button",
-      text: "Test Credentials",
+      text: buttonLabel,
     });
 
     const statusContainer = validationContainer.createDiv({
@@ -565,13 +619,13 @@ export class VoiceSettingTab extends PluginSettingTab {
       }
 
       testButton.disabled = false;
-      testButton.textContent = "Test Credentials";
+      testButton.textContent = buttonLabel;
 
       if (isValid === true) {
         statusIndicator.addClass("is-valid");
         statusText.addClass("is-valid");
         statusText.textContent = voiceCount
-          ? `✓ Credentials valid! Found ${voiceCount} voices available.`
+          ? `✓ Credentials valid! Found ${voiceCount} voice(s) available.`
           : "✓ Credentials are valid!";
         helpContainer.removeClass("is-visible");
       } else if (isValid === false) {
@@ -599,17 +653,20 @@ export class VoiceSettingTab extends PluginSettingTab {
         const result = await tempProvider.validateCredentials();
 
         if (result.isValid) {
-          // Cache a freshly fetched voice catalog (Azure) so the picker can
-          // offer every voice grouped by language, then resync the player.
-          if (
-            result.voices &&
-            result.voices.length > 0 &&
-            this.plugin.settings.TTS_PROVIDER === "azure"
-          ) {
-            this.plugin.settings.azureVoiceCatalog = result.voices;
-            await this.plugin.saveSettings();
-            this.plugin.reinitializeProviderCredentials();
-            this.plugin.refreshVoicePlayerControls();
+          // Cache a freshly fetched voice catalog (Azure, Piper) so the picker
+          // can offer every voice grouped by language, then resync the player.
+          if (result.voices && result.voices.length > 0) {
+            if (this.plugin.settings.TTS_PROVIDER === "azure") {
+              this.plugin.settings.azureVoiceCatalog = result.voices;
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeProviderCredentials();
+              this.plugin.refreshVoicePlayerControls();
+            } else if (this.plugin.settings.TTS_PROVIDER === "piper") {
+              this.plugin.settings.piperVoiceCatalog = result.voices;
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeProviderCredentials();
+              this.plugin.refreshVoicePlayerControls();
+            }
           }
           updateStatus(true, "", false, result.voiceCount);
         } else {

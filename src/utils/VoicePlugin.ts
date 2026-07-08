@@ -3,6 +3,8 @@ import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import { WindowsSpeechService } from "../service/WindowsSpeechService";
+import type { VoiceOption } from "../settings/VoiceSettings";
 import { Plugin, Platform, Notice } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
@@ -69,6 +71,7 @@ export class Voice extends Plugin {
     this.app.workspace.onLayoutReady(() => {
       void this.placeDefaultPlayerPane();
       this.maybeShowWhatsNew();
+      this.maybeRefreshWindowsVoices();
     });
   }
 
@@ -191,6 +194,62 @@ export class Voice extends Plugin {
     this.speechProvider = createSpeechProvider(this.settings);
     this.iconEventHandler.setProvider(this.speechProvider);
     this.reinitializeTextSpeaker();
+    this.maybeRefreshWindowsVoices();
+  }
+
+  /**
+   * When the Windows provider is active but no voice catalog is cached yet,
+   * scan the installed voices in the background so the picker fills in without
+   * the user having to open settings and press "Test Credentials".
+   */
+  private maybeRefreshWindowsVoices(): void {
+    if (this.settings.TTS_PROVIDER !== "windows") {
+      return;
+    }
+    const catalog = this.settings.windowsVoiceCatalog;
+    if (catalog && catalog.length > 0) {
+      return;
+    }
+    void this.refreshWindowsVoiceCatalog();
+  }
+
+  private async refreshWindowsVoiceCatalog(): Promise<void> {
+    try {
+      const voices = await WindowsSpeechService.listVoices();
+      await this.applyWindowsVoiceCatalog(voices);
+    } catch (error) {
+      console.error("[Voice] Windows voice scan failed:", error);
+    }
+  }
+
+  /**
+   * Persist a freshly scanned Windows voice catalog, defaulting the active
+   * voice to one matching the app locale when the current choice is invalid,
+   * then resync the running provider and any open player panes. Mirrors the
+   * Azure voice-catalog flow.
+   */
+  public async applyWindowsVoiceCatalog(voices: VoiceOption[]): Promise<void> {
+    if (!voices || voices.length === 0) {
+      return;
+    }
+    this.settings.windowsVoiceCatalog = voices;
+
+    let voiceId = this.settings.WINDOWS_VOICE;
+    if (!voiceId || !voices.some((v) => v.id === voiceId)) {
+      const locale = (window.navigator?.language || "en-US").toLowerCase();
+      const prefix = locale.slice(0, 2);
+      const match = voices.find((v) => v.lang.toLowerCase().startsWith(prefix));
+      voiceId = (match ?? voices[0]).id;
+      this.settings.WINDOWS_VOICE = voiceId;
+    }
+    await this.saveSettings();
+
+    if (this.settings.TTS_PROVIDER === "windows") {
+      this.reinitializeProviderCredentials();
+      this.speechProvider.setVoice(voiceId);
+      this.iconEventHandler.updateVoiceDisplay();
+    }
+    this.refreshVoicePlayerControls();
   }
 
   /**
@@ -233,6 +292,8 @@ export class Voice extends Plugin {
       this.settings.AZURE_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "openai") {
       this.settings.OPENAI_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "windows") {
+      this.settings.WINDOWS_VOICE = voiceId;
     } else {
       this.settings.VOICE = voiceId;
     }

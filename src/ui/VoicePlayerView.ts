@@ -29,6 +29,7 @@ type RepeatMode = "none" | "one" | "all";
 
 /** Selectable TTS providers, mirroring the settings tab. */
 const PROVIDERS: { id: TtsProvider; label: string }[] = [
+  { id: "windows", label: "Windows Native" },
   { id: "polly", label: "AWS Polly" },
   { id: "elevenlabs", label: "ElevenLabs" },
   { id: "google", label: "Google Cloud" },

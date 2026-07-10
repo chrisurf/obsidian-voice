@@ -963,23 +963,29 @@
 
 /* Tap-vs-hold save gesture (issue #57): a ring fills around the save button
    while it is held, signalling that the folder picker is about to open. The
-   --press custom property (0→1) is driven from pressGesture.ts. */
+   --press custom property (0→1) is driven from pressGesture.ts. Rendered as an
+   SVG stroke ring (not a CSS mask) so it stays within Obsidian's supported CSS
+   feature set — the mask/clip-path forms are only partially supported. */
 .voice-pressing {
   position: relative;
 }
 
-.voice-pressing::after {
-  content: "";
+.voice-press-ring {
   position: absolute;
   inset: -3px;
-  border-radius: 50%;
-  background: conic-gradient(
-    var(--interactive-accent) calc(var(--press, 0) * 360deg),
-    transparent 0deg
-  );
-  -webkit-mask: radial-gradient(closest-side, transparent 68%, #000 70%);
-  mask: radial-gradient(closest-side, transparent 68%, #000 70%);
+  width: calc(100% + 6px);
+  height: calc(100% + 6px);
   pointer-events: none;
+  transform: rotate(-90deg);
+}
+
+.voice-press-ring circle {
+  fill: none;
+  stroke: var(--interactive-accent);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-dasharray: 100;
+  stroke-dashoffset: calc(100 * (1 - var(--press, 0)));
 }
 
 /* File-conflict modal: the ".mp3" suffix shown next to the rename field. */

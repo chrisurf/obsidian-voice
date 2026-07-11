@@ -702,8 +702,11 @@ export class VoicePlayerView extends ItemView {
       : false;
     const hasLoadedChapter = this.currentChapterPath !== null;
 
-    this.downloadBtn.disabled = !hasGeneratedAudio;
-    this.downloadBtn.toggleClass("is-disabled", !hasGeneratedAudio);
+    // Keep the button interactive (no native `disabled`, no pointer-events:none)
+    // so a hold still opens the folder picker with no audio; just dim it to hint
+    // a plain tap has nothing to save.
+    this.downloadBtn.disabled = false;
+    this.downloadBtn.toggleClass("is-muted", !hasGeneratedAudio);
 
     // Folder button works for both saving fresh audio and moving a chapter.
     const folderEnabled = hasGeneratedAudio || hasLoadedChapter;

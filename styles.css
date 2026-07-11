@@ -673,13 +673,18 @@
   color: var(--interactive-accent);
 }
 
-.voice-player-download:disabled,
-.voice-player-download.is-disabled,
 .voice-player-folder-btn:disabled,
 .voice-player-folder-btn.is-disabled {
   opacity: 0.3;
   cursor: default;
   pointer-events: none;
+}
+
+/* The download/save button stays interactive even with no audio to save, so a
+   press-and-hold can still open the folder picker (e.g. to pin a default
+   folder). It only dims to hint that a plain tap has nothing to save. */
+.voice-player-download.is-muted {
+  opacity: 0.4;
 }
 
 .voice-player-repeat {

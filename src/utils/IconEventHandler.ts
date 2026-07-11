@@ -674,7 +674,38 @@ export class IconEventHandler {
         return;
       }
 
-      // Saving (tap or hold without a loaded chapter) needs the note's audio.
+      // Hold / folder button (no loaded chapter to move): open the folder
+      // picker. This works even without generated audio, so a default folder
+      // can be pinned any time — the picker persists pin/favorite changes on its
+      // own. When the note does have audio, save it into the chosen folder.
+      if (options?.forcePicker) {
+        const noteFile = this.plugin.app.workspace.getActiveFile();
+        const noteAudio = noteFile
+          ? this.pollyService.getLastGeneratedAudio(noteFile.path)
+          : null;
+
+        const folder = await FolderPickerModal.open(
+          this.plugin.app,
+          this.voice,
+        );
+        this.refreshSaveAffordances();
+        if (folder === null) {
+          return;
+        }
+        if (noteFile && noteAudio) {
+          await this.audioFileManager.saveOrMove({
+            kind: "save",
+            blob: noteAudio,
+            baseName: noteFile.basename,
+            folder,
+            embed: this.voice.settings.autoEmbedAudio,
+            resolveConflict,
+          });
+        }
+        return;
+      }
+
+      // Plain tap: save the note's audio to the default/note folder. Needs audio.
       const activeFile = this.plugin.app.workspace.getActiveFile();
       if (!activeFile) {
         new Notice("No active file found");
@@ -689,37 +720,15 @@ export class IconEventHandler {
         );
         return;
       }
-
-      // Plain tap: save to the default/note folder, overwriting silently
-      // (re-saving the same note's audio is expected).
-      if (!options?.forcePicker) {
-        const folder = resolveSaveFolder(
-          this.voice.settings.defaultAudioFolder,
-          activeFile.parent?.path || "",
-        );
-        await this.audioFileManager.downloadAndEmbed(
-          audioBlob,
-          this.voice.settings.autoEmbedAudio,
-          folder,
-        );
-        return;
-      }
-
-      // Hold / folder button: pick a folder, then save into it (with a prompt
-      // on same-name conflicts).
-      const folder = await FolderPickerModal.open(this.plugin.app, this.voice);
-      this.refreshSaveAffordances();
-      if (folder === null) {
-        return;
-      }
-      await this.audioFileManager.saveOrMove({
-        kind: "save",
-        blob: audioBlob,
-        baseName: activeFile.basename,
+      const folder = resolveSaveFolder(
+        this.voice.settings.defaultAudioFolder,
+        activeFile.parent?.path || "",
+      );
+      await this.audioFileManager.downloadAndEmbed(
+        audioBlob,
+        this.voice.settings.autoEmbedAudio,
         folder,
-        embed: this.voice.settings.autoEmbedAudio,
-        resolveConflict,
-      });
+      );
     } catch (error) {
       console.error("Error downloading audio:", error);
       new Notice(`Failed to download audio: ${error.message}`);

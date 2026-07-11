@@ -1,0 +1,51 @@
+name: Lockfiles in sync
+
+# The project supports BOTH package managers: contributors may use npm or yarn.
+# That only works if both lockfiles stay in step with package.json — otherwise
+# `npm ci` (npm users, CI, release) or `yarn install --frozen-lockfile` (yarn
+# users) breaks. This guard fails the PR whenever either lockfile has drifted,
+# so a dependency change must update package-lock.json AND yarn.lock together.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "feature/*"
+      - "fix/*"
+      - "chore/*"
+      - "release/*"
+
+jobs:
+  lockfiles:
+    name: npm + yarn lockfiles
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Use Node.js
+        uses: actions/setup-node@v5
+        with:
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      # `npm ci` refuses to run if package-lock.json and package.json disagree,
+      # so it doubles as the npm lockfile-sync check.
+      - name: Verify package-lock.json is in sync (npm)
+        run: |
+          npm ci || {
+            echo "::error::package-lock.json is out of sync with package.json. Run 'npm install', then commit package-lock.json (and keep yarn.lock in sync too)."
+            exit 1
+          }
+
+      # `--frozen-lockfile` makes yarn fail instead of updating yarn.lock, so it
+      # doubles as the yarn lockfile-sync check. Runner ships Yarn 1 (classic),
+      # matching the repo's yarn.lock format.
+      - name: Verify yarn.lock is in sync (yarn)
+        run: |
+          yarn install --frozen-lockfile || {
+            echo "::error::yarn.lock is out of sync with package.json. Run 'yarn install', then commit yarn.lock (and keep package-lock.json in sync too)."
+            exit 1
+          }

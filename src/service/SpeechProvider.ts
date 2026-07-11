@@ -37,6 +37,12 @@ export interface SpeechProvider {
   readonly inputFormat: "ssml" | "text";
 
   /**
+   * Controls whether the text pipeline emits pause
+   * tags or falls back to newline-separated plain text.
+   */
+  readonly supportsBreakTags: boolean;
+
+  /**
    * Synthesize and play the given processed content.
    */
   speak(content: string, speed?: number, filePath?: string): Promise<void>;

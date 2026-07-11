@@ -6,7 +6,8 @@ export type TtsProvider =
   | "elevenlabs"
   | "google"
   | "azure"
-  | "openai";
+  | "openai"
+  | "piper";
 
 /**
  * Where saved MP3s are written.
@@ -51,6 +52,14 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+
+  // Piper (local TTS server)
+  PIPER_URL: string;   // default: see PIPER_DEFAULT_URL
+  PIPER_VOICE: string; // model name, e.g. "en_US-lessac-medium"; empty = server default
+  // Piper: voice catalog fetched from /voices on "Test Connection", cached so
+  // the player can show available voices grouped by language. Empty/undefined
+  // until the user validates the connection.
+  piperVoiceCatalog?: VoiceOption[];
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -99,6 +108,9 @@ export interface VoiceSettings {
  * Bounds and default for the rewind/fast-forward skip interval (seconds)
  */
 export const MIN_SKIP_SECONDS = 1;
+
+/** Default URL for the Piper HTTP server. */
+export const PIPER_DEFAULT_URL = "http://localhost:5000";
 export const MAX_SKIP_SECONDS = 60;
 export const DEFAULT_SKIP_SECONDS = 3;
 
@@ -370,6 +382,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+
+  PIPER_URL: PIPER_DEFAULT_URL,
+  PIPER_VOICE: "",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

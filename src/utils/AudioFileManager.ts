@@ -46,8 +46,15 @@ export class AudioFileManager {
       const dir = this.resolveSaveDir(params.folder, "");
       await this.ensureFolderExists(dir);
 
+      // Derive extension from the blob MIME type for saves, or from the
+      // existing file for moves (WAV from Piper, MP3 from cloud providers).
+      const ext =
+        params.kind === "move"
+          ? (params.sourceFile?.extension ?? "mp3")
+          : blobExtension(params.blob);
+
       const pathFor = (base: string): string =>
-        normalizePath(dir ? `${dir}/${base}.mp3` : `${base}.mp3`);
+        normalizePath(dir ? `${dir}/${base}.${ext}` : `${base}.${ext}`);
       const sourcePath = params.sourceFile?.path;
 
       // Resolve same-name conflicts (a rename can still collide, so loop).
@@ -62,11 +69,11 @@ export class AudioFileManager {
           break;
         }
         const choice = await params.resolveConflict({
-          fileName: `${baseName}.mp3`,
+          fileName: `${baseName}.${ext}`,
           folder: dir === "" ? "the vault root" : dir,
           suggested: suggestFreeBaseName(
             baseName,
-            this.mp3BaseNamesInFolder(dir),
+            this.audioBaseNamesInFolder(dir, ext),
           ),
         });
         if (choice.action === "cancel") {
@@ -88,7 +95,7 @@ export class AudioFileManager {
 
       await this.writeBlob(params.blob, finalPath);
       if (params.embed) {
-        await this.insertAudioEmbed(`${baseName}.mp3`);
+        await this.insertAudioEmbed(`${baseName}.${ext}`);
       }
     } catch (error) {
       console.error("Error saving/moving audio:", error);
@@ -135,14 +142,14 @@ export class AudioFileManager {
     }
   }
 
-  /** Base names (no extension) of the MP3s already in a vault folder. */
-  private mp3BaseNamesInFolder(dir: string): string[] {
+  /** Base names (no extension) of audio files with the given extension already in a vault folder. */
+  private audioBaseNamesInFolder(dir: string, ext: string): string[] {
     const target = normalizeFolderPath(dir === "" ? "/" : dir);
     return this.app.vault
       .getFiles()
       .filter(
         (f) =>
-          f.extension === "mp3" &&
+          f.extension === ext &&
           normalizeFolderPath(f.parent?.path ?? "/") === target,
       )
       .map((f) => f.basename);
@@ -167,13 +174,14 @@ export class AudioFileManager {
         return null;
       }
 
-      // Construct MP3 filename based on active file
+      // Construct audio filename based on active file
       const fileName = activeFile.basename;
       const fileDir = this.resolveSaveDir(
         targetFolder,
         activeFile.parent?.path || "",
       );
-      const audioFileName = `${fileName}.mp3`;
+      const ext = blobExtension(audioBlob);
+      const audioFileName = `${fileName}.${ext}`;
       const audioFilePath = normalizePath(
         fileDir ? `${fileDir}/${audioFileName}` : audioFileName,
       );
@@ -328,7 +336,7 @@ export class AudioFileManager {
       }
 
       const fileName = activeFile.basename;
-      const audioFileName = `${fileName}.mp3`;
+      const audioFileName = `${fileName}.${blobExtension(audioBlob)}`;
 
       // Save the audio file
       const savedFile = await this.saveAudioFile(audioBlob, targetFolder);
@@ -345,4 +353,12 @@ export class AudioFileManager {
       new Notice(`Error downloading audio: ${error.message}`);
     }
   }
+}
+
+/**
+ * Derive a file extension from a Blob's MIME type.
+ * Returns "wav" for WAV audio (Piper), "mp3" for everything else.
+ */
+function blobExtension(blob: Blob | undefined): string {
+  return blob?.type === "audio/wav" ? "wav" : "mp3";
 }

@@ -38,32 +38,15 @@ export function attachPressGesture(
   let moved = false;
   let rafId: number | null = null;
   let startTime = 0;
-  // The SVG stroke ring shown while holding; its stroke is driven by --press.
-  let ring: SVGElement | null = null;
 
   const holdEnabled = () =>
     handlers.isHoldEnabled ? handlers.isHoldEnabled() : true;
-
-  const addRing = () => {
-    const svg = el.createSvg("svg", {
-      cls: "voice-press-ring",
-      attr: { viewBox: "0 0 36 36", "aria-hidden": "true" },
-    });
-    // pathLength=100 normalizes the dash math so --press (0→1) fills the ring
-    // regardless of the button's actual size.
-    svg.createSvg("circle", {
-      attr: { cx: "18", cy: "18", r: "16", pathLength: "100" },
-    });
-    ring = svg;
-  };
 
   const clearVisual = () => {
     if (rafId !== null) {
       window.cancelAnimationFrame(rafId);
       rafId = null;
     }
-    ring?.remove();
-    ring = null;
     el.removeClass("voice-pressing");
     el.style.removeProperty("--press");
   };
@@ -103,7 +86,6 @@ export function attachPressGesture(
         // Capture is best-effort; ignore if unsupported.
       }
       el.addClass("voice-pressing");
-      addRing();
       startTime = performance.now();
       el.setCssProps({ "--press": "0" });
       rafId = window.requestAnimationFrame(tick);

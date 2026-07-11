@@ -673,13 +673,18 @@
   color: var(--interactive-accent);
 }
 
-.voice-player-download:disabled,
-.voice-player-download.is-disabled,
 .voice-player-folder-btn:disabled,
 .voice-player-folder-btn.is-disabled {
   opacity: 0.3;
   cursor: default;
   pointer-events: none;
+}
+
+/* The download/save button stays interactive even with no audio to save, so a
+   press-and-hold can still open the folder picker (e.g. to pin a default
+   folder). It only dims to hint that a plain tap has nothing to save. */
+.voice-player-download.is-muted {
+  opacity: 0.4;
 }
 
 .voice-player-repeat {
@@ -961,9 +966,13 @@
   transition: width 0.2s ease;
 }
 
-/* Tap-vs-hold save gesture (issue #57): a ring fills around the save button
-   while it is held, signalling that the folder picker is about to open. The
-   --press custom property (0→1) is driven from pressGesture.ts. */
+/* Tap-vs-hold save gesture (issue #57): a translucent accent sweep fills around
+   the button while it is held, signalling that the hold action is about to
+   fire. The --press custom property (0→1) is driven from pressGesture.ts. It's a
+   pseudo-element conic sweep (not a CSS mask, and not a child element) so it
+   never collides with the button's icon — which is re-rendered via setIcon — and
+   stays within Obsidian's supported CSS feature set (mask/clip-path are only
+   partially supported). */
 .voice-pressing {
   position: relative;
 }
@@ -977,8 +986,7 @@
     var(--interactive-accent) calc(var(--press, 0) * 360deg),
     transparent 0deg
   );
-  -webkit-mask: radial-gradient(closest-side, transparent 68%, #000 70%);
-  mask: radial-gradient(closest-side, transparent 68%, #000 70%);
+  opacity: 0.3;
   pointer-events: none;
 }
 

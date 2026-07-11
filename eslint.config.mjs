@@ -35,6 +35,9 @@ export default [
       // TypeScript itself reports undefined identifiers; the core no-undef
       // rule double-reports TS types/Node globals and is off for TS projects.
       "no-undef": "off",
+      // Flag redundant `as`/`!` assertions (the official plugin scanner reports
+      // these). Type-aware; kept on so they don't creep back in.
+      "@typescript-eslint/no-unnecessary-type-assertion": "error",
       // Disabled deliberately:
       // - ui/sentence-case rewrites proper nouns/brand names incorrectly
       //   (e.g. "ElevenLabs" -> "Elevenlabs", AWS region names) and is not a

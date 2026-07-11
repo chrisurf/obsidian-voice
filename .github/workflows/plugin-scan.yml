@@ -1,0 +1,57 @@
+name: Plugin Scan (Obsidian review parity)
+
+# Reproduces the checks the Obsidian community-hub automated review runs on each
+# release, so the same findings are flagged during the PR instead of after
+# release (avoiding a scorecard/review downgrade). Runs on every pull request
+# into main and on the working branches.
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - "feature/*"
+      - "fix/*"
+      - "chore/*"
+      - "release/*"
+
+jobs:
+  scan:
+    name: Scan
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Formatting
+        run: npm run format:check
+
+      - name: Lint (Obsidian guidelines)
+        run: npm run lint:check
+
+      - name: Typed lint (redundant type assertions, strict type info)
+        run: npm run lint:scan
+
+      - name: CSS browser-feature compatibility (Obsidian baseline)
+        run: npm run lint:css
+
+      - name: Security audit (production dependencies)
+        run: npm audit --omit=dev --audit-level=high
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test

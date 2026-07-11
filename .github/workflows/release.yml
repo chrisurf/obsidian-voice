@@ -15,15 +15,16 @@ jobs:
       attestations: write
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Set up Node.js environment
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
-          cache: "yarn"
+          node-version: "24"
+          cache: "npm"
+          cache-dependency-path: package-lock.json
 
       - name: Retrieve last tag
         id: get_last_tag
@@ -117,18 +118,18 @@ jobs:
 
       - name: Install project dependencies
         run: |
-          echo "Installing dependencies with yarn"
-          yarn install --frozen-lockfile
+          echo "Installing dependencies with npm (package-lock.json is the source of truth)"
+          npm ci
 
       - name: Lint (Obsidian guidelines)
         run: |
           echo "Enforcing Obsidian plugin guidelines (eslint-plugin-obsidianmd)"
-          yarn lint:check
+          npm run lint:check
 
       - name: Build plugin artifacts
         run: |
           echo "Building Obsidian plugin"
-          yarn build
+          npm run build
 
       - name: Verify required plugin files
         id: verify_files

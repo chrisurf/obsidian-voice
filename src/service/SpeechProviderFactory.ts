@@ -9,6 +9,7 @@ import { ElevenLabsService } from "./ElevenLabsService";
 import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
+import { WindowsSpeechService } from "./WindowsSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -43,6 +44,12 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.OPENAI_VOICE,
       settings.OPENAI_MODEL,
       Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "windows") {
+    provider = new WindowsSpeechService(
+      settings.WINDOWS_VOICE,
+      Number(settings.SPEED),
+      settings.windowsVoiceCatalog,
     );
   } else {
     provider = new AwsPollyService(

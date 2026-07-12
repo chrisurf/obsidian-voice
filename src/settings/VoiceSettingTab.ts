@@ -55,10 +55,11 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Speech Provider")
       .setDesc(
-        "Choose which text-to-speech engine to use. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
+        "Choose which text-to-speech engine to use. Windows Native uses the voices built into Windows — fully offline, no API key. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
       )
       .addDropdown((dropdown) => {
         dropdown
+          .addOption("windows", "Windows Native (offline)")
           .addOption("polly", "AWS Polly")
           .addOption("elevenlabs", "ElevenLabs")
           .addOption("google", "Google Cloud")
@@ -71,7 +72,8 @@ export class VoiceSettingTab extends PluginSettingTab {
               | "elevenlabs"
               | "google"
               | "azure"
-              | "openai";
+              | "openai"
+              | "windows";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -182,7 +184,9 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     // Provider-specific credentials
-    if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
+    if (this.plugin.settings.TTS_PROVIDER === "windows") {
+      this.displayWindowsSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
       this.displayElevenLabsSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "google") {
       this.displayGoogleSettings(containerEl);
@@ -193,6 +197,31 @@ export class VoiceSettingTab extends PluginSettingTab {
     } else {
       this.displayPollySettings(containerEl);
     }
+  }
+
+  private displayWindowsSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Windows native speech").setHeading();
+
+    const catalog = this.plugin.settings.windowsVoiceCatalog ?? [];
+    new Setting(containerEl)
+      .setName("Voices")
+      .setDesc(
+        catalog.length > 0
+          ? `${catalog.length} voices detected on this PC. Pick the active voice in the Voice player. To add more voices, open Windows Settings → Time & Language → Speech → Manage voices, then re-run the scan below.`
+          : "No voices detected yet. Click 'Test Credentials' below to scan the voices installed on this PC.",
+      );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Windows",
+      isConfigured: () => true,
+      missingMessage: "",
+      promptMessage:
+        "Click 'Test Credentials' to scan the voices installed on this PC",
+      helpText:
+        "Uses the voices built into Windows — no API key and no internet needed. Want more voices? ",
+      helpUrl:
+        "https://support.microsoft.com/en-us/windows/appendix-a-supported-languages-and-voices-4486e345-7730-53da-fcfe-55cc64300f01",
+    });
   }
 
   private displayOpenAISettings(containerEl: HTMLElement): void {
@@ -610,6 +639,17 @@ export class VoiceSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.reinitializeProviderCredentials();
             this.plugin.refreshVoicePlayerControls();
+          }
+          // Cache the Windows voice scan and pick a sensible default voice.
+          if (
+            result.voices &&
+            result.voices.length > 0 &&
+            this.plugin.settings.TTS_PROVIDER === "windows"
+          ) {
+            await this.plugin.applyWindowsVoiceCatalog(result.voices);
+            // Re-render so the "N voices detected" description updates.
+            // eslint-disable-next-line @typescript-eslint/no-deprecated
+            this.display();
           }
           updateStatus(true, "", false, result.voiceCount);
         } else {

@@ -20,6 +20,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
 - **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, and **Azure Speech**), so you can listen with whichever one you already use. Every feature works the same on all of them.
+- **Or go fully offline** — **Windows Native** reads your notes with the voices built into Windows. No API key, no account, no internet — everything runs on your PC. (Desktop, Windows only.)
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
@@ -166,7 +167,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 | Setting                         | What it does                                                                                                                                                                                                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                                                                                                    |
+| **Speech Provider**             | Choose the engine: **Windows Native** (offline, no key), **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, or **OpenAI**. The credential fields below adapt to your choice.                                                                                                 |
 | **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
 | **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
 | **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
@@ -230,6 +231,8 @@ Start with the provider you already have — you can switch anytime.
 **Azure Speech** — In the [Azure portal](https://portal.azure.com/), create a **Speech** resource and copy a **Key** and **Region**. In **Settings → Voice**, choose **Azure Speech**, select the matching region, pick a voice, paste the key, and press **Test Credentials**.
 
 **OpenAI** — Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). In **Settings → Voice**, choose **OpenAI**, pick a model and voice, paste the key, and press **Test Credentials**.
+
+**Windows Native (offline)** — No account or key needed. In **Settings → Voice**, choose **Windows Native**, then press **Test Credentials** to scan the voices installed on your PC; pick one in the Voice player. Synthesis runs entirely offline through the Windows speech engine (via `powershell.exe`) and saves as MP3 like every other provider. Add more languages under **Windows Settings → Time & Language → Speech → Manage voices**, then re-scan. Desktop, Windows only.
 
 ## Troubleshooting & Help
 

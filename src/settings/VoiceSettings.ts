@@ -6,7 +6,8 @@ export type TtsProvider =
   | "elevenlabs"
   | "google"
   | "azure"
-  | "openai";
+  | "openai"
+  | "windows";
 
 /**
  * Where saved MP3s are written.
@@ -51,6 +52,15 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+
+  // Windows native (offline) speech
+  // The chosen voice id, encoded as "<engine>|<name>" (e.g.
+  // "onecore|Microsoft Hortense"); empty means the system default voice.
+  WINDOWS_VOICE: string;
+  // The voices detected on this PC, cached from a "Test Credentials" scan so
+  // the picker can offer every installed voice grouped by language. Empty until
+  // the first scan; a single "system default voice" entry is the fallback.
+  windowsVoiceCatalog?: VoiceOption[];
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -370,6 +380,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+
+  WINDOWS_VOICE: "",
+  windowsVoiceCatalog: [],
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

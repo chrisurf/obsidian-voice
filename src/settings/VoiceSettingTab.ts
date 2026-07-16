@@ -8,9 +8,14 @@ import {
   MAX_SKIP_SECONDS,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import { normalizeBaseUrl } from "../service/modelCatalog";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
+
+  // Repopulates the OpenAI model dropdown in place after "Test Credentials"
+  // caches a fresh catalog from a custom server.
+  private refreshOpenAiModelDropdown?: () => void;
 
   constructor(app: App, plugin: Voice) {
     super(app, plugin);
@@ -199,27 +204,60 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl).setName("OpenAI").setHeading();
 
     new Setting(containerEl)
-      .setName("Model")
+      .setName("Custom server URL")
       .setDesc(
-        "The OpenAI text-to-speech model. GPT-4o mini TTS is recommended; TTS-1 favours latency and TTS-1 HD favours quality.",
+        "Base URL of an OpenAI-compatible server for self-hosted text-to-speech (e.g. https://tts.example.com/openai/v1). Leave empty to use OpenAI. With a custom server the model list is fetched from the server and the API key is optional.",
       )
-      .addDropdown((dropdown) => {
-        OPENAI_MODELS.forEach((model) => {
-          dropdown.addOption(model.id, model.label);
-        });
-        dropdown
-          .setValue(this.plugin.settings.OPENAI_MODEL)
+      .addText((text) => {
+        text
+          .setPlaceholder("https://api.openai.com/v1")
+          .setValue(this.plugin.settings.OPENAI_BASE_URL)
           .onChange(async (value) => {
-            this.plugin.settings.OPENAI_MODEL = value;
+            this.plugin.settings.OPENAI_BASE_URL = value;
+            // The cached catalog belongs to the previous server.
+            this.plugin.settings.openaiModelCatalog = undefined;
             await this.plugin.saveSettings();
             this.plugin.reinitializeProviderCredentials();
+            this.refreshOpenAiModelDropdown?.();
           });
+      });
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "The text-to-speech model. For OpenAI, GPT-4o mini TTS is recommended; TTS-1 favours latency and TTS-1 HD favours quality. With a custom server, the list shows the server's models after 'Test Credentials'.",
+      )
+      .addDropdown((dropdown) => {
+        const populate = () => {
+          dropdown.selectEl.empty();
+          const catalog =
+            normalizeBaseUrl(this.plugin.settings.OPENAI_BASE_URL) &&
+            this.plugin.settings.openaiModelCatalog?.length
+              ? this.plugin.settings.openaiModelCatalog
+              : OPENAI_MODELS;
+          catalog.forEach((model) => {
+            dropdown.addOption(model.id, model.label);
+          });
+          // Keep the stored selection visible even when the catalog lacks it.
+          const current = this.plugin.settings.OPENAI_MODEL;
+          if (current && !catalog.some((model) => model.id === current)) {
+            dropdown.addOption(current, current);
+          }
+          dropdown.setValue(current);
+        };
+        populate();
+        this.refreshOpenAiModelDropdown = populate;
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.OPENAI_MODEL = value;
+          await this.plugin.saveSettings();
+          this.plugin.reinitializeProviderCredentials();
+        });
       });
 
     this.addPasswordSetting(
       containerEl,
       "OpenAI API Key",
-      "Your OpenAI API key (from the OpenAI dashboard → API keys).",
+      "Your OpenAI API key (from the OpenAI dashboard → API keys). With a custom server, the key the server expects — or empty if it needs none.",
       "Enter your OpenAI API key",
       this.plugin.settings.OPENAI_API_KEY,
       async (value) => {
@@ -231,8 +269,11 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     this.renderCredentialValidation(containerEl, {
       providerName: "OpenAI",
-      isConfigured: () => !!this.plugin.settings.OPENAI_API_KEY,
-      missingMessage: "Please enter your OpenAI API key before testing.",
+      isConfigured: () =>
+        !!this.plugin.settings.OPENAI_API_KEY ||
+        !!normalizeBaseUrl(this.plugin.settings.OPENAI_BASE_URL),
+      missingMessage:
+        "Please enter your OpenAI API key (or a custom server URL) before testing.",
       promptMessage:
         "Enter your OpenAI API key above, then click 'Test Credentials' to validate",
       helpText: "Need an OpenAI API key? ",
@@ -610,6 +651,17 @@ export class VoiceSettingTab extends PluginSettingTab {
             await this.plugin.saveSettings();
             this.plugin.reinitializeProviderCredentials();
             this.plugin.refreshVoicePlayerControls();
+          }
+
+          // Same for a model catalog from a custom OpenAI-compatible server.
+          if (
+            result.models &&
+            result.models.length > 0 &&
+            this.plugin.settings.TTS_PROVIDER === "openai"
+          ) {
+            this.plugin.settings.openaiModelCatalog = result.models;
+            await this.plugin.saveSettings();
+            this.refreshOpenAiModelDropdown?.();
           }
           updateStatus(true, "", false, result.voiceCount);
         } else {

@@ -10,7 +10,11 @@
  * differ between providers.
  */
 
-import type { VoiceSettings, VoiceOption } from "../settings/VoiceSettings";
+import type {
+  VoiceSettings,
+  VoiceOption,
+  ModelOption,
+} from "../settings/VoiceSettings";
 
 /**
  * Result of validating a provider's credentials
@@ -26,6 +30,11 @@ export interface CredentialValidationResult {
    * instead of only the small hardcoded fallback list.
    */
   voices?: VoiceOption[];
+  /**
+   * Model catalog fetched during validation (an OpenAI-compatible server's
+   * /models), cached by the settings tab like `voices` above.
+   */
+  models?: ModelOption[];
 }
 
 export interface SpeechProvider {

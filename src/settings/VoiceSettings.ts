@@ -51,6 +51,12 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+  // OpenAI: base URL of an OpenAI-compatible server (self-hosted TTS).
+  // Empty means the official OpenAI API.
+  OPENAI_BASE_URL: string;
+  // OpenAI: model catalog fetched from a custom server's /models on "Test
+  // Credentials"; the curated OPENAI_MODELS list is the fallback.
+  openaiModelCatalog?: ModelOption[];
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -370,6 +376,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+  OPENAI_BASE_URL: "",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

@@ -43,6 +43,7 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.OPENAI_VOICE,
       settings.OPENAI_MODEL,
       Number(settings.SPEED),
+      settings.OPENAI_BASE_URL,
     );
   } else {
     provider = new AwsPollyService(

@@ -8,6 +8,7 @@ import {
 } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
+import { KOKORO_LANGUAGES } from "../settings/VoiceSettings";
 import {
   chapterName,
   listChapters,
@@ -34,6 +35,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "google", label: "Google Cloud" },
   { id: "azure", label: "Azure Speech" },
   { id: "openai", label: "OpenAI" },
+  { id: "kokoro", label: "Kokoro" },
 ];
 
 /**
@@ -67,6 +69,7 @@ export class VoicePlayerView extends ItemView {
   private downloadShowsSave = false;
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
+  private kokoroLangSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
   private codeBtn: HTMLElement;
   private acronymBtn: HTMLElement;
@@ -340,6 +343,21 @@ export class VoicePlayerView extends ItemView {
       this.changeVoice(this.voiceSelect.value),
     );
 
+    // Kokoro language code selector (only shown when Kokoro is active).
+    this.kokoroLangSelect = options.createEl("select", {
+      cls: "voice-player-select dropdown",
+      attr: { "aria-label": "Kokoro language" },
+    });
+    KOKORO_LANGUAGES.forEach((lang) =>
+      this.kokoroLangSelect.createEl("option", {
+        value: lang.id,
+        text: lang.label,
+      }),
+    );
+    this.registerDomEvent(this.kokoroLangSelect, "change", () =>
+      this.changeKokoroLanguage(this.kokoroLangSelect.value),
+    );
+
     // Folder picker: choose any vault folder that contains MP3s and list its
     // tracks as chapters, so the player can browse audio across the vault.
     const folderRow = root.createDiv({ cls: "voice-player-folder" });
@@ -564,6 +582,14 @@ export class VoicePlayerView extends ItemView {
     void this.plugin.persistActiveVoice(voiceId);
   }
 
+  /** Persist and apply the chosen Kokoro language code. */
+  private changeKokoroLanguage(langCode: string): void {
+    if (langCode === this.plugin.settings.KOKORO_LANG_CODE) {
+      return;
+    }
+    void this.plugin.persistKokoroLanguage(langCode);
+  }
+
   /** Toggle whether code blocks are read aloud. */
   private toggleCodeBlocks(): void {
     this.plugin.settings.readCodeBlocks = !this.plugin.settings.readCodeBlocks;
@@ -603,6 +629,9 @@ export class VoicePlayerView extends ItemView {
     }
     this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
     this.populateVoiceOptions();
+    this.kokoroLangSelect.value = this.plugin.settings.KOKORO_LANG_CODE;
+    this.kokoroLangSelect.style.display =
+      this.plugin.settings.TTS_PROVIDER === "kokoro" ? "" : "none";
     this.updateCodeButton();
     this.updateAcronymButton();
     this.updateUrlButton();

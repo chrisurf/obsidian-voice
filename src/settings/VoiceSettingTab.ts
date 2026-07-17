@@ -4,6 +4,7 @@ import {
   ELEVENLABS_MODELS,
   AZURE_REGIONS,
   OPENAI_MODELS,
+  KOKORO_VOICES,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
 } from "./VoiceSettings";
@@ -64,6 +65,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("google", "Google Cloud")
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
+          .addOption("kokoro", "Kokoro (local)")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as
@@ -71,7 +73,8 @@ export class VoiceSettingTab extends PluginSettingTab {
               | "elevenlabs"
               | "google"
               | "azure"
-              | "openai";
+              | "openai"
+              | "kokoro";
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -190,6 +193,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayAzureSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
       this.displayOpenAISettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "kokoro") {
+      this.displayKokoroSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
@@ -237,6 +242,62 @@ export class VoiceSettingTab extends PluginSettingTab {
         "Enter your OpenAI API key above, then click 'Test Credentials' to validate",
       helpText: "Need an OpenAI API key? ",
       helpUrl: "https://platform.openai.com/api-keys",
+    });
+  }
+
+  private displayKokoroSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Kokoro TTS").setHeading();
+
+    this.addTextSetting(
+      containerEl,
+      "Base URL",
+      "The local Kokoro-FastAPI endpoint (e.g. http://localhost:8880).",
+      "http://localhost:8880",
+      this.plugin.settings.KOKORO_BASE_URL,
+      async (value) => {
+        this.plugin.settings.KOKORO_BASE_URL = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    new Setting(containerEl)
+      .setName("Voice")
+      .setDesc("The Kokoro voice pack to use for synthesis.")
+      .addDropdown((dropdown) => {
+        KOKORO_VOICES.forEach((voice) => {
+          dropdown.addOption(voice.id, voice.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.KOKORO_VOICE)
+          .onChange(async (value) => {
+            this.plugin.settings.KOKORO_VOICE = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addTextSetting(
+      containerEl,
+      "Model",
+      "The model identifier sent to Kokoro (usually 'kokoro').",
+      "kokoro",
+      this.plugin.settings.KOKORO_MODEL,
+      async (value) => {
+        this.plugin.settings.KOKORO_MODEL = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Kokoro",
+      isConfigured: () => !!this.plugin.settings.KOKORO_BASE_URL,
+      missingMessage: "Please enter the Kokoro base URL before testing.",
+      promptMessage:
+        "Enter the Kokoro base URL above, then click 'Test Credentials' to validate",
+      helpText: "Need a local Kokoro server? ",
+      helpUrl: "https://github.com/remsky/Kokoro-FastAPI",
     });
   }
 
@@ -477,6 +538,25 @@ export class VoiceSettingTab extends PluginSettingTab {
               button.setTooltip(isVisible ? "Hide" : "Show");
             }
           });
+      });
+  }
+
+  /**
+   * Render a plain text setting (no password toggle).
+   */
+  private addTextSetting(
+    containerEl: HTMLElement,
+    name: string,
+    desc: string,
+    placeholder: string,
+    value: string,
+    onChange: (value: string) => Promise<void>,
+  ): void {
+    new Setting(containerEl)
+      .setName(name)
+      .setDesc(desc)
+      .addText((text) => {
+        text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
       });
   }
 

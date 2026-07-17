@@ -28,6 +28,7 @@ const MAX_SSML_CHUNK_CHARS = 2500;
 
 export class AzureSpeechService extends BaseSpeechService {
   readonly inputFormat = "ssml" as const;
+  readonly supportsBreakTags = false;
 
   private apiKey: string;
   private region: string;

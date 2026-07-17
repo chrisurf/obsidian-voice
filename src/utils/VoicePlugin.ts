@@ -242,6 +242,17 @@ export class Voice extends Plugin {
   }
 
   /**
+   * Persist the chosen Kokoro language code, recreate the provider with the
+   * new lang_code, and refresh the player controls.
+   */
+  public async persistKokoroLanguage(langCode: string): Promise<void> {
+    this.settings.KOKORO_LANG_CODE = langCode;
+    await this.saveSettings();
+    this.reinitializeProvider();
+    this.refreshVoicePlayerControls();
+  }
+
+  /**
    * Apply the configured rewind/fast-forward skip intervals to the running
    * provider and refresh the control tooltips. Called when the user changes
    * the interval in settings (no audio interruption).

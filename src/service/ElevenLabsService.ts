@@ -28,6 +28,7 @@ const MAX_CHUNK_CHARS = 3000;
 
 export class ElevenLabsService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
+  readonly supportsBreakTags = true;
 
   private apiKey: string;
   private model: string;

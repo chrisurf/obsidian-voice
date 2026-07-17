@@ -1,6 +1,6 @@
 import { requestUrl } from "obsidian";
 import {
-  OPENAI_VOICES,
+  KOKORO_VOICES,
   type VoiceOption,
   type VoiceSettings,
 } from "../settings/VoiceSettings";
@@ -9,49 +9,58 @@ import type { CredentialValidationResult } from "./SpeechProvider";
 import { chunkPlainText } from "./textChunker";
 
 /**
- * OpenAI Text-to-Speech integration.
+ * Kokoro TTS integration (local or self-hosted via Kokoro-FastAPI).
  *
- * - Receives plain spoken text from TextSpeaker (OpenAI's speech endpoint does
- *   not support SSML, so the text pipeline is used instead of the SSML pipeline).
+ * - Receives plain spoken text from TextSpeaker (Kokoro accepts plain text).
  * - Chunks long notes to stay within the per-request input limit and
  *   concatenates the resulting MP3 blobs.
- * - Uses Obsidian's requestUrl() with a Bearer token to bypass browser CORS
- *   (same rationale as the other HTTP providers) and to keep the key out of
- *   fetch/XHR client requests.
- * - Playback/controls/caching are inherited from BaseSpeechService. Speed is
- *   applied client-side via the audio element, so it is not sent to the API.
+ * - Uses Obsidian's requestUrl() so the request works inside Obsidian's
+ *   sandboxed environment and avoids browser CORS issues.
+ * - No API key is required; the endpoint is assumed to be reachable on the
+ *   configured base URL (default http://localhost:8880).
  */
 
-const OPENAI_BASE_URL = "https://api.openai.com/v1";
-// Conservative per-request size. The speech endpoint accepts up to ~4096
-// characters; smaller chunks lower first-audio latency and stay safely under
-// the limit for every model.
+const DEFAULT_KOKORO_BASE_URL = "http://localhost:8880";
+// Kokoro-FastAPI is comfortable with a few thousand characters; keep a
+// conservative limit to avoid timeouts and to enable progress feedback.
 const MAX_CHUNK_CHARS = 2000;
 
-export class OpenAiSpeechService extends BaseSpeechService {
+export class KokoroSpeechService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
-  readonly supportsBreakTags = true;
+  readonly supportsBreakTags = false;
 
-  private apiKey: string;
+  private baseUrl: string;
   private model: string;
+  private langCode: string;
 
-  constructor(apiKey: string, voice: string, model: string, speed?: number) {
+  constructor(
+    baseUrl: string,
+    voice: string,
+    model: string,
+    langCode: string,
+    speed?: number,
+  ) {
     super(voice, speed);
-    this.apiKey = apiKey;
-    this.model = model || "gpt-4o-mini-tts";
+    this.baseUrl = (baseUrl || DEFAULT_KOKORO_BASE_URL).replace(/\/$/, "");
+    this.model = model || "kokoro";
+    this.langCode = langCode || "p";
   }
 
   getVoiceOptions(): VoiceOption[] {
-    return OPENAI_VOICES;
+    return KOKORO_VOICES;
   }
 
   updateCredentials(settings: VoiceSettings): void {
-    this.apiKey = settings.OPENAI_API_KEY;
-    this.model = settings.OPENAI_MODEL || "gpt-4o-mini-tts";
+    this.baseUrl = (
+      settings.KOKORO_BASE_URL || DEFAULT_KOKORO_BASE_URL
+    ).replace(/\/$/, "");
+    this.voice = settings.KOKORO_VOICE;
+    this.model = settings.KOKORO_MODEL || "kokoro";
+    this.langCode = settings.KOKORO_LANG_CODE || "p";
   }
 
   /**
-   * Synthesize and play plain text via OpenAI.
+   * Synthesize and play plain text via a local Kokoro-FastAPI endpoint.
    */
   async speak(
     content: string,
@@ -59,13 +68,7 @@ export class OpenAiSpeechService extends BaseSpeechService {
     filePath?: string,
   ): Promise<void> {
     if (this.isLoading) {
-      throw new Error("OpenAI call already in progress.");
-    }
-
-    if (!this.apiKey) {
-      const error = new Error("Missing OpenAI API key");
-      this.reportError(error);
-      throw error;
+      throw new Error("Kokoro TTS call already in progress.");
     }
 
     const text = content.trim();
@@ -92,8 +95,6 @@ export class OpenAiSpeechService extends BaseSpeechService {
         }
 
         audioBlobs.push(blob);
-
-        // Reserve the last slice of the bar for concatenation + buffering.
         this.reportProgress(((i + 1) / chunks.length) * 0.95, 1);
       }
 
@@ -103,7 +104,7 @@ export class OpenAiSpeechService extends BaseSpeechService {
       if (error instanceof Error && error.name === "AbortError") {
         return;
       }
-      console.error("Error in OpenAI speak:", error);
+      console.error("Error in Kokoro speak:", error);
       this.reportError(error);
       throw error;
     } finally {
@@ -117,10 +118,9 @@ export class OpenAiSpeechService extends BaseSpeechService {
    */
   private async synthesizeChunk(text: string): Promise<Blob> {
     const response = await requestUrl({
-      url: `${OPENAI_BASE_URL}/audio/speech`,
+      url: `${this.baseUrl}/v1/audio/speech`,
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
         "Content-Type": "application/json",
         Accept: "audio/mpeg",
       },
@@ -128,21 +128,22 @@ export class OpenAiSpeechService extends BaseSpeechService {
         model: this.model,
         input: text,
         voice: this.voice,
+        lang_code: this.langCode,
         response_format: "mp3",
+        speed: 1.0,
       }),
       throw: false,
     });
 
-    if (response.status === 401) {
-      throw new Error("OpenAI: invalid or expired API key (401)");
-    }
-    if (response.status === 429) {
-      throw new Error("OpenAI: rate limit or quota reached (429)");
+    if (response.status === 404) {
+      throw new Error(
+        "Kokoro TTS endpoint not found. Is Kokoro running at the configured URL?",
+      );
     }
     if (response.status >= 400) {
-      const message = response.json?.error?.message;
+      const message = response.json?.error?.message || response.text;
       throw new Error(
-        `OpenAI API error (HTTP ${response.status})${
+        `Kokoro TTS error (HTTP ${response.status})${
           message ? `: ${message}` : ""
         }`,
       );
@@ -150,45 +151,42 @@ export class OpenAiSpeechService extends BaseSpeechService {
 
     const arrayBuffer = response.arrayBuffer;
     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error("OpenAI returned an empty audio response");
+      throw new Error("Kokoro returned an empty audio response");
     }
 
     return new Blob([arrayBuffer], { type: "audio/mpeg" });
   }
 
   /**
-   * Validate the API key. OpenAI has no list-voices endpoint, so we probe the
-   * models endpoint; a 200 means the key works. The voice count reflects the
-   * built-in catalog.
+   * Validate the Kokoro endpoint by probing the /v1/models route.
    */
   async validateCredentials(): Promise<CredentialValidationResult> {
-    if (!this.apiKey) {
-      return { isValid: false, error: "Please enter your OpenAI API key." };
-    }
-
     try {
       const response = await requestUrl({
-        url: `${OPENAI_BASE_URL}/models`,
+        url: `${this.baseUrl}/v1/models`,
         method: "GET",
-        headers: { Authorization: `Bearer ${this.apiKey}` },
         throw: false,
       });
 
       if (response.status === 200) {
-        return { isValid: true, voiceCount: OPENAI_VOICES.length };
+        return { isValid: true, voiceCount: KOKORO_VOICES.length };
       }
-      if (response.status === 401) {
-        return { isValid: false, error: "Invalid or expired OpenAI API key." };
+      if (response.status === 404) {
+        return {
+          isValid: false,
+          error: "Kokoro endpoint not found. Check the base URL.",
+        };
       }
       return {
         isValid: false,
         error: `Validation failed (HTTP ${response.status}).`,
       };
     } catch (error) {
-      console.error("OpenAI credential validation error:", error);
+      console.error("Kokoro credential validation error:", error);
       return {
         isValid: false,
-        error: "Network error during validation. Please try again.",
+        error:
+          "Could not reach Kokoro TTS. Make sure the server is running and reachable.",
       };
     }
   }
@@ -197,23 +195,17 @@ export class OpenAiSpeechService extends BaseSpeechService {
     if (error && typeof error === "object" && "message" in error) {
       const message = String((error as { message: string }).message);
 
-      if (message.includes("401")) {
-        return "Invalid OpenAI API key.";
-      }
-      if (message.includes("429")) {
-        return "OpenAI rate limit or quota reached. Please wait and try again.";
-      }
-      if (message.includes("Missing OpenAI API key")) {
-        return "Add your OpenAI API key in settings.";
+      if (message.includes("404")) {
+        return "Kokoro TTS endpoint not found. Check the base URL and make sure the server is running.";
       }
       if (message.includes("empty audio")) {
-        return "OpenAI returned no audio. Try a different voice or model.";
+        return "Kokoro returned no audio. Try a different voice or lang_code.";
       }
       if (message.toLowerCase().includes("network")) {
-        return "Connection failed. Check your internet.";
+        return "Connection failed. Check that Kokoro TTS is running.";
       }
-      return `OpenAI error: ${message}`;
+      return `Kokoro error: ${message}`;
     }
-    return "OpenAI error. Please try again.";
+    return "Kokoro TTS error. Please try again.";
   }
 }

@@ -8,6 +8,13 @@
 # npm
 node_modules
 
+# npm is the single package manager for this project (see "packageManager" in
+# package.json). package-lock.json is the one committed lockfile — a stray
+# yarn.lock would resolve dependencies differently and make the released
+# main.js unreproducible.
+yarn.lock
+pnpm-lock.yaml
+
 # Don't include the compiled main.js file in the repo.
 # They should be uploaded to GitHub releases instead.
 main.js

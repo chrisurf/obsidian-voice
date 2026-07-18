@@ -37,6 +37,16 @@ export default [
       "no-undef": "off",
       // Flag redundant `as`/`!` assertions (the official plugin scanner reports
       // these). Type-aware; kept on so they don't creep back in.
+      //
+      // IMPORTANT — this rule only matches the scanner if our typescript-eslint
+      // version is at least as new as the scanner's. The rule's ability to see a
+      // redundant assertion improves between releases, so an older pin reports
+      // FEWER findings and gives false confidence: 1.16.3 shipped with 8.46.3
+      // (0 findings locally) while the scanner ran 8.64.0 and published 11
+      // warnings against src/. It does NOT depend on tsconfig strictness — a
+      // stricter tsconfig reports fewer, not more. Keep typescript-eslint
+      // reasonably current, and treat a sudden drop in findings after a
+      // downgrade as a red flag rather than a fix.
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
       // Disabled deliberately:
       // - ui/sentence-case rewrites proper nouns/brand names incorrectly

@@ -80,10 +80,10 @@ export class AwsPollyService extends BaseSpeechService {
     const engine = process.env.NODE_ENV === "test" ? "standard" : "neural";
 
     this.synthesizeInput = {
-      Engine: engine as Engine,
+      Engine: engine,
       SampleRate: "24000",
-      TextType: "text" as TextType,
-      OutputFormat: "mp3" as OutputFormat,
+      TextType: "text",
+      OutputFormat: "mp3",
       LanguageCode: this.getLanguageCode(voice) as LanguageCode,
       VoiceId: (voice || "Stephen") as VoiceId,
       Text: "No document selected.",

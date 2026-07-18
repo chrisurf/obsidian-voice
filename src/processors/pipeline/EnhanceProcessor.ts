@@ -100,7 +100,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
           data: { time: `${breakTime}ms` },
         };
         modificationsToApply.push({
-          parent: parent as Parent,
+          parent,
           index: index + 1,
           action: "insert",
           node: breakNode,
@@ -117,7 +117,11 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
             volume: options.boldVolumeBoost,
           },
         };
-        (parent as Parent).children[index] = prosodyNode as unknown as Node;
+        // Cast the custom SSML node to the child type (same idiom as headings
+        // above) rather than widening `parent` to unist's Parent — the foreign
+        // node is what needs the assertion, not the receiver.
+        parent.children[index] =
+          prosodyNode as unknown as (typeof parent.children)[0];
       }
 
       // Handle italic text - add prosody
@@ -130,7 +134,11 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
             rate: options.italicRateAdjust,
           },
         };
-        (parent as Parent).children[index] = prosodyNode as unknown as Node;
+        // Cast the custom SSML node to the child type (same idiom as headings
+        // above) rather than widening `parent` to unist's Parent — the foreign
+        // node is what needs the assertion, not the receiver.
+        parent.children[index] =
+          prosodyNode as unknown as (typeof parent.children)[0];
       }
 
       // Handle paragraphs - add breaks after them
@@ -140,7 +148,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
           data: { time: `${options.paragraphBreakTime}ms` },
         };
         modificationsToApply.push({
-          parent: parent as Parent,
+          parent,
           index: index + 1,
           action: "insert",
           node: breakNode,
@@ -163,7 +171,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
           data: { time: `${options.listItemBreakTime}ms` },
         };
         modificationsToApply.push({
-          parent: parent as Parent,
+          parent,
           index: index,
           action: "insert",
           node: breakNode,
@@ -194,7 +202,7 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
         if (newNodes.length > 1) {
           // Schedule replacement with multiple nodes
           modificationsToApply.push({
-            parent: parent as Parent,
+            parent,
             index: index,
             action: "replace",
             nodes: newNodes,

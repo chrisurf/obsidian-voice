@@ -68,7 +68,7 @@ export const PRESETS = {
     paragraphBreakTime: 500,
     listItemBreakTime: 250,
     sentenceBreakTime: 350,
-  } as ProcessorConfig,
+  },
 
   /**
    * Fast reading - shorter pauses for experienced listeners
@@ -79,5 +79,5 @@ export const PRESETS = {
     paragraphBreakTime: 250,
     listItemBreakTime: 100,
     sentenceBreakTime: 200,
-  } as ProcessorConfig,
+  },
 };

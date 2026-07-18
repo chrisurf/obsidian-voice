@@ -8,6 +8,7 @@ import {
 } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
+import { mp3FilesInFolder } from "../utils/folderAudio";
 import {
   chapterName,
   listChapters,
@@ -838,14 +839,7 @@ export class VoicePlayerView extends ItemView {
     const mp3Paths =
       folderPath === null
         ? []
-        : this.app.vault
-            .getFiles()
-            .filter(
-              (f) =>
-                f.extension === "mp3" &&
-                normalizeFolderPath(f.parent?.path ?? "/") === folderPath,
-            )
-            .map((f) => f.path);
+        : mp3FilesInFolder(this.app.vault, folderPath).map((f) => f.path);
     this.chapters = listChapters(mp3Paths);
 
     this.subtitleEl.setText(

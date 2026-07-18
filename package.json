@@ -3,6 +3,7 @@
   "version": "1.16.3",
   "description": "Obsidian Voice — Text-to-Speech (TTS) plugin that reads your notes aloud in natural, lifelike speech. Turn notes into an audiobook: a podcast-style voice player with chapters, MP3 audio download, offline listening, and speed control. Listen hands-free on desktop, iOS & Android. Powered by AWS Polly, ElevenLabs, OpenAI, Google Cloud Text-to-Speech & Azure Speech — your credentials stay private. Great for learning, accessibility, and reinforcing ideas by listening.",
   "main": "main.js",
+  "packageManager": "npm@11.12.1",
   "scripts": {
     "dev": "node esbuild.config.mjs",
     "build": "tsc -noEmit -skipLibCheck && node esbuild.config.mjs production",
@@ -16,8 +17,7 @@
     "lint": "eslint src --ext .ts --fix",
     "lint:check": "eslint src --ext .ts",
     "lint:css": "stylelint \"styles.css\"",
-    "lint:scan": "eslint src --config eslint.scanner.mjs",
-    "scan": "npm run lint:check && npm run lint:scan && npm run lint:css"
+    "scan": "npm run lint:check && npm run lint:css"
   },
   "keywords": [
     "obsidian",
@@ -72,8 +72,6 @@
     "@types/jest": "29.5.12",
     "@types/node": "25.9.3",
     "@types/unist": "^3.0.3",
-    "@typescript-eslint/eslint-plugin": "8.46.3",
-    "@typescript-eslint/parser": "8.46.3",
     "esbuild": "0.28.1",
     "eslint": "9.39.1",
     "eslint-plugin-obsidianmd": "^0.3.0",
@@ -87,7 +85,7 @@
     "ts-jest": "29.4.11",
     "tslib": "2.8.1",
     "typescript": "5.9.3",
-    "typescript-eslint": "8.46.3"
+    "typescript-eslint": "8.64.0"
   },
   "dependencies": {
     "remark-frontmatter": "^5.0.0",

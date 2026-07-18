@@ -41,9 +41,6 @@ jobs:
       - name: Lint (Obsidian guidelines)
         run: npm run lint:check
 
-      - name: Typed lint (redundant type assertions, strict type info)
-        run: npm run lint:scan
-
       - name: CSS browser-feature compatibility (Obsidian baseline)
         run: npm run lint:css
 

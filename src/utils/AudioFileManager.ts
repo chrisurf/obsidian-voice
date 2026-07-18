@@ -1,6 +1,7 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
 import { suggestFreeBaseName } from "./audioFolders";
 import { normalizeFolderPath } from "./chapters";
+import { mp3FilesInFolder } from "./folderAudio";
 import type { ConflictChoice } from "../ui/FileConflictModal";
 
 /** Asks the user how to resolve a same-name conflict in the target folder. */
@@ -138,14 +139,7 @@ export class AudioFileManager {
   /** Base names (no extension) of the MP3s already in a vault folder. */
   private mp3BaseNamesInFolder(dir: string): string[] {
     const target = normalizeFolderPath(dir === "" ? "/" : dir);
-    return this.app.vault
-      .getFiles()
-      .filter(
-        (f) =>
-          f.extension === "mp3" &&
-          normalizeFolderPath(f.parent?.path ?? "/") === target,
-      )
-      .map((f) => f.basename);
+    return mp3FilesInFolder(this.app.vault, target).map((f) => f.basename);
   }
 
   /**

@@ -1,19 +1,23 @@
 name: Plugin Scan (Obsidian review parity)
 
-# Reproduces the checks the Obsidian community-hub automated review runs on each
-# release, so the same findings are flagged during the PR instead of after
-# release (avoiding a scorecard/review downgrade). Runs on every pull request
-# into main and on the working branches.
+# Reproduces the checks the Obsidian community-hub automated review runs, so the
+# same findings fail the branch/PR here instead of surfacing after release as a
+# review downgrade. This is the guard that was missing when the 1.16.4 review
+# failed: `npm run lint:check` now runs the same rule set the scanner uses —
+# eslint-plugin-obsidianmd, the eslint-comments meta-rules
+# (require-description + no-restricted-disable, which forbid silencing an
+# Obsidian rule) and the type-checked typescript-eslint rules
+# (no-deprecated / no-redundant-type-constituents / no-unnecessary-type-assertion).
+#
+# Runs on every pull request into main AND every push to any non-main branch, so
+# no feature/fix/chore branch can reach a release without passing the scan.
 on:
   pull_request:
     branches:
       - main
   push:
-    branches:
-      - "feature/*"
-      - "fix/*"
-      - "chore/*"
-      - "release/*"
+    branches-ignore:
+      - main
 
 jobs:
   scan:
@@ -21,14 +25,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
       - name: Use Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
-          node-version: "20"
+          node-version: "24"
           cache: "npm"
           cache-dependency-path: package-lock.json
 
@@ -38,7 +42,7 @@ jobs:
       - name: Formatting
         run: npm run format:check
 
-      - name: Lint (Obsidian guidelines)
+      - name: Lint (Obsidian scanner parity — guidelines, disable directives, typed rules)
         run: npm run lint:check
 
       - name: CSS browser-feature compatibility (Obsidian baseline)

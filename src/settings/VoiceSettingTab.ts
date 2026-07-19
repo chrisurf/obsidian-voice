@@ -48,6 +48,15 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   display(): void {
+    // display() is deprecated since Obsidian 1.13 in favour of
+    // getSettingDefinitions(), but this tab needs imperative rendering for its
+    // custom credential panels and dynamic provider switching. It stays as the
+    // required override; all (re-)rendering routes through render() so we never
+    // call the deprecated method ourselves.
+    this.render();
+  }
+
+  private render(): void {
     const { containerEl } = this;
     containerEl.empty();
 
@@ -76,12 +85,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
             // Re-render so provider-specific fields and voices update.
-            // display() is the settings-tab refresh hook; the 1.13
-            // getSettingDefinitions API cannot express this tab's custom
-            // credential-validation panel and dynamic provider switching, so
-            // we intentionally keep using it.
-            // eslint-disable-next-line @typescript-eslint/no-deprecated
-            this.display();
+            this.render();
           });
       });
 

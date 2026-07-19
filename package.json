@@ -68,8 +68,10 @@
   "devDependencies": {
     "@aws-sdk/client-polly": "3.1068.0",
     "@aws-sdk/credential-providers": "3.1068.0",
+    "@eslint-community/eslint-plugin-eslint-comments": "^4.7.2",
     "@eslint/js": "9.39.1",
     "@types/jest": "29.5.12",
+    "@types/mdast": "^4.0.4",
     "@types/node": "25.9.3",
     "@types/unist": "^3.0.3",
     "esbuild": "0.28.1",

@@ -1,6 +1,7 @@
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import obsidianmd from "eslint-plugin-obsidianmd";
+import comments from "@eslint-community/eslint-plugin-eslint-comments";
 import { fileURLToPath } from "url";
 
 const rootDir = fileURLToPath(new URL(".", import.meta.url));
@@ -29,6 +30,23 @@ export default [
   // Obsidian community plugin guidelines — the same ruleset the official
   // plugin scanner uses. Keeps releases free of the flagged API/CSS issues.
   ...obsidianmd.configs.recommended,
+  // Scanner parity for eslint-disable directives. The community scorecard
+  // rejects (a) any disable that lacks an inline `-- reason` description and
+  // (b) disabling its own rules at all. Suppressing an Obsidian rule instead of
+  // fixing the code is exactly what turned warnings into blocking errors on the
+  // 1.16.4 review, so make both a local/CI failure.
+  {
+    files: ["**/*.{js,mjs,cjs,ts}"],
+    plugins: { "@eslint-community/eslint-comments": comments },
+    rules: {
+      "@eslint-community/eslint-comments/require-description": "error",
+      "@eslint-community/eslint-comments/no-restricted-disable": [
+        "error",
+        "obsidianmd/*",
+        "@typescript-eslint/no-deprecated",
+      ],
+    },
+  },
   {
     files: ["**/*.ts"],
     rules: {
@@ -48,6 +66,12 @@ export default [
       // reasonably current, and treat a sudden drop in findings after a
       // downgrade as a red flag rather than a fix.
       "@typescript-eslint/no-unnecessary-type-assertion": "error",
+      // Scanner parity: these type-checked rules are what the community
+      // scorecard reports. no-redundant-type-constituents catches a union
+      // component that resolved to TS's `error`/`any` type; no-deprecated
+      // catches use of APIs marked @deprecated in the Obsidian typings.
+      "@typescript-eslint/no-redundant-type-constituents": "error",
+      "@typescript-eslint/no-deprecated": "error",
       // Disabled deliberately:
       // - ui/sentence-case rewrites proper nouns/brand names incorrectly
       //   (e.g. "ElevenLabs" -> "Elevenlabs", AWS region names) and is not a

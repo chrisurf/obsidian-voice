@@ -929,7 +929,7 @@ export class VoicePlayerView extends ItemView {
 
     // Close on outside click / Escape. Deferred so the opening click finishes.
     const onDocClick = (evt: MouseEvent) => {
-      if (!bar.contains(evt.target as Node)) {
+      if (!(evt.target instanceof Node) || !bar.contains(evt.target)) {
         this.closeChapterActions();
       }
     };
@@ -999,9 +999,8 @@ export class VoicePlayerView extends ItemView {
     const file = this.app.vault.getAbstractFileByPath(chapter.path);
     if (file instanceof TFile) {
       try {
-        // fileManager.trashFile() needs a newer Obsidian than minAppVersion.
-        // eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file
-        await this.app.vault.delete(file);
+        // Move to the user's preferred trash (system bin or .trash).
+        await this.app.fileManager.trashFile(file);
         new Notice(`Deleted: ${chapter.name}`);
       } catch (error) {
         new Notice(

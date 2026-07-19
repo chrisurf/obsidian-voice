@@ -286,9 +286,8 @@ export class Voice extends Plugin {
         active: true,
       });
     }
-    // revealLeaf is the standard reveal API; it is a no-op on app versions
-    // that predate it, so we don't raise the manifest's minAppVersion floor.
-    // eslint-disable-next-line obsidianmd/no-unsupported-api
+    // Awaiting revealLeaf ensures the view is fully loaded (not deferred);
+    // it is available from the manifest's minAppVersion (1.7.2).
     await workspace.revealLeaf(leaf);
 
     // The player replaces the compact mobile bar; hide the bar so they are

@@ -107,10 +107,9 @@ export class AudioFileManager {
     }
     const existing = this.app.vault.getAbstractFileByPath(finalPath);
     if (existing instanceof TFile && existing.path !== source.path) {
-      // fileManager.trashFile() would be preferable but requires a newer
-      // Obsidian than the plugin's minAppVersion (1.5.0).
-      // eslint-disable-next-line obsidianmd/prefer-file-manager-trash-file
-      await this.app.vault.delete(existing);
+      // Move to the user's preferred trash (system bin or .trash) instead of
+      // deleting outright.
+      await this.app.fileManager.trashFile(existing);
     }
     // fileManager.renameFile updates embeds/links that point at the file.
     await this.app.fileManager.renameFile(source, finalPath);

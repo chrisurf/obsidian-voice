@@ -11,27 +11,8 @@
 import type { ValidationResult } from "../../types/ProcessorTypes";
 
 /**
- * Tags supported by AWS Polly Neural voices
- */
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-const NEURAL_SUPPORTED_TAGS = [
-  "speak",
-  "break",
-  "lang",
-  "mark",
-  "p",
-  "s",
-  "say-as",
-  "sub",
-  "w",
-  "prosody",
-  "phoneme",
-];
-
-/**
  * Tags NOT supported by Neural voices (reserved for future use)
  */
-
 const NEURAL_UNSUPPORTED_TAGS = [
   "emphasis", // Not supported for neural
   "amazon:auto-breaths",

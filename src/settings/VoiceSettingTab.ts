@@ -1,4 +1,10 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  Notice,
+  PluginSettingTab,
+  Setting,
+  type TextComponent,
+} from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
 import {
   ELEVENLABS_MODELS,
@@ -8,9 +14,14 @@ import {
   MAX_SKIP_SECONDS,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import { normalizeBaseUrl, reconcileModel } from "../service/modelCatalog";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
+
+  // Repopulates the OpenAI model dropdown in place after "Test Credentials"
+  // caches a fresh catalog from a custom server.
+  private refreshOpenAiModelDropdown?: () => void;
 
   constructor(app: App, plugin: Voice) {
     super(app, plugin);
@@ -200,30 +211,82 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   private displayOpenAISettings(containerEl: HTMLElement): void {
+    // Assigned below; referenced by the URL field's onChange.
+    let keyInput: TextComponent | undefined;
+
     new Setting(containerEl).setName("OpenAI").setHeading();
+
+    new Setting(containerEl)
+      .setName("Custom server URL")
+      .setDesc(
+        "Base URL of an OpenAI-compatible server for self-hosted text-to-speech (e.g. https://tts.example.com/openai/v1). Leave empty to use OpenAI. With a custom server the model list is fetched from the server and the API key is optional.",
+      )
+      .addText((text) => {
+        text
+          .setPlaceholder("https://api.openai.com/v1")
+          .setValue(this.plugin.settings.OPENAI_BASE_URL)
+          .onChange(async (value) => {
+            const wasOfficial = !normalizeBaseUrl(
+              this.plugin.settings.OPENAI_BASE_URL,
+            );
+            this.plugin.settings.OPENAI_BASE_URL = value;
+            // Never silently forward a stored OpenAI key to a different
+            // origin: switching to a custom server clears the key.
+            if (
+              wasOfficial &&
+              normalizeBaseUrl(value) &&
+              this.plugin.settings.OPENAI_API_KEY
+            ) {
+              this.plugin.settings.OPENAI_API_KEY = "";
+              keyInput?.setValue("");
+              new Notice(
+                "API key cleared — enter the key your server expects, if any.",
+              );
+            }
+            // The cached catalog belongs to the previous server.
+            this.plugin.settings.openaiModelCatalog = undefined;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+            this.refreshOpenAiModelDropdown?.();
+          });
+      });
 
     new Setting(containerEl)
       .setName("Model")
       .setDesc(
-        "The OpenAI text-to-speech model. GPT-4o mini TTS is recommended; TTS-1 favours latency and TTS-1 HD favours quality.",
+        "The text-to-speech model. For OpenAI, GPT-4o mini TTS is recommended; TTS-1 favours latency and TTS-1 HD favours quality. With a custom server, the list shows the server's models after 'Test Credentials'.",
       )
       .addDropdown((dropdown) => {
-        OPENAI_MODELS.forEach((model) => {
-          dropdown.addOption(model.id, model.label);
-        });
-        dropdown
-          .setValue(this.plugin.settings.OPENAI_MODEL)
-          .onChange(async (value) => {
-            this.plugin.settings.OPENAI_MODEL = value;
-            await this.plugin.saveSettings();
-            this.plugin.reinitializeProviderCredentials();
+        const populate = () => {
+          dropdown.selectEl.empty();
+          const catalog =
+            normalizeBaseUrl(this.plugin.settings.OPENAI_BASE_URL) &&
+            this.plugin.settings.openaiModelCatalog?.length
+              ? this.plugin.settings.openaiModelCatalog
+              : OPENAI_MODELS;
+          catalog.forEach((model) => {
+            dropdown.addOption(model.id, model.label);
           });
+          // Keep the stored selection visible even when the catalog lacks it.
+          const current = this.plugin.settings.OPENAI_MODEL;
+          if (current && !catalog.some((model) => model.id === current)) {
+            dropdown.addOption(current, current);
+          }
+          dropdown.setValue(current);
+        };
+        populate();
+        this.refreshOpenAiModelDropdown = populate;
+        dropdown.onChange(async (value) => {
+          this.plugin.settings.OPENAI_MODEL = value;
+          await this.plugin.saveSettings();
+          this.plugin.reinitializeProviderCredentials();
+        });
       });
 
-    this.addPasswordSetting(
+    keyInput = this.addPasswordSetting(
       containerEl,
       "OpenAI API Key",
-      "Your OpenAI API key (from the OpenAI dashboard → API keys).",
+      "Your OpenAI API key (from the OpenAI dashboard → API keys). With a custom server, the key the server expects — or empty if it needs none.",
       "Enter your OpenAI API key",
       this.plugin.settings.OPENAI_API_KEY,
       async (value) => {
@@ -235,10 +298,13 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     this.renderCredentialValidation(containerEl, {
       providerName: "OpenAI",
-      isConfigured: () => !!this.plugin.settings.OPENAI_API_KEY,
-      missingMessage: "Please enter your OpenAI API key before testing.",
+      isConfigured: () =>
+        !!this.plugin.settings.OPENAI_API_KEY ||
+        !!normalizeBaseUrl(this.plugin.settings.OPENAI_BASE_URL),
+      missingMessage:
+        "Please enter your OpenAI API key (or a custom server URL) before testing.",
       promptMessage:
-        "Enter your OpenAI API key above, then click 'Test Credentials' to validate",
+        "Enter your OpenAI API key (or a custom server URL) above, then click 'Test Credentials' to validate",
       helpText: "Need an OpenAI API key? ",
       helpUrl: "https://platform.openai.com/api-keys",
     });
@@ -458,12 +524,14 @@ export class VoiceSettingTab extends PluginSettingTab {
     placeholder: string,
     value: string,
     onChange: (value: string) => Promise<void>,
-  ): void {
+  ): TextComponent {
     let isVisible = false;
+    let component!: TextComponent;
     new Setting(containerEl)
       .setName(name)
       .setDesc(desc)
       .addText((text) => {
+        component = text;
         text.setPlaceholder(placeholder).setValue(value).onChange(onChange);
         text.inputEl.type = "password";
       })
@@ -482,6 +550,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             }
           });
       });
+    return component;
   }
 
   /**
@@ -597,6 +666,15 @@ export class VoiceSettingTab extends PluginSettingTab {
 
       updateStatus(null, "", true);
 
+      // Guards against an in-flight validation applying results for a base
+      // URL the user has since changed.
+      const openAiUrlAtStart = normalizeBaseUrl(
+        this.plugin.settings.OPENAI_BASE_URL,
+      );
+      const openAiUrlUnchanged = () =>
+        normalizeBaseUrl(this.plugin.settings.OPENAI_BASE_URL) ===
+        openAiUrlAtStart;
+
       try {
         // Build a temporary provider from the current settings for validation
         const tempProvider = createSpeechProvider(this.plugin.settings);
@@ -615,8 +693,37 @@ export class VoiceSettingTab extends PluginSettingTab {
             this.plugin.reinitializeProviderCredentials();
             this.plugin.refreshVoicePlayerControls();
           }
+
+          // Same for a model catalog from a custom OpenAI-compatible server.
+          if (
+            result.models &&
+            result.models.length > 0 &&
+            this.plugin.settings.TTS_PROVIDER === "openai" &&
+            openAiUrlUnchanged()
+          ) {
+            this.plugin.settings.openaiModelCatalog = result.models;
+            // A stored model the server doesn't offer would fail silently on
+            // play; switch to one the server actually reports.
+            this.plugin.settings.OPENAI_MODEL = reconcileModel(
+              this.plugin.settings.OPENAI_MODEL,
+              result.models,
+            );
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+            this.refreshOpenAiModelDropdown?.();
+          }
           updateStatus(true, "", false, result.voiceCount);
         } else {
+          if (
+            this.plugin.settings.TTS_PROVIDER === "openai" &&
+            this.plugin.settings.openaiModelCatalog &&
+            openAiUrlUnchanged()
+          ) {
+            // Failed validation means the cached catalog is no longer trusted.
+            this.plugin.settings.openaiModelCatalog = undefined;
+            await this.plugin.saveSettings();
+            this.refreshOpenAiModelDropdown?.();
+          }
           updateStatus(false, result.error || "Validation failed", false);
         }
       } catch (error) {

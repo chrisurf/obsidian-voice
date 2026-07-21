@@ -134,6 +134,153 @@ describe("Unit Tests - OpenAI Provider", () => {
   });
 });
 
+describe("Unit Tests - OpenAI Provider (custom OpenAI-compatible server)", () => {
+  const BASE = "https://tts.example.com/openai/v1";
+
+  beforeEach(() => {
+    mockRequestUrl.mockReset();
+  });
+
+  test("sends synthesis requests to the custom base URL", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      arrayBuffer: new ArrayBuffer(32),
+    });
+
+    const service = new OpenAiSpeechService(
+      "key",
+      "alloy",
+      "kokoro",
+      1.0,
+      `${BASE}/`, // trailing slash must be normalized away
+    );
+    await service.speak("Hello.");
+
+    const call = mockRequestUrl.mock.calls[0][0];
+    expect(call.url).toBe(`${BASE}/audio/speech`);
+    expect(call.headers.Authorization).toBe("Bearer key");
+  });
+
+  test("allows a keyless custom server and omits the Authorization header", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      arrayBuffer: new ArrayBuffer(32),
+    });
+
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    await service.speak("Hello.");
+
+    const call = mockRequestUrl.mock.calls[0][0];
+    expect(call.url).toBe(`${BASE}/audio/speech`);
+    expect(call.headers.Authorization).toBeUndefined();
+  });
+
+  test("still requires a key for the official OpenAI endpoint", async () => {
+    const service = new OpenAiSpeechService("", "alloy", "tts-1", 1.0, "  ");
+    await expect(service.speak("Hello")).rejects.toThrow();
+    expect(mockRequestUrl).not.toHaveBeenCalled();
+  });
+
+  test("validation probes the custom /models endpoint and returns the model catalog", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: {
+        object: "list",
+        data: [{ id: "kokoro", object: "model", owned_by: "donkeywork" }],
+      },
+    });
+
+    const service = new OpenAiSpeechService(
+      "key",
+      "alloy",
+      "kokoro",
+      1.0,
+      BASE,
+    );
+    const result = await service.validateCredentials();
+
+    expect(result.isValid).toBe(true);
+    expect(result.models).toEqual([{ id: "kokoro", label: "kokoro" }]);
+    expect(mockRequestUrl.mock.calls[0][0].url).toBe(`${BASE}/models`);
+  });
+
+  test("validation without a key succeeds against a keyless custom server", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: { data: [{ id: "kokoro" }] },
+    });
+
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    const result = await service.validateCredentials();
+
+    expect(result.isValid).toBe(true);
+    expect(
+      mockRequestUrl.mock.calls[0][0].headers.Authorization,
+    ).toBeUndefined();
+  });
+
+  test("validation against the official endpoint does not replace the curated model list", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: { data: [{ id: "gpt-4o" }, { id: "tts-1" }] },
+    });
+
+    const service = new OpenAiSpeechService("key", "alloy", "tts-1", 1.0);
+    const result = await service.validateCredentials();
+
+    expect(result.isValid).toBe(true);
+    expect(result.models).toBeUndefined();
+  });
+
+  test("rejects a custom server whose /models response is empty or malformed", async () => {
+    for (const json of [{}, { data: [] }, { data: "wrong" }]) {
+      mockRequestUrl.mockReset();
+      mockRequestUrl.mockResolvedValue({ status: 200, json });
+      const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+      const result = await service.validateCredentials();
+      expect(result.isValid).toBe(false);
+      expect(result.error).toMatch(/no models/i);
+    }
+  });
+
+  test("a custom server's 401 without a key says a key is required", async () => {
+    mockRequestUrl.mockResolvedValue({ status: 401 });
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    const result = await service.validateCredentials();
+    expect(result.isValid).toBe(false);
+    expect(result.error).toMatch(/requires an API key/i);
+  });
+
+  test("custom validation omits the built-in voice count", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: { data: [{ id: "kokoro" }] },
+    });
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    const result = await service.validateCredentials();
+    expect(result.voiceCount).toBeUndefined();
+  });
+
+  test("updateCredentials picks up a changed base URL", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: { data: [{ id: "kokoro" }] },
+    });
+
+    const service = new OpenAiSpeechService("key", "alloy", "tts-1", 1.0);
+    service.updateCredentials({
+      ...DEFAULT_SETTINGS,
+      OPENAI_API_KEY: "key",
+      OPENAI_MODEL: "kokoro",
+      OPENAI_BASE_URL: BASE,
+    });
+    const result = await service.validateCredentials();
+
+    expect(mockRequestUrl.mock.calls[0][0].url).toBe(`${BASE}/models`);
+    expect(result.models).toEqual([{ id: "kokoro", label: "kokoro" }]);
+  });
+});
+
 describe("Unit Tests - Speech Provider Factory (OpenAI)", () => {
   test("creates a text provider for OpenAI", () => {
     const provider = createSpeechProvider({

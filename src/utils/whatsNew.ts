@@ -20,7 +20,11 @@ export const HERO_IMAGE_URL =
  * (the headline feature many users have not discovered yet), then summarizes
  * everything added since 1.8.0 so long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## ▶️ One play button, less clutter
+export const WHATS_NEW = `## 🏠 Bring your own server
+
+The OpenAI provider now works with **self-hosted, OpenAI-compatible servers** (kokoro-fastapi, openedai-speech, LocalAI, …). Set a **Custom server URL** in the OpenAI settings, press **Test Credentials**, and the **Model** dropdown fills with the models your server actually offers. The API key is optional for servers that don't need one.
+
+## ▶️ One play button, less clutter
 
 Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 

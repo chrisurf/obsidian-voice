@@ -231,6 +231,8 @@ Start with the provider you already have — you can switch anytime.
 
 **OpenAI** — Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). In **Settings → Voice**, choose **OpenAI**, pick a model and voice, paste the key, and press **Test Credentials**.
 
+**Self-hosted / OpenAI-compatible servers** — The OpenAI provider can also point at any server that speaks OpenAI's text-to-speech API (kokoro-fastapi, openedai-speech, LocalAI, and similar). In **Settings → Voice**, choose **OpenAI**, enter your server's base URL as the **Custom server URL** (e.g. `https://tts.example.com/openai/v1`), and press **Test Credentials** — the **Model** dropdown then lists the models your server reports. The API key is optional when the server doesn't require one, and switching to a custom URL clears any stored OpenAI key so it is never sent to a different server. Note for mobile: your phone must be able to reach the server (same network, VPN, or a public endpoint). Self-signed certificates are not supported — prefer a real certificate (e.g. Let's Encrypt or a Tailscale cert). Plain `http://` may work on a trusted local network but sends your notes unencrypted and can be blocked by the OS, particularly on iOS.
+
 ## Troubleshooting & Help
 
 Run into an error, see a red control bar, or need the advanced provider setup (like creating a dedicated AWS user or picking the best region)? Everything is collected in the **[Troubleshooting & Advanced Setup guide](./TROUBLESHOOTING.md)**.

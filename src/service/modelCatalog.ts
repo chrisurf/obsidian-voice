@@ -5,16 +5,34 @@
 
 import type { ModelOption } from "../settings/VoiceSettings";
 
+const OFFICIAL_BASE_URL = "https://api.openai.com/v1";
+
 /**
- * Trim and strip trailing slashes; "" (blank) means the official OpenAI
- * endpoint.
+ * Trim and strip trailing slashes; "" means the official OpenAI endpoint.
+ * Typing the official URL out is treated the same as leaving it blank, so
+ * official-endpoint behaviour (curated models, required key) is never lost.
  */
 export function normalizeBaseUrl(url: string | undefined): string {
   const trimmed = (url ?? "").trim();
   if (!trimmed) {
     return "";
   }
-  return trimmed.replace(/\/+$/, "");
+  const stripped = trimmed.replace(/\/+$/, "");
+  return stripped === OFFICIAL_BASE_URL ? "" : stripped;
+}
+
+/**
+ * Pick the model to use once a server's catalog is known: the current model
+ * when the server offers it, otherwise the catalog's first model.
+ */
+export function reconcileModel(
+  current: string,
+  catalog: ModelOption[],
+): string {
+  if (catalog.some((model) => model.id === current)) {
+    return current;
+  }
+  return catalog[0]?.id ?? current;
 }
 
 /**

@@ -232,6 +232,35 @@ describe("Unit Tests - OpenAI Provider (custom OpenAI-compatible server)", () =>
     expect(result.models).toBeUndefined();
   });
 
+  test("rejects a custom server whose /models response is empty or malformed", async () => {
+    for (const json of [{}, { data: [] }, { data: "wrong" }]) {
+      mockRequestUrl.mockReset();
+      mockRequestUrl.mockResolvedValue({ status: 200, json });
+      const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+      const result = await service.validateCredentials();
+      expect(result.isValid).toBe(false);
+      expect(result.error).toMatch(/no models/i);
+    }
+  });
+
+  test("a custom server's 401 without a key says a key is required", async () => {
+    mockRequestUrl.mockResolvedValue({ status: 401 });
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    const result = await service.validateCredentials();
+    expect(result.isValid).toBe(false);
+    expect(result.error).toMatch(/requires an API key/i);
+  });
+
+  test("custom validation omits the built-in voice count", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: { data: [{ id: "kokoro" }] },
+    });
+    const service = new OpenAiSpeechService("", "alloy", "kokoro", 1.0, BASE);
+    const result = await service.validateCredentials();
+    expect(result.voiceCount).toBeUndefined();
+  });
+
   test("updateCredentials picks up a changed base URL", async () => {
     mockRequestUrl.mockResolvedValue({
       status: 200,

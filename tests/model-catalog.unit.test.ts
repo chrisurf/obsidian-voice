@@ -1,4 +1,8 @@
-import { mapOpenAiModels, normalizeBaseUrl } from "../src/service/modelCatalog";
+import {
+  mapOpenAiModels,
+  normalizeBaseUrl,
+  reconcileModel,
+} from "../src/service/modelCatalog";
 
 describe("Unit Tests - Model catalog helpers", () => {
   describe("normalizeBaseUrl", () => {
@@ -24,6 +28,30 @@ describe("Unit Tests - Model catalog helpers", () => {
       expect(normalizeBaseUrl("http://192.168.1.10:8880/v1")).toBe(
         "http://192.168.1.10:8880/v1",
       );
+    });
+
+    test("treats the official OpenAI URL the same as blank", () => {
+      expect(normalizeBaseUrl("https://api.openai.com/v1")).toBe("");
+      expect(normalizeBaseUrl(" https://api.openai.com/v1/ ")).toBe("");
+    });
+  });
+
+  describe("reconcileModel", () => {
+    const catalog = [
+      { id: "kokoro", label: "kokoro" },
+      { id: "piper", label: "piper" },
+    ];
+
+    test("keeps the current model when the catalog offers it", () => {
+      expect(reconcileModel("piper", catalog)).toBe("piper");
+    });
+
+    test("falls back to the catalog's first model otherwise", () => {
+      expect(reconcileModel("gpt-4o-mini-tts", catalog)).toBe("kokoro");
+    });
+
+    test("keeps the current model when the catalog is empty", () => {
+      expect(reconcileModel("gpt-4o-mini-tts", [])).toBe("gpt-4o-mini-tts");
     });
   });
 

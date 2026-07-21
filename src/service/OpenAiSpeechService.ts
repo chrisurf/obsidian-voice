@@ -205,23 +205,28 @@ export class OpenAiSpeechService extends BaseSpeechService {
       });
 
       if (response.status === 200) {
-        const result: CredentialValidationResult = {
-          isValid: true,
-          voiceCount: OPENAI_VOICES.length,
-        };
-        if (this.isCustomEndpoint) {
-          const models = mapOpenAiModels(response.json);
-          if (models.length > 0) {
-            result.models = models;
-          }
+        if (!this.isCustomEndpoint) {
+          return { isValid: true, voiceCount: OPENAI_VOICES.length };
         }
-        return result;
+        // A compatible server must expose at least one model; an empty or
+        // malformed body means this isn't a usable endpoint.
+        const models = mapOpenAiModels(response.json);
+        if (models.length === 0) {
+          return {
+            isValid: false,
+            error:
+              "The server responded but returned no models — is it an OpenAI-compatible endpoint?",
+          };
+        }
+        return { isValid: true, models };
       }
       if (response.status === 401) {
         return {
           isValid: false,
           error: this.isCustomEndpoint
-            ? "The server rejected the API key (401)."
+            ? this.apiKey
+              ? "The server rejected the API key (401)."
+              : "The server requires an API key (401)."
             : "Invalid or expired OpenAI API key.",
         };
       }
@@ -245,9 +250,12 @@ export class OpenAiSpeechService extends BaseSpeechService {
       const message = String((error as { message: string }).message);
 
       if (message.includes("401")) {
-        return this.isCustomEndpoint
-          ? "The server rejected the API key."
-          : "Invalid OpenAI API key.";
+        if (this.isCustomEndpoint) {
+          return this.apiKey
+            ? "The server rejected the API key."
+            : "The server requires an API key.";
+        }
+        return "Invalid OpenAI API key.";
       }
       if (message.includes("429")) {
         return "OpenAI rate limit or quota reached. Please wait and try again.";

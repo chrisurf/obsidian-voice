@@ -57,7 +57,7 @@ Voice now has a full **audiobook-style player** — and it lives in the right si
 
 - **Play your notes like chapters** — every MP3 in a folder shows up as a numbered chapter you can play, skip, and repeat.
 - **Browse audio across your vault** — a folder picker lets you jump between any folders that contain audio, right from the player.
-- **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, or Azure Speech (and the voice) right in the player.
+- **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, Azure Speech, or **MiniMax** (and the voice) right in the player.
 
 **Know your buttons** — every control is one button; a few do double duty (tap vs. press & hold):
 
@@ -84,7 +84,8 @@ Voice started out as AWS Polly only — now it supports all the major engines, s
 - **ElevenLabs** — premade & multilingual voices.
 - **OpenAI** — built-in voices (Alloy, Nova, …) with GPT-4o mini TTS.
 - **Google Cloud Text-to-Speech** — plus extra hotkey commands.
-- **Azure AI Speech** — neural voices across many languages. **New:** press **Test Credentials** and Voice loads your account's full Azure catalog (hundreds of voices), grouped by language in the picker.
+- **Azure AI Speech** — neural voices across many languages. Press **Test Credentials** and Voice loads your account's full Azure catalog (hundreds of voices), grouped by language in the picker.
+- **MiniMax** — **New:** multilingual TTS with strong Chinese support (Speech 02 HD/Turbo). Enter your API key and Group ID, pick your region (global or mainland China), and choose a voice.
 
 **Your audio files**
 

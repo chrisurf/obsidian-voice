@@ -9,6 +9,8 @@ import {
   ELEVENLABS_MODELS,
   AZURE_REGIONS,
   OPENAI_MODELS,
+  MINIMAX_MODELS,
+  MINIMAX_REGIONS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
   type TtsProvider,
@@ -101,6 +103,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             google: "Google Cloud",
             azure: "Azure Speech",
             openai: "OpenAI",
+            minimax: "MiniMax",
           },
         },
       },
@@ -264,6 +267,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayAzureSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
       this.displayOpenAISettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
+      this.displayMiniMaxSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
@@ -286,6 +291,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("google", "Google Cloud")
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
+          .addOption("minimax", "MiniMax")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
@@ -395,6 +401,85 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     // Provider-specific credentials
     this.renderActiveProviderSettings(containerEl);
+  }
+
+  private displayMiniMaxSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("MiniMax").setHeading();
+
+    new Setting(containerEl)
+      .setName("Region")
+      .setDesc(
+        "The MiniMax API host. Pick the region where your MiniMax account was created.",
+      )
+      .addDropdown((dropdown) => {
+        MINIMAX_REGIONS.forEach((region) => {
+          dropdown.addOption(region.id, region.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.MINIMAX_HOST)
+          .onChange(async (value) => {
+            this.plugin.settings.MINIMAX_HOST = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "The MiniMax T2A model. HD favours quality; Turbo favours latency and cost.",
+      )
+      .addDropdown((dropdown) => {
+        MINIMAX_MODELS.forEach((model) => {
+          dropdown.addOption(model.id, model.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.MINIMAX_MODEL)
+          .onChange(async (value) => {
+            this.plugin.settings.MINIMAX_MODEL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "MiniMax API Key",
+      "Your MiniMax API key (MiniMax console → account → API key).",
+      "Enter your MiniMax API key",
+      this.plugin.settings.MINIMAX_API_KEY,
+      async (value) => {
+        this.plugin.settings.MINIMAX_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.addPasswordSetting(
+      containerEl,
+      "MiniMax Group ID",
+      "Your MiniMax Group ID (shown next to the API key in the MiniMax console).",
+      "Enter your MiniMax Group ID",
+      this.plugin.settings.MINIMAX_GROUP_ID,
+      async (value) => {
+        this.plugin.settings.MINIMAX_GROUP_ID = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "MiniMax",
+      isConfigured: () =>
+        !!this.plugin.settings.MINIMAX_API_KEY &&
+        !!this.plugin.settings.MINIMAX_GROUP_ID,
+      missingMessage:
+        "Please enter your MiniMax API key and Group ID before testing.",
+      promptMessage:
+        "Enter your MiniMax API key and Group ID above, then click 'Test Credentials' to validate",
+      helpText: "Need a MiniMax API key? ",
+      helpUrl: "https://platform.minimax.io/",
+    });
   }
 
   private displayOpenAISettings(containerEl: HTMLElement): void {

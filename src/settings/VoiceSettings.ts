@@ -6,7 +6,8 @@ export type TtsProvider =
   | "elevenlabs"
   | "google"
   | "azure"
-  | "openai";
+  | "openai"
+  | "minimax";
 
 /**
  * Where saved MP3s are written.
@@ -51,6 +52,15 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+
+  // MiniMax Text-to-Speech (T2A v2). MiniMax needs both an API key and a
+  // Group ID (the Group ID is sent as a query parameter). MINIMAX_HOST selects
+  // the regional endpoint host (global vs mainland China).
+  MINIMAX_API_KEY: string;
+  MINIMAX_GROUP_ID: string;
+  MINIMAX_VOICE: string;
+  MINIMAX_MODEL: string;
+  MINIMAX_HOST: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -347,6 +357,64 @@ export const OPENAI_VOICES: VoiceOption[] = [
   { id: "shimmer", label: "Shimmer (Soft)", lang: "en-US" },
 ];
 
+/**
+ * MiniMax regional API hosts. The Group ID is appended as a query parameter and
+ * the path is `/v1/t2a_v2`; only the host differs by region. Pick the host that
+ * matches where your MiniMax account was created.
+ */
+export const MINIMAX_REGIONS: ModelOption[] = [
+  { id: "api.minimax.io", label: "Global (api.minimax.io)" },
+  { id: "api.minimaxi.chat", label: "Mainland China (api.minimaxi.chat)" },
+];
+
+/**
+ * MiniMax T2A models. HD favours quality; Turbo favours latency/cost. Both the
+ * 02 and 01 families accept the same inputs and return MP3 audio.
+ */
+export const MINIMAX_MODELS: ModelOption[] = [
+  { id: "speech-02-hd", label: "Speech 02 HD (quality)" },
+  { id: "speech-02-turbo", label: "Speech 02 Turbo (fast)" },
+  { id: "speech-01-hd", label: "Speech 01 HD" },
+  { id: "speech-01-turbo", label: "Speech 01 Turbo" },
+];
+
+/**
+ * Curated MiniMax system voices. The `id` is the MiniMax `voice_id`. All voices
+ * are multilingual (the model speaks the language of the input, aided by
+ * `language_boost: "auto"`), so `lang` is only used to group the picker. The
+ * classic system ids (male-qn-*, female-*, presenter_*, audiobook_*) are stable
+ * across models; the named ids are the newer Speech-02 voices.
+ */
+export const MINIMAX_VOICES: VoiceOption[] = [
+  // Newer named Speech-02 voices (multilingual, natural in English).
+  { id: "Wise_Woman", label: "Wise Woman", lang: "en-US" },
+  { id: "Calm_Woman", label: "Calm Woman", lang: "en-US" },
+  { id: "Friendly_Person", label: "Friendly Person", lang: "en-US" },
+  { id: "Inspirational_girl", label: "Inspirational Girl", lang: "en-US" },
+  { id: "Lively_Girl", label: "Lively Girl", lang: "en-US" },
+  { id: "Deep_Voice_Man", label: "Deep Voice Man", lang: "en-US" },
+  { id: "Patient_Man", label: "Patient Man", lang: "en-US" },
+  { id: "Elegant_Man", label: "Elegant Man", lang: "en-US" },
+  { id: "Casual_Guy", label: "Casual Guy", lang: "en-US" },
+  { id: "Young_Knight", label: "Young Knight", lang: "en-US" },
+  // Classic Chinese system voices (also multilingual).
+  { id: "male-qn-qingse", label: "青涩青年 (Youthful Male)", lang: "zh-CN" },
+  { id: "male-qn-jingying", label: "精英青年 (Elite Male)", lang: "zh-CN" },
+  { id: "male-qn-badao", label: "霸道青年 (Domineering Male)", lang: "zh-CN" },
+  { id: "female-shaonv", label: "少女 (Young Female)", lang: "zh-CN" },
+  { id: "female-yujie", label: "御姐 (Mature Female)", lang: "zh-CN" },
+  { id: "female-chengshu", label: "成熟女性 (Adult Female)", lang: "zh-CN" },
+  { id: "female-tianmei", label: "甜美女性 (Sweet Female)", lang: "zh-CN" },
+  { id: "presenter_male", label: "主持人 (Male Presenter)", lang: "zh-CN" },
+  { id: "presenter_female", label: "主持人 (Female Presenter)", lang: "zh-CN" },
+  { id: "audiobook_male_1", label: "有声书 (Male Narrator)", lang: "zh-CN" },
+  {
+    id: "audiobook_female_1",
+    label: "有声书 (Female Narrator)",
+    lang: "zh-CN",
+  },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -370,6 +438,12 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+
+  MINIMAX_API_KEY: "",
+  MINIMAX_GROUP_ID: "",
+  MINIMAX_VOICE: "Wise_Woman",
+  MINIMAX_MODEL: "speech-02-hd",
+  MINIMAX_HOST: "api.minimax.io",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

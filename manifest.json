@@ -6,5 +6,8 @@
   "description": "Listen to your notes as natural speech with text-to-speech (TTS). Read notes aloud, play them like an audiobook in the voice player, download MP3 audio and listen offline hands-free on mobile.",
   "author": "Chris Oguntolu",
   "authorUrl": "https://github.com/chrisurf",
+  "fundingUrl": {
+    "Buy Me a Coffee": "https://buymeacoffee.com/chrisurf"
+  },
   "isDesktopOnly": false
 }

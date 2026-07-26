@@ -15,6 +15,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - [Getting Started](#getting-started)
 - [Connecting a Provider](#connecting-a-provider)
 - [Troubleshooting & Help](#troubleshooting--help)
+- [Support](#support)
 
 ## Highlights
 
@@ -234,3 +235,11 @@ Start with the provider you already have — you can switch anytime.
 ## Troubleshooting & Help
 
 Run into an error, see a red control bar, or need the advanced provider setup (like creating a dedicated AWS user or picking the best region)? Everything is collected in the **[Troubleshooting & Advanced Setup guide](./TROUBLESHOOTING.md)**.
+
+## Support
+
+Voice is free and open source, built and maintained in my spare time. If it makes listening to your notes easier, you can support continued development with a coffee — it's genuinely appreciated. ☕
+
+[![Buy Me a Coffee](https://img.shields.io/badge/Buy%20Me%20a%20Coffee-chrisurf-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black)](https://buymeacoffee.com/chrisurf)
+
+You'll also find a **Sponsor** button at the top of the [GitHub repository](https://github.com/chrisurf/obsidian-voice) and a donate link on the plugin's page inside Obsidian.

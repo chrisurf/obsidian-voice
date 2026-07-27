@@ -1,5 +1,10 @@
 import { App, Modal, MarkdownRenderer, Component, Setting } from "obsidian";
-import { WHATS_NEW, HERO_IMAGE_URL } from "../utils/whatsNew";
+import {
+  WHATS_NEW,
+  HERO_IMAGE_URL,
+  BUY_ME_A_COFFEE_URL,
+  BUY_ME_A_COFFEE_IMAGE_URL,
+} from "../utils/whatsNew";
 
 /**
  * Modal that introduces the latest functionality after an install or update.
@@ -35,6 +40,23 @@ export class WhatsNewModal extends Modal {
       attr: { alt: "Obsidian Voice", src: HERO_IMAGE_URL },
     });
     hero.addEventListener("error", () => hero.hide());
+
+    // "Buy me a coffee" — promoted right at the top so supporters can chip in.
+    // Loaded remotely like the hero; the whole row hides if it can't be fetched.
+    const support = contentEl.createDiv({ cls: "voice-whats-new-support" });
+    const coffeeLink = support.createEl("a", {
+      cls: "voice-bmc-link",
+      attr: {
+        href: BUY_ME_A_COFFEE_URL,
+        target: "_blank",
+        rel: "noopener",
+      },
+    });
+    const coffeeImg = coffeeLink.createEl("img", {
+      cls: "voice-bmc-button",
+      attr: { alt: "Buy me a coffee", src: BUY_ME_A_COFFEE_IMAGE_URL },
+    });
+    coffeeImg.addEventListener("error", () => support.hide());
 
     const body = contentEl.createDiv({ cls: "voice-whats-new-body" });
     // MarkdownRenderer.render is the current rendering API; the component ties

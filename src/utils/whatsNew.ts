@@ -16,6 +16,17 @@ export const HERO_IMAGE_URL =
   "https://raw.githubusercontent.com/chrisurf/obsidian-voice/main/assets/hero.png";
 
 /**
+ * "Buy me a coffee" support link and its button image, promoted near the top of
+ * the "What's New" modal. Voice is free and users bring their own provider
+ * credentials, so this is the one place we ask for optional support. The image
+ * is loaded remotely (like the hero) and the modal hides it gracefully if it
+ * cannot be fetched, e.g. when offline.
+ */
+export const BUY_ME_A_COFFEE_URL = "https://www.buymeacoffee.com/chrisurf";
+export const BUY_ME_A_COFFEE_IMAGE_URL =
+  "https://raw.githubusercontent.com/chrisurf/obsidian-voice/main/assets/buymeacoffee.png";
+
+/**
  * Markdown rendered inside the "What's New" modal. Leads with the Voice player
  * (the headline feature many users have not discovered yet), then summarizes
  * everything added since 1.8.0 so long-time users catch up at a glance.

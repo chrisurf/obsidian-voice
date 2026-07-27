@@ -6,11 +6,13 @@ on:
       - "release/*"
       - "feature/**"
       - "fix/**"
+      - "chore/**"
   pull_request:
     branches:
       - "release/*"
       - "feature/**"
       - "fix/**"
+      - "chore/**"
   workflow_dispatch:
 
 jobs:

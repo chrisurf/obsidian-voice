@@ -81,6 +81,10 @@ export const config: WebdriverIO.Config = {
 
   cacheDir,
 
-  // Import describe/it/expect explicitly in specs (keeps types/lint honest).
-  injectGlobals: false,
+  // Inject describe/it/before + browser/expect as globals (the default). The
+  // specs use them directly rather than importing from "mocha" / "@wdio/globals"
+  // — importing hooks like `before` from "mocha" isn't reliable and broke spec
+  // loading. Our e2e specs aren't linted (lint:check targets src/ only), so we
+  // don't need the explicit imports the "keep eslint happy" pattern buys.
+  injectGlobals: true,
 };

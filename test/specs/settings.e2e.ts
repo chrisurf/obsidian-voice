@@ -12,8 +12,14 @@
  * Both paths must render the same settings, so these assertions hold on both.
  */
 
-import { browser, expect } from "@wdio/globals";
-import { describe, it, before } from "mocha";
+// describe/it/before and browser/expect are injected as globals by WDIO +
+// mocha (injectGlobals: true in wdio.conf.mts) — no imports needed. These are
+// declared so type-aware editors don't flag them; they have no runtime effect.
+declare const browser: any;
+declare const expect: any;
+declare function describe(title: string, fn: () => void): void;
+declare function it(title: string, fn: () => void | Promise<void>): void;
+declare function before(fn: () => void | Promise<void>): void;
 
 const PLUGIN_ID = "voice";
 

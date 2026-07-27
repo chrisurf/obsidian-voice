@@ -4,6 +4,12 @@
 
 Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — using the text-to-speech provider you already have. It supports all the major engines — **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, and **Azure Speech** — so you can listen with whichever one you prefer. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
 
+<p align="center">
+  <a href="https://www.buymeacoffee.com/chrisurf" target="_blank">
+    <img src="./assets/buymeacoffee.png" alt="Buy me a coffee" height="48">
+  </a>
+</p>
+
 ## Table of Contents
 
 - [Highlights](#highlights)

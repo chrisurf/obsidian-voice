@@ -89,10 +89,10 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
           },
         };
 
-        // Replace heading children with prosody (type assertion needed for custom SSML node)
-        heading.children = [
-          prosodyNode as unknown as (typeof heading.children)[0],
-        ];
+        // Replace heading children with the prosody wrapper. `ssmlProsody` is a
+        // registered phrasing node (see SSMLNodes' mdast augmentation), so it
+        // slots into the heading's PhrasingContent[] with no assertion.
+        heading.children = [prosodyNode];
 
         // Schedule break insertion after heading
         const breakNode: SSMLBreak = {
@@ -117,11 +117,17 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
             volume: options.boldVolumeBoost,
           },
         };
-        // Cast the custom SSML node to the child type (same idiom as headings
-        // above) rather than widening `parent` to unist's Parent — the foreign
-        // node is what needs the assertion, not the receiver.
-        parent.children[index] =
-          prosodyNode as unknown as (typeof parent.children)[0];
+        // Defer the swap like every other structural edit here. Assigning into
+        // `parent.children` directly needs a cast (the visitor types `parent`
+        // as the broad mdast parent union), whereas the Modification list is
+        // typed against unist's `Parent`/`Node`, so a replace routes through it
+        // cleanly and cast-free.
+        modificationsToApply.push({
+          parent,
+          index,
+          action: "replace",
+          nodes: [prosodyNode],
+        });
       }
 
       // Handle italic text - add prosody
@@ -134,11 +140,14 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
             rate: options.italicRateAdjust,
           },
         };
-        // Cast the custom SSML node to the child type (same idiom as headings
-        // above) rather than widening `parent` to unist's Parent — the foreign
-        // node is what needs the assertion, not the receiver.
-        parent.children[index] =
-          prosodyNode as unknown as (typeof parent.children)[0];
+        // Deferred replace via the unist-typed Modification list (see the bold
+        // branch above) — keeps the swap cast-free.
+        modificationsToApply.push({
+          parent,
+          index,
+          action: "replace",
+          nodes: [prosodyNode],
+        });
       }
 
       // Handle paragraphs - add breaks after them

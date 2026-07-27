@@ -1,4 +1,9 @@
-import { App, PluginSettingTab, Setting } from "obsidian";
+import {
+  App,
+  PluginSettingTab,
+  Setting,
+  type SettingDefinitionItem,
+} from "obsidian";
 import { Voice } from "../utils/VoicePlugin";
 import {
   ELEVENLABS_MODELS,
@@ -6,11 +11,20 @@ import {
   OPENAI_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  type TtsProvider,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
+
+  /**
+   * Container holding the active provider's credential section in the
+   * declarative (1.13+) path. Kept so a provider switch can re-render just that
+   * section in place, without the 1.13-only `update()` (which would exceed the
+   * manifest's 1.7.2 minAppVersion).
+   */
+  private providerSectionEl: HTMLElement | null = null;
 
   constructor(app: App, plugin: Voice) {
     super(app, plugin);
@@ -48,12 +62,211 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   display(): void {
-    // display() is deprecated since Obsidian 1.13 in favour of
-    // getSettingDefinitions(), but this tab needs imperative rendering for its
-    // custom credential panels and dynamic provider switching. It stays as the
-    // required override; all (re-)rendering routes through render() so we never
-    // call the deprecated method ourselves.
+    // Fallback path for Obsidian < 1.13, which has no getSettingDefinitions().
+    // On 1.13+ this is never called: getSettingDefinitions() returns a
+    // non-empty array, so the app renders the tab declaratively (and its
+    // settings become searchable) instead of invoking display(). We keep both
+    // because the manifest's minAppVersion is 1.7.2.
+    //
+    // TODO: Obsidian 1.13 (which introduced getSettingDefinitions) is beta-only
+    // as of 2026-07. Once 1.13 is stable and we raise minAppVersion to >= 1.13,
+    // this display() fallback — and the get/setControlValue re-render plumbing
+    // that avoids the 1.13-only update() — can be removed and the tab can rely
+    // solely on getSettingDefinitions(). Track 1.13's stable release.
     this.render();
+  }
+
+  /**
+   * Declarative settings for Obsidian 1.13+. Returning a non-empty array makes
+   * the app render the tab from these definitions — which is what surfaces the
+   * settings in the global settings search — and skip display() entirely.
+   *
+   * The simple settings are plain `control` definitions bound through
+   * get/setControlValue below. The provider-specific credential section stays
+   * imperative (password masking, async validation, provider switching) and is
+   * mounted via a single `render` item that reuses the exact same code path as
+   * the display() fallback — no logic is duplicated between the two.
+   */
+  getSettingDefinitions(): SettingDefinitionItem[] {
+    return [
+      {
+        name: "Speech provider",
+        desc: "Choose which text-to-speech engine to use. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
+        control: {
+          type: "dropdown",
+          key: "TTS_PROVIDER",
+          options: {
+            polly: "AWS Polly",
+            elevenlabs: "ElevenLabs",
+            google: "Google Cloud",
+            azure: "Azure Speech",
+            openai: "OpenAI",
+          },
+        },
+      },
+      {
+        type: "group",
+        heading: "Playback",
+        items: [
+          {
+            name: "Rewind interval",
+            desc: `How many seconds the rewind control jumps back (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+            control: {
+              type: "slider",
+              key: "rewindSeconds",
+              min: MIN_SKIP_SECONDS,
+              max: MAX_SKIP_SECONDS,
+              step: 1,
+              displayFormat: (value) => this.formatSecondsValue(value),
+            },
+          },
+          {
+            name: "Fast-forward interval",
+            desc: `How many seconds the fast-forward control jumps ahead (${MIN_SKIP_SECONDS}–${MAX_SKIP_SECONDS}s).`,
+            control: {
+              type: "slider",
+              key: "forwardSeconds",
+              min: MIN_SKIP_SECONDS,
+              max: MAX_SKIP_SECONDS,
+              step: 1,
+              displayFormat: (value) => this.formatSecondsValue(value),
+            },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Saving audio",
+        items: [
+          // Informational only — the save location is managed from the
+          // player's folder picker (no control here).
+          {
+            name: "Save location",
+            desc: this.audioSaveLocationDesc(),
+          },
+          {
+            name: "Save automatically",
+            desc: "Save the MP3 after each playback, without pressing save.",
+            control: { type: "toggle", key: "autoDownloadAudio" },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Player",
+        items: [
+          {
+            name: "Play the note's saved audio",
+            desc: "When you press play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — even if another chapter is loaded. Off keeps the loaded chapter playing and always re-generates notes.",
+            control: { type: "toggle", key: "playNoteSavedAudio" },
+          },
+          {
+            name: "Folder list follows note",
+            desc: "The player's folder list jumps to the current note's folder. Off keeps your chosen folder.",
+            control: { type: "toggle", key: "folderSelectorFollowsNote" },
+          },
+        ],
+      },
+      {
+        // Provider-specific credentials. This synthetic row only exists to give
+        // us a mount point; we drop it and render the active provider's full
+        // section (heading + fields) into a dedicated child of the tab
+        // container, reusing the same imperative code the display() fallback
+        // uses. Mounting via plain DOM (rather than the 1.11-only
+        // `SettingGroup.listEl`) keeps us within the 1.7.2 minAppVersion.
+        name: "",
+        searchable: false,
+        render: (setting) => {
+          const host = setting.settingEl.parentElement;
+          setting.settingEl.remove();
+          if (!host) {
+            return;
+          }
+          this.providerSectionEl = host.createDiv();
+          this.renderActiveProviderSettings(this.providerSectionEl);
+        },
+      },
+    ];
+  }
+
+  /** Read a declarative control's value from the plugin settings. */
+  getControlValue(key: string): unknown {
+    switch (key) {
+      case "TTS_PROVIDER":
+        return this.plugin.settings.TTS_PROVIDER;
+      case "rewindSeconds":
+        return this.plugin.settings.rewindSeconds;
+      case "forwardSeconds":
+        return this.plugin.settings.forwardSeconds;
+      case "autoDownloadAudio":
+        return this.plugin.settings.autoDownloadAudio;
+      case "playNoteSavedAudio":
+        return this.plugin.settings.playNoteSavedAudio;
+      case "folderSelectorFollowsNote":
+        return this.plugin.settings.folderSelectorFollowsNote;
+      default:
+        return undefined;
+    }
+  }
+
+  /**
+   * Persist a declarative control's value and run the same side effects the
+   * imperative onChange handlers do (skip intervals, provider re-init). A
+   * provider switch re-renders the credential section in place (see
+   * providerSectionEl) so the right fields show for the new provider.
+   */
+  async setControlValue(key: string, value: unknown): Promise<void> {
+    switch (key) {
+      case "TTS_PROVIDER":
+        this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProvider();
+        if (this.providerSectionEl) {
+          this.providerSectionEl.empty();
+          this.renderActiveProviderSettings(this.providerSectionEl);
+        }
+        break;
+      case "rewindSeconds":
+        this.plugin.settings.rewindSeconds = value as number;
+        await this.plugin.saveSettings();
+        this.plugin.updateSkipIntervals();
+        break;
+      case "forwardSeconds":
+        this.plugin.settings.forwardSeconds = value as number;
+        await this.plugin.saveSettings();
+        this.plugin.updateSkipIntervals();
+        break;
+      case "autoDownloadAudio":
+        this.plugin.settings.autoDownloadAudio = value as boolean;
+        await this.plugin.saveSettings();
+        break;
+      case "playNoteSavedAudio":
+        this.plugin.settings.playNoteSavedAudio = value as boolean;
+        await this.plugin.saveSettings();
+        break;
+      case "folderSelectorFollowsNote":
+        this.plugin.settings.folderSelectorFollowsNote = value as boolean;
+        await this.plugin.saveSettings();
+        break;
+    }
+  }
+
+  /**
+   * Render the active provider's credential section into `containerEl`. Shared
+   * by the declarative render item (1.13+) and the display() fallback (<1.13).
+   */
+  private renderActiveProviderSettings(containerEl: HTMLElement): void {
+    if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
+      this.displayElevenLabsSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "google") {
+      this.displayGoogleSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "azure") {
+      this.displayAzureSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
+      this.displayOpenAISettings(containerEl);
+    } else {
+      this.displayPollySettings(containerEl);
+    }
   }
 
   private render(): void {
@@ -75,12 +288,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("openai", "OpenAI")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
-            this.plugin.settings.TTS_PROVIDER = value as
-              | "polly"
-              | "elevenlabs"
-              | "google"
-              | "azure"
-              | "openai";
+            this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
             this.plugin.reinitializeProvider();
@@ -186,17 +394,7 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     // Provider-specific credentials
-    if (this.plugin.settings.TTS_PROVIDER === "elevenlabs") {
-      this.displayElevenLabsSettings(containerEl);
-    } else if (this.plugin.settings.TTS_PROVIDER === "google") {
-      this.displayGoogleSettings(containerEl);
-    } else if (this.plugin.settings.TTS_PROVIDER === "azure") {
-      this.displayAzureSettings(containerEl);
-    } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
-      this.displayOpenAISettings(containerEl);
-    } else {
-      this.displayPollySettings(containerEl);
-    }
+    this.renderActiveProviderSettings(containerEl);
   }
 
   private displayOpenAISettings(containerEl: HTMLElement): void {

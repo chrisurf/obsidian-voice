@@ -929,6 +929,18 @@
   margin-bottom: 12px;
 }
 
+.voice-whats-new-support {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 12px;
+}
+
+.voice-bmc-button {
+  height: 48px;
+  width: auto;
+  border-radius: var(--radius-s);
+}
+
 .voice-whats-new-body {
   max-height: 50vh;
   overflow-y: auto;

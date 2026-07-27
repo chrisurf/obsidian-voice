@@ -6,6 +6,7 @@ on:
       - "release/*"
       - "feature/*"
       - "fix/*"
+      - "chore/*"
       - copilot/*
 
 jobs:

@@ -6,6 +6,7 @@
  */
 
 import type { Node, Parent } from "unist";
+import type { PhrasingContent } from "mdast";
 
 /**
  * Base interface for all SSML nodes
@@ -37,7 +38,11 @@ export interface SSMLBreak extends SSMLNode {
  */
 export interface SSMLProsody extends Parent, SSMLNode {
   type: "ssmlProsody";
-  children: Node[];
+  // Phrasing-level children (like mdast's own Emphasis/Strong). Typing this as
+  // `PhrasingContent[]` rather than the looser `Node[]` keeps bare unist nodes
+  // out of the mdast tree once this node is registered below, so tree walkers
+  // (unist-util-visit) still narrow mdast node types cleanly.
+  children: PhrasingContent[];
   data: {
     rate?: string; // e.g., "95%", "slow", "fast"
     volume?: string; // e.g., "loud", "+2dB", "soft"
@@ -52,7 +57,7 @@ export interface SSMLProsody extends Parent, SSMLNode {
  */
 export interface SSMLSayAs extends Parent, SSMLNode {
   type: "ssmlSayAs";
-  children: Node[];
+  children: PhrasingContent[];
   data: {
     interpretAs: string; // e.g., "number", "spell-out", "date", "time"
     format?: string; // Optional format for dates/times
@@ -66,7 +71,7 @@ export interface SSMLSayAs extends Parent, SSMLNode {
  */
 export interface SSMLSub extends Parent, SSMLNode {
   type: "ssmlSub";
-  children: Node[];
+  children: PhrasingContent[];
   data: {
     alias: string; // The text to speak instead
   };
@@ -116,6 +121,29 @@ export type SSMLNodeType =
   | SSMLParagraph
   | SSMLSentence
   | SSMLLang;
+
+/**
+ * Register the inline SSML nodes with mdast's type system.
+ *
+ * `@types/mdast` documents exactly this pattern: custom nodes are declared as
+ * first-class members of the AST by adding them to the relevant *content map*.
+ * Every SSML wrapper the EnhanceProcessor produces replaces phrasing-level
+ * content (a heading's inline children, bold/italic inners, acronyms, numbers,
+ * abbreviations), so they belong in `PhrasingContentMap`.
+ *
+ * The payoff: `EnhanceProcessor` can assign an SSML node straight into a
+ * heading's `children` (typed `PhrasingContent[]`) with no `as unknown as …`
+ * double assertion — the node is genuinely part of the union now. This also
+ * removes the scanner's "unnecessary assertion" finding at its root, since the
+ * assertion no longer exists rather than merely being suppressed.
+ */
+declare module "mdast" {
+  interface PhrasingContentMap {
+    ssmlProsody: SSMLProsody;
+    ssmlSayAs: SSMLSayAs;
+    ssmlSub: SSMLSub;
+  }
+}
 
 /**
  * Type guard to check if a node is an SSML node

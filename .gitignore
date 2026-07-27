@@ -39,6 +39,10 @@ coverage/
 # Jest cache
 .jest/
 
+# WebdriverIO / Obsidian e2e (downloaded Obsidian builds + CI cache-key file)
+.obsidian-cache/
+obsidian-versions-lock.txt
+
 # Plugin config
 data.json
 

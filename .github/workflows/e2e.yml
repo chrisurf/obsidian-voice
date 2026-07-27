@@ -1,0 +1,76 @@
+# End-to-end tests: drive the plugin in a real, sandboxed Obsidian via
+# WebdriverIO (wdio-obsidian-service). The matrix in wdio.conf.mts runs each
+# spec on "earliest" (minAppVersion 1.7.2 -> display() fallback) and "latest"
+# (>= 1.13 -> declarative getSettingDefinitions path), so both branches of the
+# settings tab's dual render path get exercised.
+name: E2E
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  e2e-desktop:
+    runs-on: ubuntu-latest
+    name: E2E (desktop)
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: "npm"
+
+      - run: npm ci
+      - run: npm run build
+
+      # Resolve the Obsidian versions wdio.conf.mts will use and turn them into
+      # a cache key (the config logs them under `obsidian-cache-key:` when CI is
+      # set). Delete the cache it just created so it doesn't clash with restore.
+      - name: Compute Obsidian cache key
+        run: |
+          npx tsx wdio.conf.mts | grep 'obsidian-cache-key:' > obsidian-versions-lock.txt
+          rm -rf .obsidian-cache
+        env:
+          # Optional. Set these repo secrets (2FA disabled) to also test the
+          # Obsidian 1.13 beta, which is the only build that exercises the
+          # declarative getSettingDefinitions() path until 1.13 is stable.
+          # Without them the suite still runs and covers the display() fallback.
+          # Fork PRs never receive secrets.
+          OBSIDIAN_EMAIL: ${{ secrets.OBSIDIAN_EMAIL }}
+          OBSIDIAN_PASSWORD: ${{ secrets.OBSIDIAN_PASSWORD }}
+
+      - name: Cache Obsidian installers
+        uses: actions/cache@v4
+        with:
+          path: .obsidian-cache
+          key: obsidian-cache-${{ runner.os }}-${{ hashFiles('obsidian-versions-lock.txt') }}
+
+      # Obsidian is an Electron GUI app; on Linux runners it needs a virtual
+      # display (Xvfb) and a window manager (herbstluftwm) or some features
+      # misbehave.
+      - name: Set up virtual graphics
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -q -y herbstluftwm x11-xserver-utils
+          export DISPLAY=:99
+          echo "DISPLAY=$DISPLAY" >> "$GITHUB_ENV"
+          Xvfb $DISPLAY -screen 0 1280x1024x24 +extension GLX -noreset &
+          sleep 1
+          herbstluftwm &
+          sleep 1
+
+      - name: Run e2e tests
+        run: npm run test:e2e
+        env:
+          WDIO_MAX_INSTANCES: 2
+          OBSIDIAN_EMAIL: ${{ secrets.OBSIDIAN_EMAIL }}
+          OBSIDIAN_PASSWORD: ${{ secrets.OBSIDIAN_PASSWORD }}

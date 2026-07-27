@@ -67,6 +67,12 @@ export class VoiceSettingTab extends PluginSettingTab {
     // non-empty array, so the app renders the tab declaratively (and its
     // settings become searchable) instead of invoking display(). We keep both
     // because the manifest's minAppVersion is 1.7.2.
+    //
+    // TODO: Obsidian 1.13 (which introduced getSettingDefinitions) is beta-only
+    // as of 2026-07. Once 1.13 is stable and we raise minAppVersion to >= 1.13,
+    // this display() fallback — and the get/setControlValue re-render plumbing
+    // that avoids the 1.13-only update() — can be removed and the tab can rely
+    // solely on getSettingDefinitions(). Track 1.13's stable release.
     this.render();
   }
 

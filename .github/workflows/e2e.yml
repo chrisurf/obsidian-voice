@@ -1,8 +1,11 @@
 # End-to-end tests: drive the plugin in a real, sandboxed Obsidian via
-# WebdriverIO (wdio-obsidian-service). The matrix in wdio.conf.mts runs each
-# spec on "earliest" (minAppVersion 1.7.2 -> display() fallback) and "latest"
-# (>= 1.13 -> declarative getSettingDefinitions path), so both branches of the
-# settings tab's dual render path get exercised.
+# WebdriverIO (wdio-obsidian-service). Fully credential-free — the version
+# matrix in wdio.conf.mts uses app === installer so the app bundle is extracted
+# from the (public) installer instead of being downloaded from Obsidian's
+# login-gated Insiders endpoint. It runs on an old public release (~minAppVersion)
+# and the current public stable; both exercise the display() render path (the
+# declarative getSettingDefinitions path lives in the 1.13 beta, which needs a
+# login and is intentionally out of scope here — see the TODO in wdio.conf.mts).
 name: E2E
 
 on:
@@ -39,14 +42,6 @@ jobs:
         run: |
           npx tsx wdio.conf.mts | grep 'obsidian-cache-key:' > obsidian-versions-lock.txt
           rm -rf .obsidian-cache
-        env:
-          # Optional. Set these repo secrets (2FA disabled) to also test the
-          # Obsidian 1.13 beta, which is the only build that exercises the
-          # declarative getSettingDefinitions() path until 1.13 is stable.
-          # Without them the suite still runs and covers the display() fallback.
-          # Fork PRs never receive secrets.
-          OBSIDIAN_EMAIL: ${{ secrets.OBSIDIAN_EMAIL }}
-          OBSIDIAN_PASSWORD: ${{ secrets.OBSIDIAN_PASSWORD }}
 
       - name: Cache Obsidian installers
         uses: actions/cache@v4
@@ -72,5 +67,3 @@ jobs:
         run: npm run test:e2e
         env:
           WDIO_MAX_INSTANCES: 2
-          OBSIDIAN_EMAIL: ${{ secrets.OBSIDIAN_EMAIL }}
-          OBSIDIAN_PASSWORD: ${{ secrets.OBSIDIAN_PASSWORD }}

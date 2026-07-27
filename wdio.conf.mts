@@ -1,38 +1,39 @@
 import * as path from "path";
-import {
-  parseObsidianVersions,
-  obsidianBetaAvailable,
-} from "wdio-obsidian-service";
+import { parseObsidianVersions } from "wdio-obsidian-service";
 import { env } from "process";
 
 // wdio-obsidian-service downloads the sandboxed Obsidian builds here.
 const cacheDir = path.resolve(".obsidian-cache");
 
-// The settings tab has a dual render path, and which branch runs is decided
-// purely by the Obsidian version:
-//   - "earliest" resolves to the manifest's minAppVersion (1.7.2), which has no
-//     getSettingDefinitions() -> the tab falls back to display().
-//   - "latest" is the current *stable* release. Note: as of this writing stable
-//     is 1.12.x, which ALSO uses display(). The declarative
-//     getSettingDefinitions() path only activates on Obsidian >= 1.13.
-//   - "latest-beta" is where >= 1.13 currently lives, so it is the only version
-//     that actually exercises the declarative path today. Downloading beta
-//     builds needs Obsidian Insider credentials (OBSIDIAN_EMAIL /
-//     OBSIDIAN_PASSWORD, 2FA disabled); we add it only when available, so the
-//     suite still runs (covering the fallback) without them. Drop this branch
-//     once 1.13 reaches stable — "latest" will cover it.
-// Override locally with e.g. OBSIDIAN_VERSIONS="latest-beta/latest".
+// Which Obsidian versions to test. Two hard constraints shape this list, and
+// both are the reason every pair below uses the SAME value for app and
+// installer (e.g. "1.12.7/1.12.7"):
 //
-// TODO: Obsidian 1.13 is beta-only as of 2026-07. Re-check availability soon
-// (https://obsidian.md/changelog/, or when app "latest" resolves to >= 1.13.0).
-// As soon as 1.13 is stable: "latest" exercises the declarative
-// getSettingDefinitions() path directly — remove the latest-beta branch below
-// and the now-unneeded OBSIDIAN_EMAIL/OBSIDIAN_PASSWORD secrets in
-// .github/workflows/e2e.yml.
-let defaultVersions = "earliest/earliest latest/latest";
-if (await obsidianBetaAvailable({ cacheDir })) {
-  defaultVersions += " latest-beta/latest";
-}
+//   1. No login. Obsidian only serves the app JS bundle to logged-in Insiders
+//      accounts UNLESS it can be extracted from a matching installer — i.e.
+//      when appVersion === installerVersion. A mismatch (e.g. the tempting
+//      "earliest/earliest" = app 1.7.2 from installer 1.4.13) forces a
+//      login-gated bundle download and fails CI with "Insiders account
+//      required". Keeping app === installer keeps the whole suite credential-free.
+//
+//   2. The declarative getSettingDefinitions() path only exists on Obsidian
+//      >= 1.13, which is still beta-only (and therefore login-gated) as of
+//      2026-07. So without credentials only the display() fallback (<= 1.12) is
+//      reachable today — which is exactly the path every current user hits.
+//
+//   - "1.8.4/1.8.4": an old public release near the manifest's minAppVersion
+//     (1.7.2), guarding the supported floor against API-compat regressions.
+//   - "latest/latest": the current public stable.
+//
+// Override locally with e.g. OBSIDIAN_VERSIONS="latest/latest".
+//
+// TODO: Obsidian 1.13 (which introduced the declarative getSettingDefinitions
+// path) is beta-only as of 2026-07 and needs an Insiders login to download, so
+// it is deliberately absent from this no-login matrix. Once 1.13 is public
+// stable, "latest/latest" starts exercising the declarative path automatically
+// (its installer bundles the 1.13 app, so still no login) — re-check here then,
+// and optionally drop the old 1.8.4 pin.
+const defaultVersions = "1.8.4/1.8.4 latest/latest";
 const desktopVersions = await parseObsidianVersions(
   env.OBSIDIAN_VERSIONS ?? defaultVersions,
   { cacheDir },

@@ -44,6 +44,7 @@ interface SynthesizeInput {
 
 export class AwsPollyService extends BaseSpeechService {
   readonly inputFormat = "ssml" as const;
+  readonly supportsBreakTags = false;
 
   private synthesizeInput: {
     Engine: Engine;

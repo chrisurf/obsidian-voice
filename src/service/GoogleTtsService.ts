@@ -39,6 +39,7 @@ function base64ToBytes(base64: string): Uint8Array {
 
 export class GoogleTtsService extends BaseSpeechService {
   readonly inputFormat = "ssml" as const;
+  readonly supportsBreakTags = false;
 
   private apiKey: string;
 

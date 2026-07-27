@@ -49,6 +49,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // --- Provider-specific members implemented by subclasses ---
 
   abstract readonly inputFormat: "ssml" | "text";
+  abstract readonly supportsBreakTags: boolean;
   abstract speak(
     content: string,
     speed?: number,

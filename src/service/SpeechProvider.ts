@@ -37,6 +37,12 @@ export interface SpeechProvider {
   readonly inputFormat: "ssml" | "text";
 
   /**
+   * Whether this provider understands ElevenLabs-style `<break time="..."/>`
+   * pause tags in plain-text input. When false, the text pipeline strips them.
+   */
+  readonly supportsBreakTags: boolean;
+
+  /**
    * Synthesize and play the given processed content.
    */
   speak(content: string, speed?: number, filePath?: string): Promise<void>;

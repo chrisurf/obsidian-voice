@@ -9,6 +9,7 @@ import { ElevenLabsService } from "./ElevenLabsService";
 import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
+import { KokoroSpeechService } from "./KokoroSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -42,6 +43,14 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.OPENAI_API_KEY,
       settings.OPENAI_VOICE,
       settings.OPENAI_MODEL,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "kokoro") {
+    provider = new KokoroSpeechService(
+      settings.KOKORO_BASE_URL,
+      settings.KOKORO_VOICE,
+      settings.KOKORO_MODEL,
+      settings.KOKORO_LANG_CODE,
       Number(settings.SPEED),
     );
   } else {

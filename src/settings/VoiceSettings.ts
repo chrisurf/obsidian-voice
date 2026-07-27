@@ -6,7 +6,8 @@ export type TtsProvider =
   | "elevenlabs"
   | "google"
   | "azure"
-  | "openai";
+  | "openai"
+  | "kokoro";
 
 /**
  * Where saved MP3s are written.
@@ -51,6 +52,12 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+
+  // Kokoro TTS (local / self-hosted)
+  KOKORO_BASE_URL: string;
+  KOKORO_VOICE: string;
+  KOKORO_LANG_CODE: string;
+  KOKORO_MODEL: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -119,6 +126,22 @@ export interface ModelOption {
   label: string;
 }
 
+export interface KokoroLanguageOption {
+  id: string;
+  label: string;
+}
+
+export const KOKORO_LANGUAGES: KokoroLanguageOption[] = [
+  { id: "a", label: "American English" },
+  { id: "b", label: "British English" },
+  { id: "e", label: "Spanish" },
+  { id: "f", label: "French" },
+  { id: "h", label: "Hindi" },
+  { id: "i", label: "Italian" },
+  { id: "j", label: "Japanese" },
+  { id: "p", label: "Brazilian Portuguese" },
+  { id: "z", label: "Mandarin Chinese" },
+];
 export const VOICES: VoiceOption[] = [
   { id: "Stephen", label: "Stephen (American)", lang: "en-US" },
   { id: "Joanna", label: "Joanna (American)", lang: "en-US" },
@@ -347,6 +370,32 @@ export const OPENAI_VOICES: VoiceOption[] = [
   { id: "shimmer", label: "Shimmer (Soft)", lang: "en-US" },
 ];
 
+/**
+ * Kokoro voice pack selection. The `id` is the pack name accepted by
+ * Kokoro-FastAPI's /v1/audio/speech endpoint; `lang` reflects the language
+ * the pack speaks best.
+ */
+export const KOKORO_VOICES: VoiceOption[] = [
+  { id: "pm_alex", label: "Alex (Portuguese, Brazilian, Male)", lang: "pt-BR" },
+  {
+    id: "pf_dora",
+    label: "Dora (Portuguese, Brazilian, Female)",
+    lang: "pt-BR",
+  },
+  { id: "af_heart", label: "Heart (American, Female)", lang: "en-US" },
+  { id: "am_michael", label: "Michael (American, Male)", lang: "en-US" },
+  { id: "af_bella", label: "Bella (American, Female)", lang: "en-US" },
+  { id: "am_adam", label: "Adam (American, Male)", lang: "en-US" },
+  { id: "bf_emma", label: "Emma (British, Female)", lang: "en-GB" },
+  { id: "bm_george", label: "George (British, Male)", lang: "en-GB" },
+  { id: "jf_alpha", label: "Alpha (Japanese, Female)", lang: "ja-JP" },
+  { id: "jm_kumo", label: "Kumo (Japanese, Male)", lang: "ja-JP" },
+  { id: "ef_domi", label: "Domi (Spanish, Female)", lang: "es-ES" },
+  { id: "em_santa", label: "Santa (Spanish, Male)", lang: "es-ES" },
+  { id: "ff_siwis", label: "Siwis (French, Female)", lang: "fr-FR" },
+  { id: "if_sara", label: "Sara (Italian, Female)", lang: "it-IT" },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -370,6 +419,12 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+
+  // Kokoro TTS defaults
+  KOKORO_BASE_URL: "http://localhost:8880",
+  KOKORO_VOICE: "pm_alex",
+  KOKORO_LANG_CODE: "p",
+  KOKORO_MODEL: "kokoro",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

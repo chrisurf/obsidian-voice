@@ -11,16 +11,12 @@ name: Lockfile in sync
 #
 # This guard fails the PR whenever package-lock.json has drifted from
 # package.json, so a dependency change must always commit the updated lockfile.
+# Runs only when a pull request into main is open, not on every branch push.
 on:
   pull_request:
     branches:
       - main
-  push:
-    branches:
-      - "feature/*"
-      - "fix/*"
-      - "chore/*"
-      - "release/*"
+  workflow_dispatch:
 
 jobs:
   npm-lockfile:

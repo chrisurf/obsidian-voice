@@ -8,9 +8,8 @@
 # login and is intentionally out of scope here — see the TODO in wdio.conf.mts).
 name: E2E
 
+# Runs only when a pull request into main is open, not on every branch push.
 on:
-  push:
-    branches: ["main"]
   pull_request:
     branches: ["main"]
   workflow_dispatch:

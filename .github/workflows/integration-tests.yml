@@ -1,18 +1,10 @@
 name: AWS Polly Tests
 
+# Runs only when a pull request into main is open, not on every branch push.
 on:
-  push:
-    branches:
-      - "release/*"
-      - "feature/**"
-      - "fix/**"
-      - "chore/**"
   pull_request:
     branches:
-      - "release/*"
-      - "feature/**"
-      - "fix/**"
-      - "chore/**"
+      - main
   workflow_dispatch:
 
 jobs:

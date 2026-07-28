@@ -1,13 +1,13 @@
 name: Code Quality & Build Validation
 
+# Runs only when a pull request into main is open (opened / updated / reopened),
+# not on every branch push. Push a branch with no PR and nothing runs; open a
+# PR and this re-runs on each new commit.
 on:
-  push:
+  pull_request:
     branches:
-      - "release/*"
-      - "feature/*"
-      - "fix/*"
-      - "chore/*"
-      - copilot/*
+      - main
+  workflow_dispatch:
 
 jobs:
   code-quality-and-build:

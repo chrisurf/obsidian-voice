@@ -9,15 +9,13 @@ name: Plugin Scan (Obsidian review parity)
 # Obsidian rule) and the type-checked typescript-eslint rules
 # (no-deprecated / no-redundant-type-constituents / no-unnecessary-type-assertion).
 #
-# Runs on every pull request into main AND every push to any non-main branch, so
-# no feature/fix/chore branch can reach a release without passing the scan.
+# Runs only when a pull request into main is open, so no change can reach a
+# release without passing the scan — but branch pushes without a PR don't run it.
 on:
   pull_request:
     branches:
       - main
-  push:
-    branches-ignore:
-      - main
+  workflow_dispatch:
 
 jobs:
   scan:

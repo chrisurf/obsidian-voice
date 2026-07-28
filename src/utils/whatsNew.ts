@@ -27,11 +27,21 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
   "https://raw.githubusercontent.com/chrisurf/obsidian-voice/main/assets/buymeacoffee.png";
 
 /**
- * Markdown rendered inside the "What's New" modal. Leads with the Voice player
- * (the headline feature many users have not discovered yet), then summarizes
- * everything added since 1.8.0 so long-time users catch up at a glance.
+ * Markdown rendered inside the "What's New" modal. Leads with the newest
+ * provider (MiniMax), then the Voice player and everything added since 1.8.0,
+ * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## ▶️ One play button, less clutter
+export const WHATS_NEW = `## 🆕 New: MiniMax — text-to-speech that works from China
+
+Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
+
+- 🌏 **Choose your region** — **global** or **mainland China** — so the API works wherever your account lives.
+- 🗣️ **Natural, multilingual voices** with especially strong Chinese support (Speech 02 HD/Turbo · Speech 01 HD/Turbo).
+- 🔑 Set it up in **Settings → Voice → MiniMax**: pick a region and model, paste your **API key** and **Group ID**, then press **Test Credentials**.
+
+Everything else — chapters, speed, downloads, the content toggles — works exactly like the other providers.
+
+## ▶️ One play button, less clutter
 
 Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 
@@ -51,45 +61,25 @@ The save button (the download arrow) now has two simple gestures, and you can pi
 - 💾 When a default folder is set, the save button shows a **floppy-disk** icon so you can tell at a glance where a tap will save.
 - 🗂️ Manage a saved track from its **⋮** menu in the player: **Move** it to another folder, **Rename** it, or **Delete** it (with a quick confirmation).
 
-## 🔊 The Voice player is here
+## 🔊 The Voice player
 
-Voice now has a full **audiobook-style player** — and it lives in the right sidebar (next to Backlinks and Outline) by default, so it is always one click away. If you have not updated in a while, this is the big one.
+Voice has a full **audiobook-style player** in the right sidebar (next to Backlinks and Outline) — always one click away.
 
-- **Play your notes like chapters** — every MP3 in a folder shows up as a numbered chapter you can play, skip, and repeat.
-- **Browse audio across your vault** — a folder picker lets you jump between any folders that contain audio, right from the player.
-- **Bring your own provider** — pick AWS Polly, ElevenLabs, OpenAI, Google Cloud, or Azure Speech (and the voice) right in the player.
+- **Play your notes like chapters** — every MP3 in a folder becomes a numbered chapter you can play, skip, and repeat.
+- **Browse audio across your vault** with the folder picker.
+- **Switch provider & voice** right in the player.
 
-**Know your buttons** — every control is one button; a few do double duty (tap vs. press & hold):
+Every control is one button; a few do double duty — **tap** vs. **press & hold** (a ring fills while you hold). Toggles that light up when on: \`</>\` **code** · \`Aa\` **acronyms** · 🔗 **skip URLs** · 📎 **embed**.
 
-- ▶️ **Play** — tap to play / pause; **hold** to regenerate.
-- ⏮ ⏭ **Prev / next** · ⏪ ⏩ **rewind / forward** · 🔁 **repeat** · **− / +** **speed**.
-- ⬇️ **Save** — tap to save; **hold** for the folder picker. (Shows 💾 when a default folder is set.)
-- 📂 **Folder** — save into a folder you pick, in one click.
-- ⋮ **Track menu** — move, rename, or delete a saved chapter.
-- Toggles that light up when on: \`</>\` **code** · \`Aa\` **acronyms** · 🔗 **skip URLs** · 📎 **embed**.
+## ✨ Everything at a glance
 
-## ✨ Everything you need to know
+**Six providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · **MiniMax**.
 
-**Player & playback**
+**Player & playback** — chapters, scrubber, speed (0.5×–2.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
 
-- **Voice player shows by default** in the right sidebar, with a **folder picker** to browse audio across the vault.
-- **In-player controls**: switch provider and voice, and flip the content toggles, with live loading feedback while a note is synthesized.
-- **Collapsible, audiobook-style player** with chapters, transport controls, scrubber, and repeat modes (off / one / all).
-- **Configurable rewind & fast-forward** intervals (1–60 seconds each).
+**Your audio** — save MP3s next to the note or in a **default folder**, optionally **auto-save** and **embed** them, and **move / rename / delete** saved chapters from the player.
 
-**Bring your own provider**
-
-Voice started out as AWS Polly only — now it supports all the major engines, so you can listen with the provider you already use:
-
-- **ElevenLabs** — premade & multilingual voices.
-- **OpenAI** — built-in voices (Alloy, Nova, …) with GPT-4o mini TTS.
-- **Google Cloud Text-to-Speech** — plus extra hotkey commands.
-- **Azure AI Speech** — neural voices across many languages. **New:** press **Test Credentials** and Voice loads your account's full Azure catalog (hundreds of voices), grouped by language in the picker.
-
-**Your audio files**
-
-- **Separate "Auto-Save" and "Embed" toggles** — download MP3s with or without embedding them into the note.
-- **Skip website URLs** and **read code blocks** content toggles.
+**Reads it your way** — toggle **read code blocks**, **spell out acronyms**, and **skip website URLs**, all from the player.
 
 Open the player from the **audio-waveform ribbon icon**, the **"Open the player."** command, or the button below.`;
 

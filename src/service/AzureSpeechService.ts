@@ -7,6 +7,7 @@ import {
 import { BaseSpeechService } from "./BaseSpeechService";
 import type { CredentialValidationResult } from "./SpeechProvider";
 import { mapAzureVoices } from "./voiceCatalog";
+import { adaptProsodyForAzure } from "./azureSsml";
 
 /**
  * Azure AI Speech (Cognitive Services) Text-to-Speech integration.
@@ -247,22 +248,14 @@ export class AzureSpeechService extends BaseSpeechService {
   }
 
   /**
-   * Wrap the pipeline's inner SSML in Azure's required envelope and adjust the
-   * one incompatible attribute: Azure prosody volume does not accept decibels,
-   * so map `volume="±NdB"` to a bounded relative percentage.
+   * Wrap the pipeline's inner SSML in Azure's required envelope and adapt the
+   * prosody attributes Azure interprets differently (rate + volume) — see
+   * adaptProsodyForAzure().
    */
   private toAzureSsml(ssml: string): string {
-    const inner = ssml
-      .replace(/^\s*<speak[^>]*>/, "")
-      .replace(/<\/speak>\s*$/, "")
-      .replace(/volume="([+-]?\d+(?:\.\d+)?)dB"/g, (_match, db: string) => {
-        const pct = Math.max(
-          -50,
-          Math.min(50, Math.round(parseFloat(db) * 10)),
-        );
-        const sign = pct >= 0 ? "+" : "";
-        return `volume="${sign}${pct}%"`;
-      });
+    const inner = adaptProsodyForAzure(
+      ssml.replace(/^\s*<speak[^>]*>/, "").replace(/<\/speak>\s*$/, ""),
+    );
 
     const locale = this.languageCode();
     return (

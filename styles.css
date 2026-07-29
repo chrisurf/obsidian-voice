@@ -1002,6 +1002,56 @@
   pointer-events: none;
 }
 
+/* The player's primary play button is itself accent-coloured, so the shared
+   accent sweep above is nearly invisible on it (accent on accent, 30% opacity).
+   Give this one button a thicker, high-contrast ring in the on-accent colour:
+   a faint full "track" (::before) plus a crisp sweep (::after) that grows to a
+   full circle as the regenerate-hold completes. Both sit BEHIND the opaque
+   button (z-index: -1) so only the ring protrudes and the icon is never washed
+   over. The press scale is dropped while holding so the button doesn't spawn a
+   stacking context (which would pull the ring in front of its own background).
+   No CSS mask/clip-path — those are only partially supported per stylelint. */
+.voice-player-play.voice-pressing {
+  transform: none;
+}
+
+.voice-player-play.voice-pressing::before,
+.voice-player-play.voice-pressing::after {
+  content: "";
+  position: absolute;
+  inset: -5px;
+  z-index: -1;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.voice-player-play.voice-pressing::before {
+  background: var(--text-on-accent);
+  opacity: 0.25;
+}
+
+.voice-player-play.voice-pressing::after {
+  background: conic-gradient(
+    var(--text-on-accent) calc(var(--press, 0) * 360deg),
+    transparent 0deg
+  );
+  opacity: 0.95;
+}
+
+/* On light themes the on-accent colour is white, which vanishes on the light
+   pane. Swap the ring to the theme's dark ink so it contrasts with both the
+   accent button and the light background. */
+.theme-light .voice-player-play.voice-pressing::before {
+  background: var(--text-normal);
+}
+
+.theme-light .voice-player-play.voice-pressing::after {
+  background: conic-gradient(
+    var(--text-normal) calc(var(--press, 0) * 360deg),
+    transparent 0deg
+  );
+}
+
 /* File-conflict modal: the ".mp3" suffix shown next to the rename field. */
 .voice-conflict-ext {
   margin-left: 6px;

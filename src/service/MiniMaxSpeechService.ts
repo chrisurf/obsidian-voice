@@ -31,6 +31,8 @@ const MAX_CHUNK_CHARS = 3000;
 
 export class MiniMaxSpeechService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
+  // MiniMax uses native `<#x#>` pause markers; it reads `<break>` tags aloud.
+  readonly textPauseStyle = "minimax" as const;
 
   private apiKey: string;
   private groupId: string;

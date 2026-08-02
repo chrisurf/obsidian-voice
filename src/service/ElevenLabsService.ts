@@ -28,6 +28,8 @@ const MAX_CHUNK_CHARS = 3000;
 
 export class ElevenLabsService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
+  // ElevenLabs multilingual_v2 / turbo v2.5 / flash v2.5 understand <break> tags.
+  readonly textPauseStyle = "break-tags" as const;
 
   private apiKey: string;
   private model: string;

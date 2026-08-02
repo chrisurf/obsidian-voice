@@ -19,6 +19,7 @@ import {
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
 } from "../settings/VoiceSettings";
+import type { PauseStyle } from "../types/ProcessorTypes";
 
 export abstract class BaseSpeechService implements SpeechProvider {
   protected audio: HTMLAudioElement;
@@ -49,6 +50,10 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // --- Provider-specific members implemented by subclasses ---
 
   abstract readonly inputFormat: "ssml" | "text";
+  // Providers that use structural pause markup override this (ElevenLabs =
+  // "break-tags", MiniMax = "minimax"). Everything else — SSML providers and
+  // engines that read markup literally (OpenAI) — keeps the safe default.
+  readonly textPauseStyle: PauseStyle = "none";
   abstract speak(
     content: string,
     speed?: number,

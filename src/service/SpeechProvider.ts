@@ -11,6 +11,7 @@
  */
 
 import type { VoiceSettings, VoiceOption } from "../settings/VoiceSettings";
+import type { PauseStyle } from "../types/ProcessorTypes";
 
 /**
  * Result of validating a provider's credentials
@@ -35,6 +36,14 @@ export interface SpeechProvider {
    * - "text": plain spoken text (ElevenLabs)
    */
   readonly inputFormat: "ssml" | "text";
+
+  /**
+   * For "text" providers, which pause markup the engine understands so the text
+   * pipeline emits the right kind (ElevenLabs `<break>`, MiniMax `<#x#>`, or
+   * newline-only for engines that read markup literally). Irrelevant for "ssml"
+   * providers; defaults to "none".
+   */
+  readonly textPauseStyle: PauseStyle;
 
   /**
    * Synthesize and play the given processed content.

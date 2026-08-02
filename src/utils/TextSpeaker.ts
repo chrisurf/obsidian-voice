@@ -61,11 +61,17 @@ export class TextSpeaker {
 
     // Plain-text pipeline (ElevenLabs and other non-SSML providers). It also
     // needs the acronym setting so it can title-case acronyms when spell-out is
-    // off, keeping pronunciation consistent with the SSML providers.
-    this.textProcessor = new MarkdownToTextProcessor({
-      ...contentOptions,
-      spellOutAcronyms: this.spellOutAcronyms,
-    });
+    // off, keeping pronunciation consistent with the SSML providers. The pause
+    // style follows the active provider so each engine gets pause markup it
+    // understands (ElevenLabs `<break>`, MiniMax `<#x#>`, others newline-only) —
+    // TextSpeaker is rebuilt on provider change, so this stays in sync.
+    this.textProcessor = new MarkdownToTextProcessor(
+      {
+        ...contentOptions,
+        spellOutAcronyms: this.spellOutAcronyms,
+      },
+      { pauseStyle: this.provider.textPauseStyle },
+    );
   }
 
   async speakText(speed?: number): Promise<void> {

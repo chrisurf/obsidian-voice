@@ -6,6 +6,15 @@ import type { Root } from "mdast";
 import type { VFile } from "vfile";
 
 /**
+ * How structural pauses are emitted for text (non-SSML) providers:
+ * - "none": rely on newline/punctuation boundaries only (no markup) — the safe
+ *   default for engines that read unknown markup literally (e.g. OpenAI).
+ * - "break-tags": ElevenLabs-style `<break time="x.xs"/>` tags.
+ * - "minimax": MiniMax native `<#x#>` pause markers (x = seconds).
+ */
+export type PauseStyle = "none" | "break-tags" | "minimax";
+
+/**
  * Configuration options for the Markdown to SSML processor
  */
 export interface ProcessorConfig {

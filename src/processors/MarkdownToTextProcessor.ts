@@ -15,7 +15,7 @@ import { unified } from "unified";
 import remarkParse from "remark-parse";
 import remarkGfm from "remark-gfm";
 import remarkFrontmatter from "remark-frontmatter";
-import type { ProcessorConfig } from "../types/ProcessorTypes";
+import type { ProcessorConfig, PauseStyle } from "../types/ProcessorTypes";
 import { DEFAULT_CONFIG } from "./config/DefaultConfig";
 import { cleanProcessor } from "./pipeline/CleanProcessor";
 import { serializeToText } from "./pipeline/TextSerializer";
@@ -23,19 +23,21 @@ import { titleCaseAcronyms } from "./pipeline/acronyms";
 
 export class MarkdownToTextProcessor {
   private config: ProcessorConfig;
-  private pauseTags: boolean;
+  private pauseStyle: PauseStyle;
 
   constructor(
     config?: Partial<ProcessorConfig>,
-    options: { pauseTags?: boolean } = {},
+    options: { pauseStyle?: PauseStyle } = {},
   ) {
     this.config = {
       ...DEFAULT_CONFIG,
       ...config,
     };
-    // Emit ElevenLabs-style <break> tags for natural structural pauses by
-    // default (supported by all models the plugin offers).
-    this.pauseTags = options.pauseTags ?? true;
+    // Which pause markup to emit is provider-dependent: ElevenLabs understands
+    // `<break>` tags, MiniMax uses `<#x#>`, and engines that read unknown markup
+    // literally (e.g. OpenAI) get plain newline pauses. Default to "none" so an
+    // unspecified provider never has literal markup read aloud (issue #85).
+    this.pauseStyle = options.pauseStyle ?? "none";
   }
 
   /**
@@ -61,8 +63,8 @@ export class MarkdownToTextProcessor {
     };
     cleanProcessor(cleanOptions)(ast);
 
-    // Stage 3: Serialize to spoken text (with structural pause tags)
-    const text = serializeToText(ast, { pauseTags: this.pauseTags });
+    // Stage 3: Serialize to spoken text (with the provider's pause style)
+    const text = serializeToText(ast, { pauseStyle: this.pauseStyle });
 
     // Stage 4: When acronyms should not be spelled out, title-case them so the
     // engine reads them as a word (consistent with the SSML pipeline). Engines

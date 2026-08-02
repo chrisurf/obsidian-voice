@@ -180,13 +180,19 @@ export class VoiceSettingTab extends PluginSettingTab {
         name: "",
         searchable: false,
         render: (setting) => {
-          const host = setting.settingEl.parentElement;
-          setting.settingEl.remove();
-          if (!host) {
-            return;
-          }
-          this.providerSectionEl = host.createDiv();
-          this.renderActiveProviderSettings(this.providerSectionEl);
+          // Mount the active provider's credential section. On Obsidian 1.13
+          // stable the synthetic row is not yet attached when render() runs, so
+          // setting.settingEl.parentElement is null (it worked in the 1.13
+          // beta) and the whole section silently went missing. Render into the
+          // row element itself instead — it is always valid and is attached to
+          // the tab along with the row — after stripping the default
+          // setting-item chrome. (SettingGroup.listEl would be the natural
+          // container but is @since 1.11, past the 1.7.2 minAppVersion.)
+          const el = setting.settingEl;
+          el.empty();
+          el.removeClass("setting-item");
+          this.providerSectionEl = el;
+          this.renderActiveProviderSettings(el);
         },
       },
     ];

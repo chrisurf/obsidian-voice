@@ -235,6 +235,8 @@ export class Voice extends Plugin {
       this.settings.OPENAI_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "minimax") {
       this.settings.MINIMAX_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "cartesia") {
+      this.settings.CARTESIA_VOICE = voiceId;
     } else {
       this.settings.VOICE = voiceId;
     }

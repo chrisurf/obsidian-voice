@@ -11,6 +11,8 @@ import {
   OPENAI_MODELS,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
+  CARTESIA_MODELS,
+  CARTESIA_LANGUAGES,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
   type TtsProvider,
@@ -104,6 +106,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             azure: "Azure Speech",
             openai: "OpenAI",
             minimax: "MiniMax",
+            cartesia: "Cartesia",
           },
         },
       },
@@ -275,6 +278,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayOpenAISettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
       this.displayMiniMaxSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "cartesia") {
+      this.displayCartesiaSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
@@ -298,6 +303,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
           .addOption("minimax", "MiniMax")
+          .addOption("cartesia", "Cartesia")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
@@ -485,6 +491,69 @@ export class VoiceSettingTab extends PluginSettingTab {
         "Enter your MiniMax API key and Group ID above, then click 'Test Credentials' to validate",
       helpText: "Need a MiniMax API key? ",
       helpUrl: "https://platform.minimax.io/",
+    });
+  }
+
+  private displayCartesiaSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Cartesia").setHeading();
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "The Cartesia Sonic model. Sonic 2 is the latest multilingual model; Sonic Turbo favours latency.",
+      )
+      .addDropdown((dropdown) => {
+        CARTESIA_MODELS.forEach((model) => {
+          dropdown.addOption(model.id, model.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.CARTESIA_MODEL)
+          .onChange(async (value) => {
+            this.plugin.settings.CARTESIA_MODEL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Language")
+      .setDesc(
+        "The language Cartesia should speak. Cartesia does not auto-detect, so set this to match your notes.",
+      )
+      .addDropdown((dropdown) => {
+        CARTESIA_LANGUAGES.forEach((lang) => {
+          dropdown.addOption(lang.id, lang.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.CARTESIA_LANGUAGE)
+          .onChange(async (value) => {
+            this.plugin.settings.CARTESIA_LANGUAGE = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "Cartesia API Key",
+      "Your Cartesia API key (Cartesia dashboard → API keys). Test Credentials loads your account's full voice list.",
+      "Enter your Cartesia API key",
+      this.plugin.settings.CARTESIA_API_KEY,
+      async (value) => {
+        this.plugin.settings.CARTESIA_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Cartesia",
+      isConfigured: () => !!this.plugin.settings.CARTESIA_API_KEY,
+      missingMessage: "Please enter your Cartesia API key before testing.",
+      promptMessage:
+        "Enter your Cartesia API key above, then click 'Test Credentials' to validate",
+      helpText: "Need a Cartesia API key? ",
+      helpUrl: "https://play.cartesia.ai/keys",
     });
   }
 
@@ -892,17 +961,22 @@ export class VoiceSettingTab extends PluginSettingTab {
         const result = await tempProvider.validateCredentials();
 
         if (result.isValid) {
-          // Cache a freshly fetched voice catalog (Azure) so the picker can
-          // offer every voice grouped by language, then resync the player.
-          if (
-            result.voices &&
-            result.voices.length > 0 &&
-            this.plugin.settings.TTS_PROVIDER === "azure"
-          ) {
-            this.plugin.settings.azureVoiceCatalog = result.voices;
-            await this.plugin.saveSettings();
-            this.plugin.reinitializeProviderCredentials();
-            this.plugin.refreshVoicePlayerControls();
+          // Cache a freshly fetched voice catalog (Azure, Cartesia) so the
+          // picker can offer every voice grouped by language, then resync the
+          // player. Providers with opaque or account-specific voice ids rely on
+          // this dynamic list.
+          if (result.voices && result.voices.length > 0) {
+            const provider = this.plugin.settings.TTS_PROVIDER;
+            if (provider === "azure") {
+              this.plugin.settings.azureVoiceCatalog = result.voices;
+            } else if (provider === "cartesia") {
+              this.plugin.settings.cartesiaVoiceCatalog = result.voices;
+            }
+            if (provider === "azure" || provider === "cartesia") {
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeProviderCredentials();
+              this.plugin.refreshVoicePlayerControls();
+            }
           }
           updateStatus(true, "", false, result.voiceCount);
         } else {

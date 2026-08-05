@@ -4,6 +4,7 @@ import { ElevenLabsService } from "../src/service/ElevenLabsService";
 import { OpenAiSpeechService } from "../src/service/OpenAiSpeechService";
 import { MiniMaxSpeechService } from "../src/service/MiniMaxSpeechService";
 import { AzureSpeechService } from "../src/service/AzureSpeechService";
+import { CartesiaSpeechService } from "../src/service/CartesiaSpeechService";
 
 // Small mdast builders (the serializer only reads `type`, `value`, `children`).
 const text = (value: string) => ({ type: "text", value });
@@ -134,6 +135,11 @@ describe("Unit Tests - Provider pause-style declarations", () => {
 
   test("OpenAI reads markup literally, so it gets no pause markup", () => {
     const s = new OpenAiSpeechService("k", "alloy", "gpt-4o-mini-tts", 1);
+    expect(s.textPauseStyle).toBe("none");
+  });
+
+  test("Cartesia understands no pause markup, so it gets none", () => {
+    const s = new CartesiaSpeechService("k", "v", "sonic-2", "en", 1);
     expect(s.textPauseStyle).toBe("none");
   });
 

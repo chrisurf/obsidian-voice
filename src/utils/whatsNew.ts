@@ -28,12 +28,21 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (MiniMax), then the Voice player and everything added since 1.8.0,
+ * provider (Cartesia), then the Voice player and everything added since 1.8.0,
  * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: MiniMax — text-to-speech that works from China
+export const WHATS_NEW = `## 🆕 New: Cartesia — fast, natural Sonic voices
 
-Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
+Voice's **seventh provider** is here: **Cartesia** (the **Sonic** models). It's known for very natural, low-latency speech.
+
+- ⚡ **Sonic 2** (multilingual) or **Sonic Turbo** (fastest) — pick in settings.
+- 🗣️ Press **Test Credentials** and Voice loads your **account's full voice library** into the picker.
+- 🌍 Set the **language** so Sonic pronounces your notes correctly.
+- 🔑 Set it up in **Settings → Voice → Cartesia**: choose a model and language, paste your **API key**, then press **Test Credentials**.
+
+## 🗣️ MiniMax — text-to-speech that works from China
+
+**MiniMax** is a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
 
 - 🌏 **Choose your region** — **global** or **mainland China** — so the API works wherever your account lives.
 - 🗣️ **Natural, multilingual voices** with especially strong Chinese support (Speech 02 HD/Turbo · Speech 01 HD/Turbo).
@@ -73,7 +82,7 @@ Every control is one button; a few do double duty — **tap** vs. **press & hold
 
 ## ✨ Everything at a glance
 
-**Six providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · **MiniMax**.
+**Seven providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · MiniMax · **Cartesia**.
 
 **Player & playback** — chapters, scrubber, speed (0.5×–2.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
 

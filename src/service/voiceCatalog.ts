@@ -70,6 +70,50 @@ export function localeDisplayName(locale: string): string {
   }
 }
 
+/**
+ * The subset of fields Cartesia's `GET /voices` entries carry that we use.
+ * The endpoint returns either a bare array or a paginated `{ data: [...] }`
+ * object depending on the API version; mapCartesiaVoices accepts both.
+ */
+export interface CartesiaRawVoice {
+  id?: string;
+  name?: string;
+  language?: string;
+  description?: string;
+}
+
+/**
+ * Map Cartesia's raw voice list into the plugin's VoiceOption catalog. Cartesia
+ * voice ids are opaque UUIDs, so the dynamic list (fetched on "Test
+ * Credentials") is what makes the picker usable — each voice is labelled by its
+ * name and grouped by its language (a 2-letter code the picker turns into a
+ * language name). De-duplicated by id.
+ *
+ * @param raw The parsed JSON from `/voices` — a bare array or `{ data: [...] }`.
+ */
+export function mapCartesiaVoices(raw: unknown): VoiceOption[] {
+  const list = Array.isArray(raw)
+    ? raw
+    : Array.isArray((raw as { data?: unknown })?.data)
+      ? (raw as { data: unknown[] }).data
+      : [];
+  const seen = new Set<string>();
+  const voices: VoiceOption[] = [];
+  for (const entry of list as CartesiaRawVoice[]) {
+    const id = entry?.id;
+    if (!id || seen.has(id)) {
+      continue;
+    }
+    seen.add(id);
+    voices.push({
+      id,
+      label: entry.name || id,
+      lang: entry.language || "en",
+    });
+  }
+  return voices;
+}
+
 /** A language group of voices for the picker, with its display label. */
 export interface VoiceGroup {
   label: string;

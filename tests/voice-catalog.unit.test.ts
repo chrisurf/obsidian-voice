@@ -1,5 +1,6 @@
 import {
   mapAzureVoices,
+  mapCartesiaVoices,
   groupVoicesByLanguage,
   localeDisplayName,
 } from "../src/service/voiceCatalog";
@@ -120,6 +121,59 @@ describe("Unit Tests - Voice catalog", () => {
     test("returns a non-empty label (friendly name or the raw code)", () => {
       expect(localeDisplayName("de-DE").length).toBeGreaterThan(0);
       expect(localeDisplayName("en-US").length).toBeGreaterThan(0);
+    });
+  });
+
+  describe("mapCartesiaVoices", () => {
+    test("maps a bare array to VoiceOptions (id, name → label, language)", () => {
+      const voices = mapCartesiaVoices([
+        { id: "uuid-1", name: "Aria", language: "en" },
+        { id: "uuid-2", name: "Lukas", language: "de", description: "warm" },
+      ]);
+      expect(voices).toEqual([
+        { id: "uuid-1", label: "Aria", lang: "en" },
+        { id: "uuid-2", label: "Lukas", lang: "de" },
+      ]);
+    });
+
+    test("accepts the paginated { data: [...] } shape", () => {
+      const voices = mapCartesiaVoices({
+        data: [{ id: "uuid-1", name: "Aria", language: "en" }],
+        has_more: false,
+      });
+      expect(voices).toHaveLength(1);
+      expect(voices[0].id).toBe("uuid-1");
+    });
+
+    test("de-duplicates by id and skips entries without an id", () => {
+      const voices = mapCartesiaVoices([
+        { id: "uuid-1", name: "Aria", language: "en" },
+        { id: "uuid-1", name: "Aria dup", language: "en" },
+        { name: "No id", language: "en" },
+      ]);
+      expect(voices).toHaveLength(1);
+    });
+
+    test("falls back to the id as label and 'en' as lang when missing", () => {
+      const voices = mapCartesiaVoices([{ id: "uuid-x" }]);
+      expect(voices[0]).toEqual({ id: "uuid-x", label: "uuid-x", lang: "en" });
+    });
+
+    test("returns [] for non-list input", () => {
+      expect(mapCartesiaVoices(null)).toEqual([]);
+      expect(mapCartesiaVoices({ nope: true })).toEqual([]);
+    });
+
+    test("groups into language buckets via the picker helper", () => {
+      const groups = groupVoicesByLanguage(
+        mapCartesiaVoices([
+          { id: "a", name: "Aria", language: "en" },
+          { id: "b", name: "Lukas", language: "de" },
+        ]),
+      );
+      const labels = groups.map((g) => g.label);
+      expect(labels).toContain("English");
+      expect(labels).toContain("German");
     });
   });
 });

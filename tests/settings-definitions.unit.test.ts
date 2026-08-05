@@ -102,14 +102,22 @@ describe("Unit: VoiceSettingTab declarative settings", () => {
     expect(keys).toEqual([...EXPECTED_CONTROL_KEYS].sort());
   });
 
-  it("offers all six providers in the dropdown", () => {
+  it("offers all seven providers in the dropdown", () => {
     const controls = collectControls(
       makeTab(makePlugin()).getSettingDefinitions() as Controlish[],
     );
     const provider = controls.find((c) => c.key === "TTS_PROVIDER");
     expect(provider?.type).toBe("dropdown");
     expect(Object.keys(provider?.options ?? {}).sort()).toEqual(
-      ["azure", "elevenlabs", "google", "minimax", "openai", "polly"].sort(),
+      [
+        "azure",
+        "cartesia",
+        "elevenlabs",
+        "google",
+        "minimax",
+        "openai",
+        "polly",
+      ].sort(),
     );
   });
 

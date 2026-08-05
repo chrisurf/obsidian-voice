@@ -10,6 +10,7 @@ import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
 import { MiniMaxSpeechService } from "./MiniMaxSpeechService";
+import { CartesiaSpeechService } from "./CartesiaSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -53,6 +54,15 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.MINIMAX_MODEL,
       settings.MINIMAX_HOST,
       Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "cartesia") {
+    provider = new CartesiaSpeechService(
+      settings.CARTESIA_API_KEY,
+      settings.CARTESIA_VOICE,
+      settings.CARTESIA_MODEL,
+      settings.CARTESIA_LANGUAGE,
+      Number(settings.SPEED),
+      settings.cartesiaVoiceCatalog,
     );
   } else {
     provider = new AwsPollyService(

@@ -36,6 +36,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "azure", label: "Azure Speech" },
   { id: "openai", label: "OpenAI" },
   { id: "minimax", label: "MiniMax" },
+  { id: "cartesia", label: "Cartesia" },
 ];
 
 /**

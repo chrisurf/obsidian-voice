@@ -7,7 +7,8 @@ export type TtsProvider =
   | "google"
   | "azure"
   | "openai"
-  | "minimax";
+  | "minimax"
+  | "cartesia";
 
 /**
  * Where saved MP3s are written.
@@ -61,6 +62,15 @@ export interface VoiceSettings {
   MINIMAX_VOICE: string;
   MINIMAX_MODEL: string;
   MINIMAX_HOST: string;
+
+  // Cartesia (Sonic) Text-to-Speech. Voice ids are opaque UUIDs, so the full
+  // catalog is fetched from /voices on "Test Credentials" and cached here
+  // (like azureVoiceCatalog); CARTESIA_VOICES is the fallback until then.
+  CARTESIA_API_KEY: string;
+  CARTESIA_VOICE: string;
+  CARTESIA_MODEL: string;
+  CARTESIA_LANGUAGE: string;
+  cartesiaVoiceCatalog?: VoiceOption[];
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -415,6 +425,51 @@ export const MINIMAX_VOICES: VoiceOption[] = [
   },
 ];
 
+/**
+ * Cartesia (Sonic) models. Sonic 2 is the latest multilingual model; Sonic
+ * Turbo favours latency. Both accept plain text and return audio bytes.
+ */
+export const CARTESIA_MODELS: ModelOption[] = [
+  { id: "sonic-2", label: "Sonic 2 (latest, multilingual)" },
+  { id: "sonic-turbo", label: "Sonic Turbo (fastest)" },
+];
+
+/**
+ * Languages Cartesia's Sonic models speak. The code is sent as the request's
+ * `language` so the model pronounces the text correctly (Cartesia does not
+ * auto-detect). The label is shown in settings.
+ */
+export const CARTESIA_LANGUAGES: ModelOption[] = [
+  { id: "en", label: "English" },
+  { id: "de", label: "German" },
+  { id: "fr", label: "French" },
+  { id: "es", label: "Spanish" },
+  { id: "pt", label: "Portuguese" },
+  { id: "it", label: "Italian" },
+  { id: "nl", label: "Dutch" },
+  { id: "pl", label: "Polish" },
+  { id: "ru", label: "Russian" },
+  { id: "sv", label: "Swedish" },
+  { id: "tr", label: "Turkish" },
+  { id: "zh", label: "Chinese" },
+  { id: "ja", label: "Japanese" },
+  { id: "ko", label: "Korean" },
+  { id: "hi", label: "Hindi" },
+];
+
+/**
+ * Fallback Cartesia voice shown before "Test Credentials" fetches the account's
+ * full catalog. Cartesia voice ids are opaque UUIDs; this is a public library
+ * voice. Once validated, cartesiaVoiceCatalog replaces this list.
+ */
+export const CARTESIA_VOICES: VoiceOption[] = [
+  {
+    id: "694f9389-aac1-45b6-b726-9d9369183238",
+    label: "Sonic (English)",
+    lang: "en",
+  },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -444,6 +499,11 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   MINIMAX_VOICE: "Wise_Woman",
   MINIMAX_MODEL: "speech-02-hd",
   MINIMAX_HOST: "api.minimax.io",
+
+  CARTESIA_API_KEY: "",
+  CARTESIA_VOICE: "694f9389-aac1-45b6-b726-9d9369183238",
+  CARTESIA_MODEL: "sonic-2",
+  CARTESIA_LANGUAGE: "en",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

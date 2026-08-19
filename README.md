@@ -1,3 +1,5 @@
+
+
 # Obsidian Voice Plugin 🔊
 
 ![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, Azure Speech, OpenAI, or MiniMax](./assets/hero.png)
@@ -140,7 +142,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 Flip these as **one-click icon toggles in the Voice player** — they light up when on. All are **off by default** and apply to every provider:
 
 - `</>` **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally. (Applies to AWS Polly.)
+- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally.
 - 🔗 **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
 - 📎 **Embed MP3 in note** — add an audio player to the note whenever you save its MP3. Off saves the file without embedding.
 

@@ -11,11 +11,14 @@ import {
   OPENAI_MODELS,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
+  MINIMAX_LANGUAGE_BOOSTS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
   type TtsProvider,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import { SKIP_ENCLOSURE_PRESETS } from "../processors/pipeline/skipMarkers";
+import { FolderTextSuggest } from "../ui/FolderTextSuggest";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -46,21 +49,36 @@ export class VoiceSettingTab extends PluginSettingTab {
   }
 
   /**
-   * Platform-aware, read-only description for the "Save location" info row. It
-   * states where MP3s currently go and how to pick a default folder.
+   * Unified audio save folder. Used by both auto-save and manual saves; empty
+   * means "next to the note". A typed path that doesn't exist is created on
+   * save. Shared by the declarative (1.13+) and classic render paths.
    */
-  private audioSaveLocationDesc(): string {
-    const hold = this.plugin.isMobile()
-      ? "touch & hold"
-      : "hold (or right-click)";
-    const current =
-      this.plugin.settings.defaultAudioFolder.trim() === ""
-        ? "MP3s are saved next to the note."
-        : `MP3s are saved to “${this.plugin.settings.defaultAudioFolder}”.`;
-    return (
-      `${current} To set a default folder, ${hold} the save button to open ` +
-      "the folder picker, then tap the pin on a folder (tap it again to clear)."
-    );
+  private displaySaveLocationSetting(containerEl: HTMLElement): void {
+    const setting = new Setting(containerEl)
+      .setName("Audio save folder")
+      .setDesc(
+        "One folder for every saved MP3 (automatic and manual saves). Leave empty to save next to each note. A new folder path is created automatically.",
+      )
+      .addText((text) => {
+        text
+          .setPlaceholder("Same folder as the note (default)")
+          .setValue(this.plugin.settings.defaultAudioFolder)
+          .onChange(async (value) => {
+            this.plugin.settings.defaultAudioFolder = value.trim();
+            await this.plugin.saveSettings();
+          });
+        new FolderTextSuggest(this.plugin.app, text.inputEl);
+      });
+    setting.addExtraButton((button) => {
+      button
+        .setIcon("rotate-ccw")
+        .setTooltip("Reset: save next to the note")
+        .onClick(async () => {
+          this.plugin.settings.defaultAudioFolder = "";
+          await this.plugin.saveSettings();
+          this.render();
+        });
+    });
   }
 
   display(): void {
@@ -141,11 +159,15 @@ export class VoiceSettingTab extends PluginSettingTab {
         type: "group",
         heading: "Saving audio",
         items: [
-          // Informational only — the save location is managed from the
-          // player's folder picker (no control here).
           {
-            name: "Save location",
-            desc: this.audioSaveLocationDesc(),
+            name: "",
+            searchable: false,
+            render: (setting) => {
+              const el = setting.settingEl;
+              el.empty();
+              el.removeClass("setting-item");
+              this.displaySaveLocationSetting(el);
+            },
           },
           {
             name: "Save automatically",
@@ -167,6 +189,22 @@ export class VoiceSettingTab extends PluginSettingTab {
             name: "Folder list follows note",
             desc: "The player's folder list jumps to the current note's folder. Off keeps your chosen folder.",
             control: { type: "toggle", key: "folderSelectorFollowsNote" },
+          },
+        ],
+      },
+      {
+        type: "group",
+        heading: "Reading cleanup",
+        items: [
+          {
+            name: "",
+            searchable: false,
+            render: (setting) => {
+              const el = setting.settingEl;
+              el.empty();
+              el.removeClass("setting-item");
+              this.displayReadingCleanupSettings(el);
+            },
           },
         ],
       },
@@ -357,11 +395,7 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     new Setting(containerEl).setName("Saving audio").setHeading();
 
-    // Informational only — the save location is managed from the player's
-    // folder picker (no toggle here). Explains how to set a default folder.
-    new Setting(containerEl)
-      .setName("Save location")
-      .setDesc(this.audioSaveLocationDesc());
+    this.displaySaveLocationSetting(containerEl);
 
     new Setting(containerEl)
       .setName("Save automatically")
@@ -405,8 +439,154 @@ export class VoiceSettingTab extends PluginSettingTab {
           }),
       );
 
+    // Reading preferences (shared by every provider)
+    this.displayReadingCleanupSettings(containerEl);
+
     // Provider-specific credentials
     this.renderActiveProviderSettings(containerEl);
+  }
+
+  /**
+   * Reading-cleanup preferences: the three toggles that used to live on the
+   * player, plus the opt-in "skip content inside markers" feature (preset
+   * bracket types + literal custom marker pairs).
+   */
+  private displayReadingCleanupSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Reading cleanup").setHeading();
+
+    new Setting(containerEl)
+      .setName("Read code blocks")
+      .setDesc(
+        "Speak fenced code blocks aloud. Off replaces each block with a short 'Code snippet' notice.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.readCodeBlocks)
+          .onChange(async (value) => {
+            this.plugin.settings.readCodeBlocks = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Spell out acronyms")
+      .setDesc(
+        "Pronounce acronyms letter by letter (N-A-S-A). Off reads them naturally as words.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.spellOutAcronyms)
+          .onChange(async (value) => {
+            this.plugin.settings.spellOutAcronyms = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Skip website URLs")
+      .setDesc(
+        "Remove http/https/www links before speaking; link text is kept.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.skipUrls)
+          .onChange(async (value) => {
+            this.plugin.settings.skipUrls = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeTextSpeaker();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Skip content inside markers")
+      .setDesc(
+        "Remove text wrapped in the markers chosen below (markers included) before speaking. Off leaves every note unchanged.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.skipMarkersEnabled)
+          .onChange(async (value) => {
+            this.plugin.settings.skipMarkersEnabled = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeTextSpeaker();
+            markersEl.hidden = !value;
+          }),
+      );
+
+    const markersEl = containerEl.createDiv();
+    markersEl.hidden = !this.plugin.settings.skipMarkersEnabled;
+
+    SKIP_ENCLOSURE_PRESETS.forEach((preset) => {
+      new Setting(markersEl).setName(preset.label).addToggle((toggle) => {
+        toggle
+          .setValue(this.plugin.settings.skipEnclosedTypes.includes(preset.id))
+          .onChange(async (on) => {
+            const ids = this.plugin.settings.skipEnclosedTypes;
+            this.plugin.settings.skipEnclosedTypes = on
+              ? [...ids, preset.id]
+              : ids.filter((id) => id !== preset.id);
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeTextSpeaker();
+          });
+      });
+    });
+
+    new Setting(markersEl)
+      .setName("Custom marker pairs")
+      .setDesc(
+        "Your own literal start/end markers (not regex). Everything between a start marker and its matching end marker is skipped; add as many pairs as you like.",
+      );
+
+    const pairsEl = markersEl.createDiv();
+    const renderPairs = () => {
+      pairsEl.empty();
+      this.plugin.settings.customSkipPairs.forEach((pair, index) => {
+        const row = new Setting(pairsEl);
+        row.addText((text) => {
+          text
+            .setPlaceholder("start, e.g. ((")
+            .setValue(pair.open)
+            .onChange(async (value) => {
+              this.plugin.settings.customSkipPairs[index].open = value;
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeTextSpeaker();
+            });
+        });
+        row.addText((text) => {
+          text
+            .setPlaceholder("end, e.g. ))")
+            .setValue(pair.close)
+            .onChange(async (value) => {
+              this.plugin.settings.customSkipPairs[index].close = value;
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeTextSpeaker();
+            });
+        });
+        row.addExtraButton((button) => {
+          button
+            .setIcon("trash")
+            .setTooltip("Remove this marker pair")
+            .onClick(async () => {
+              this.plugin.settings.customSkipPairs.splice(index, 1);
+              await this.plugin.saveSettings();
+              this.plugin.reinitializeTextSpeaker();
+              renderPairs();
+            });
+        });
+      });
+    };
+    renderPairs();
+
+    const addBtn = markersEl.createEl("button", {
+      cls: "mod-cta voice-add-marker-pair-btn",
+      text: "+ Add marker pair",
+    });
+    addBtn.addEventListener("click", () => {
+      this.plugin.settings.customSkipPairs.push({ open: "", close: "" });
+      void this.plugin.saveSettings().then(() => renderPairs());
+    });
   }
 
   private displayMiniMaxSettings(containerEl: HTMLElement): void {
@@ -415,7 +595,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Region")
       .setDesc(
-        "The MiniMax API host. Pick the region where your MiniMax account was created.",
+        "The MiniMax API host. Pick the region where your MiniMax account was created. International accounts created after the 2025 migration use api.minimaxi.com; an 'invalid api key' error usually means the wrong region.",
       )
       .addDropdown((dropdown) => {
         MINIMAX_REGIONS.forEach((region) => {
@@ -448,6 +628,40 @@ export class VoiceSettingTab extends PluginSettingTab {
           });
       });
 
+    new Setting(containerEl)
+      .setName("Voice ID")
+      .setDesc(
+        "Any MiniMax voice id, including voices from the MiniMax voice library that are not in the player dropdown (e.g. French_CasualMan). This overrides the player's voice selection.",
+      )
+      .addText((text) => {
+        text
+          .setPlaceholder("e.g. French_CasualMan")
+          .setValue(this.plugin.settings.MINIMAX_VOICE)
+          .onChange(async (value) => {
+            this.plugin.settings.MINIMAX_VOICE = value.trim();
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Language boost")
+      .setDesc(
+        "Improves pronunciation for a specific language; sent as the request's language_boost field. Auto lets MiniMax detect it; Off omits the field.",
+      )
+      .addDropdown((dropdown) => {
+        MINIMAX_LANGUAGE_BOOSTS.forEach((option) => {
+          dropdown.addOption(option.id, option.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.MINIMAX_LANGUAGE_BOOST || "auto")
+          .onChange(async (value) => {
+            this.plugin.settings.MINIMAX_LANGUAGE_BOOST = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
     this.addPasswordSetting(
       containerEl,
       "MiniMax API Key",
@@ -463,9 +677,9 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     this.addPasswordSetting(
       containerEl,
-      "MiniMax Group ID",
-      "Your MiniMax Group ID (shown next to the API key in the MiniMax console).",
-      "Enter your MiniMax Group ID",
+      "MiniMax Group ID (optional)",
+      "Legacy accounts only. New MiniMax API keys do not need a Group ID — leave this empty if your console does not show one.",
+      "Enter your MiniMax Group ID (optional)",
       this.plugin.settings.MINIMAX_GROUP_ID,
       async (value) => {
         this.plugin.settings.MINIMAX_GROUP_ID = value;
@@ -476,15 +690,12 @@ export class VoiceSettingTab extends PluginSettingTab {
 
     this.renderCredentialValidation(containerEl, {
       providerName: "MiniMax",
-      isConfigured: () =>
-        !!this.plugin.settings.MINIMAX_API_KEY &&
-        !!this.plugin.settings.MINIMAX_GROUP_ID,
-      missingMessage:
-        "Please enter your MiniMax API key and Group ID before testing.",
+      isConfigured: () => !!this.plugin.settings.MINIMAX_API_KEY,
+      missingMessage: "Please enter your MiniMax API key before testing.",
       promptMessage:
-        "Enter your MiniMax API key and Group ID above, then click 'Test Credentials' to validate",
+        "Enter your MiniMax API key above, then click 'Test Credentials' to validate",
       helpText: "Need a MiniMax API key? ",
-      helpUrl: "https://platform.minimax.io/",
+      helpUrl: "https://platform.minimaxi.com/",
     });
   }
 

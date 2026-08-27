@@ -15,9 +15,12 @@ import { extractT2AAudio, type MiniMaxT2AResponse } from "./minimaxAudio";
  * - Receives plain spoken text from TextSpeaker (MiniMax's T2A endpoint takes
  *   plain text, so the text pipeline is used instead of the SSML pipeline).
  * - Chunks long notes and concatenates the resulting MP3 blobs.
- * - MiniMax needs an API key AND a Group ID; the key is a Bearer token and the
- *   Group ID is a query parameter. The regional host is configurable (global vs
- *   mainland China) so users in either region can reach the API.
+ * - MiniMax authenticates with a Bearer API key. A Group ID used to be a
+ *   required query parameter but the current `/v1/t2a_v2` API (and new API
+ *   keys) no longer needs one, so it is appended only when configured. The
+ *   regional host is configurable (the international platform now lives on
+ *   api.minimaxi.com; api.minimax.io is the legacy host) so users in either
+ *   region can reach the API.
  * - Audio comes back as a hex-encoded string (`output_format: "hex"`); it is
  *   decoded to MP3 bytes by the pure helpers in minimaxAudio.ts.
  * - Uses Obsidian's requestUrl() to bypass browser CORS and keep credentials
@@ -38,6 +41,7 @@ export class MiniMaxSpeechService extends BaseSpeechService {
   private groupId: string;
   private model: string;
   private host: string;
+  private languageBoost: string;
 
   constructor(
     apiKey: string,
@@ -46,29 +50,47 @@ export class MiniMaxSpeechService extends BaseSpeechService {
     model: string,
     host: string,
     speed?: number,
+    languageBoost?: string,
   ) {
     super(voice, speed);
     this.apiKey = apiKey;
     this.groupId = groupId;
-    this.model = model || "speech-02-hd";
-    this.host = host || "api.minimax.io";
+    this.model = model || "speech-2.8-hd";
+    this.host = host || "api.minimaxi.com";
+    this.languageBoost = languageBoost || "auto";
   }
 
   getVoiceOptions(): VoiceOption[] {
+    // Surface a manually-entered voice id (e.g. French_CasualMan) in the player
+    // picker even though it is not in the built-in catalog.
+    if (this.voice && !MINIMAX_VOICES.some((v) => v.id === this.voice)) {
+      return [
+        ...MINIMAX_VOICES,
+        {
+          id: this.voice,
+          label: `Custom: ${this.voice}`,
+          lang: "custom",
+          group: "Custom voice ID",
+        },
+      ];
+    }
     return MINIMAX_VOICES;
   }
 
   updateCredentials(settings: VoiceSettings): void {
     this.apiKey = settings.MINIMAX_API_KEY;
     this.groupId = settings.MINIMAX_GROUP_ID;
-    this.model = settings.MINIMAX_MODEL || "speech-02-hd";
-    this.host = settings.MINIMAX_HOST || "api.minimax.io";
+    this.model = settings.MINIMAX_MODEL || "speech-2.8-hd";
+    this.host = settings.MINIMAX_HOST || "api.minimaxi.com";
+    this.languageBoost = settings.MINIMAX_LANGUAGE_BOOST || "auto";
   }
 
   private endpoint(): string {
-    return `https://${this.host}/v1/t2a_v2?GroupId=${encodeURIComponent(
-      this.groupId,
-    )}`;
+    const base = `https://${this.host}/v1/t2a_v2`;
+    // The Group ID is only required by legacy accounts/keys; omit it otherwise.
+    return this.groupId
+      ? `${base}?GroupId=${encodeURIComponent(this.groupId)}`
+      : base;
   }
 
   /**
@@ -83,8 +105,8 @@ export class MiniMaxSpeechService extends BaseSpeechService {
       throw new Error("MiniMax call already in progress.");
     }
 
-    if (!this.apiKey || !this.groupId) {
-      const error = new Error("Missing MiniMax API key or Group ID");
+    if (!this.apiKey) {
+      const error = new Error("Missing MiniMax API key");
       this.reportError(error);
       throw error;
     }
@@ -149,7 +171,11 @@ export class MiniMaxSpeechService extends BaseSpeechService {
         text,
         stream: false,
         output_format: "hex",
-        language_boost: "auto",
+        // "off" omits the field; everything else is sent verbatim ("auto" or a
+        // specific language such as "French").
+        ...(this.languageBoost && this.languageBoost !== "off"
+          ? { language_boost: this.languageBoost }
+          : {}),
         voice_setting: {
           voice_id: this.voice,
           speed: 1.0,
@@ -184,13 +210,13 @@ export class MiniMaxSpeechService extends BaseSpeechService {
   /**
    * Validate the credentials. MiniMax has no free list endpoint, so we send the
    * smallest possible synthesis request and check the logical status code — this
-   * confirms the API key, Group ID and host all work together.
+   * confirms the API key (and optional Group ID) and host all work together.
    */
   async validateCredentials(): Promise<CredentialValidationResult> {
-    if (!this.apiKey || !this.groupId) {
+    if (!this.apiKey) {
       return {
         isValid: false,
-        error: "Please enter your MiniMax API key and Group ID.",
+        error: "Please enter your MiniMax API key.",
       };
     }
 
@@ -247,10 +273,10 @@ export class MiniMaxSpeechService extends BaseSpeechService {
         message.includes("401") ||
         message.toLowerCase().includes("api key")
       ) {
-        return "Invalid MiniMax API key or Group ID. Check both in settings.";
+        return "Invalid MiniMax API key, or the Region host does not match where your MiniMax account was created.";
       }
       if (message.includes("Missing MiniMax")) {
-        return "Add your MiniMax API key and Group ID in settings.";
+        return "Add your MiniMax API key in settings.";
       }
       if (message.toLowerCase().includes("balance")) {
         return "MiniMax account balance is insufficient.";

@@ -15,6 +15,7 @@ import { visit, SKIP } from "unist-util-visit";
 import type { Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
+import { removeEnclosed } from "./skipMarkers";
 
 /**
  * Create a clean processor plugin
@@ -123,6 +124,14 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         textNode.value = removeEmojis(textNode.value);
         if (options.skipUrls) {
           textNode.value = removeUrls(textNode.value);
+        }
+        // User-configured skip markers run last, on text that no longer
+        // contains markdown structure. Never applied to code nodes above.
+        if (options.skipMarkerPairs && options.skipMarkerPairs.length > 0) {
+          textNode.value = removeEnclosed(
+            textNode.value,
+            options.skipMarkerPairs,
+          );
         }
       }
     });

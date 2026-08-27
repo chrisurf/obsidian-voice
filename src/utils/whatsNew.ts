@@ -31,7 +31,14 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
  * provider (MiniMax), then the Voice player and everything added since 1.8.0,
  * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: MiniMax — text-to-speech that works from China
+export const WHATS_NEW = `## 🛠️ In this update
+
+- **MiniMax, up to date** — the integration now uses MiniMax's current T2A v2 endpoints (both WebSocket and HTTP), so playback works again after the old API was retired. New optional settings: a **Voice ID override** to pin any MiniMax voice id, and a **Language boost** (e.g. French) to bias pronunciation.
+- **Skip content inside markers** — a new opt-in reading preference: remove anything wrapped in parentheses, brackets, Obsidian \`%%comments%%\`, or your own literal marker pairs before speaking. Markdown itself is never touched.
+- **Reading preferences moved to Settings** — read code blocks, spell out acronyms, and skip URLs now live in **Settings → Voice → Reading cleanup**, alongside the new marker skipping; the player keeps just the embed toggle.
+- **Unified audio save folder** — set one **Audio save folder** in settings (with autocomplete) and every automatic or manual save lands there; leave it empty to keep saving next to the note.
+
+## 🆕 New: MiniMax — text-to-speech that works from China
 
 Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
 
@@ -48,7 +55,7 @@ Playback is simpler now — the play button does everything, so the separate Reg
 - **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
 - **Press and hold** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
 
-And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) with one click. The settings tab is leaner now, because the things you change while listening live in the player.
+The player keeps the **Embed MP3 in note** (📎) quick toggle; reading preferences like code blocks, acronyms, URLs, and marker skipping live in **Settings → Voice → Reading cleanup**.
 
 ## 📁 Save audio where you want
 

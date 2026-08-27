@@ -38,6 +38,11 @@ export class Voice extends Plugin {
       this.settings.spellOutAcronyms,
       this.settings.readCodeBlocks,
       this.settings.skipUrls,
+      {
+        enabled: this.settings.skipMarkersEnabled,
+        enclosedTypes: this.settings.skipEnclosedTypes,
+        customPairs: this.settings.customSkipPairs,
+      },
     );
 
     this.hotkeySettings = new HotkeySettings(this);
@@ -217,6 +222,11 @@ export class Voice extends Plugin {
       this.settings.spellOutAcronyms,
       this.settings.readCodeBlocks,
       this.settings.skipUrls,
+      {
+        enabled: this.settings.skipMarkersEnabled,
+        enclosedTypes: this.settings.skipEnclosedTypes,
+        customPairs: this.settings.customSkipPairs,
+      },
     );
   }
 

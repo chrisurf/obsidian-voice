@@ -1,5 +1,3 @@
-
-
 # Obsidian Voice Plugin 🔊
 
 ![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, Azure Speech, OpenAI, or MiniMax](./assets/hero.png)
@@ -54,13 +52,10 @@ Every control is a single button. Some do **two things**: a quick **tap** and a 
 | **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                                       |
 | ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default           |
 | 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                                       |
-| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                                       |
-| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                                       |
-| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                                       |
 | 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                                       |
 | ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                                       |
 
-Each toggle (`</>` `Aa` 🔗 📎) **highlights when it's on**, so you can see your reading options at a glance — no trip to settings.
+The embed toggle (📎) **highlights when it's on**. The other reading preferences (code blocks, acronyms, URLs, marker skipping) live in **Settings → Voice → Reading cleanup** — they rarely change per note.
 
 > **Jumping between notes?** By default a tap on ▶️ plays the note you're viewing — its already-saved MP3 if one exists, otherwise a fresh render — so you don't re-generate audio you already saved. Turn this off with **Play the note's saved audio** in settings.
 
@@ -139,12 +134,13 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Fine-Tune What Gets Spoken
 
-Flip these as **one-click icon toggles in the Voice player** — they light up when on. All are **off by default** and apply to every provider:
+Reading preferences live in **Settings → Voice → Reading cleanup**. All are **off by default** and apply to every provider:
 
-- `</>` **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally.
-- 🔗 **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
-- 📎 **Embed MP3 in note** — add an audio player to the note whenever you save its MP3. Off saves the file without embedding.
+- **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
+- **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally.
+- **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
+- **Skip content inside markers** — remove everything wrapped in chosen markers before speaking, markers included. Pick from common presets — English `( )`, full-width Chinese `（ ）`, `[ ]`, `【 】`, `《 》`, `{ }`, and Obsidian `%% comments %%` — or add your own literal marker pairs (e.g. `(( … ))`). A master switch leaves notes completely untouched when off; unmatched markers are never cut, and code blocks are always left as-is.
+- 📎 **Embed MP3 in note** — the one reading control kept in the player: add an audio player to the note whenever you save its MP3.
 
 > **Tip:** prefer a hands-off archive? Turn on **Save automatically** in settings to save and embed after every playback — see [Save & Play Audio Offline](#save--play-audio-offline).
 
@@ -169,7 +165,7 @@ Flip these as **one-click icon toggles in the Voice player** — they light up w
 
 ## Settings
 
-Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **content toggles** (read code blocks, spell out acronyms, skip website URLs, embed MP3) — live as one-click controls in the Voice player.
+Configure your provider and credentials in **Settings → Voice**. It covers setup, reading preferences (the **Reading cleanup** section), and save defaults; the things you change while listening — **voice**, **tempo**, and **embed MP3** — stay one click away in the Voice player.
 
 ![Voice settings](./assets/settings.png)
 
@@ -179,7 +175,8 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 | **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
 | **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
 | **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
-| **Save location**               | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access.                                                                              |
+| **Audio save folder**           | One unified folder for **every** saved MP3 (automatic and manual), with folder autocomplete; the folder is created if needed. Leave empty to save next to each note. You can still pin (📌) a default from the player's folder picker.                                                    |
+| **Skip content inside markers** | Master switch plus preset marker types and your own literal marker pairs; wrapped text is removed before speaking (see [Fine-Tune What Gets Spoken](#fine-tune-what-gets-spoken).                                                                                                         |
 | **Folder list follows note**    | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                                                                                                        |
 | **Play the note's saved audio** | On play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — so jumping between notes picks up each note's audio, even with another chapter loaded. On by default; turn off to keep the loaded chapter playing and always re-generate. |
 | **Test Credentials**            | Validate your provider keys; on success it reports how many voices are available.                                                                                                                                                                                                         |
@@ -242,7 +239,7 @@ Start with the provider you already have — you can switch anytime.
 
 **OpenAI** — Create an API key at [platform.openai.com/api-keys](https://platform.openai.com/api-keys). In **Settings → Voice**, choose **OpenAI**, pick a model and voice, paste the key, and press **Test Credentials**.
 
-**MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**.
+**MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**. The optional **Voice ID override** lets you pin any MiniMax system voice id (e.g. \`French_CasualMan\`) regardless of the catalog, and **Language boost** optionally biases pronunciation toward a language (e.g. \`French\`, \`Chinese\`) — both follow MiniMax's current T2A v2 API.
 
 ## Troubleshooting & Help
 

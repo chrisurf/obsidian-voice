@@ -60,6 +60,7 @@ export class MarkdownToTextProcessor {
       removeFrontmatter: this.config.removeFrontmatter,
       removeHTML: this.config.removeHTML,
       skipUrls: this.config.skipUrls,
+      skipMarkerPairs: this.config.skipMarkerPairs,
     };
     cleanProcessor(cleanOptions)(ast);
 

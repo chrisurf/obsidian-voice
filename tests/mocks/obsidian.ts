@@ -24,6 +24,16 @@ export class Modal {
   onClose(): void {}
 }
 
+export class AbstractInputSuggest<T> {
+  constructor(_app?: unknown, _inputEl?: unknown) {}
+  getSuggestions(_query: string): T[] {
+    return [];
+  }
+  renderSuggestion(_value: T, _el: HTMLElement): void {}
+  selectSuggestion(_value: T): void {}
+  close(): void {}
+}
+
 export class SuggestModal<T> {
   inputEl = {
     addEventListener: (): void => {},

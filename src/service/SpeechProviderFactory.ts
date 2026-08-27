@@ -53,6 +53,7 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.MINIMAX_MODEL,
       settings.MINIMAX_HOST,
       Number(settings.SPEED),
+      settings.MINIMAX_LANGUAGE_BOOST,
     );
   } else {
     provider = new AwsPollyService(

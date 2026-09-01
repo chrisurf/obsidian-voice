@@ -15,16 +15,30 @@ import { visit, SKIP } from "unist-util-visit";
 import type { Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
-import { removeEnclosed } from "./skipMarkers";
+import { removeEnclosed, syntaxNodeSkip } from "./skipMarkers";
 
 /**
  * Create a clean processor plugin
  */
 export function cleanProcessor(options: CleanProcessorOptions) {
+  // Markdown delimiter pairs (**bold**, *italic*, `code`) map to AST nodes.
+  const syntaxSkip = options.skipMarkerPairs
+    ? syntaxNodeSkip(options.skipMarkerPairs)
+    : { strong: false, emphasis: false, inlineCode: false };
+
   return function transformer(tree: Root): void {
     visit(tree, (node, index, parent) => {
       if (index === undefined || !parent) {
         return;
+      }
+
+      // Drop bold/italic nodes whose delimiter was configured as a skip pair.
+      if (
+        (node.type === "strong" && syntaxSkip.strong) ||
+        (node.type === "emphasis" && syntaxSkip.emphasis)
+      ) {
+        parent.children.splice(index, 1);
+        return index;
       }
 
       // Handle fenced code blocks
@@ -41,6 +55,12 @@ export function cleanProcessor(options: CleanProcessorOptions) {
           : { type: "text", value: codeValue };
         (parent as Parent).children[index] = replacement;
         return SKIP;
+      }
+
+      // Inline code wrapped in a configured backtick skip pair is dropped.
+      if (node.type === "inlineCode" && syntaxSkip.inlineCode) {
+        parent.children.splice(index, 1);
+        return index;
       }
 
       // Remove inline code backticks but keep the text content so it is
@@ -119,19 +139,20 @@ export function cleanProcessor(options: CleanProcessorOptions) {
       // Also remove audio embeds and emojis from text
       if (node.type === "text") {
         const textNode = node as { type: "text"; value: string };
-        textNode.value = removeAudioEmbeds(textNode.value);
-        textNode.value = cleanWikiLinks(textNode.value);
-        textNode.value = removeEmojis(textNode.value);
-        if (options.skipUrls) {
-          textNode.value = removeUrls(textNode.value);
-        }
-        // User-configured skip markers run last, on text that no longer
-        // contains markdown structure. Never applied to code nodes above.
+        // Skip markers run FIRST: pairs such as [[ ]] must be removed before
+        // cleanWikiLinks below turns [[page]] into its link text. Never
+        // applied to code nodes (handled above).
         if (options.skipMarkerPairs && options.skipMarkerPairs.length > 0) {
           textNode.value = removeEnclosed(
             textNode.value,
             options.skipMarkerPairs,
           );
+        }
+        textNode.value = removeAudioEmbeds(textNode.value);
+        textNode.value = cleanWikiLinks(textNode.value);
+        textNode.value = removeEmojis(textNode.value);
+        if (options.skipUrls) {
+          textNode.value = removeUrls(textNode.value);
         }
       }
     });

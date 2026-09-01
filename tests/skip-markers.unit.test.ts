@@ -1,6 +1,7 @@
 import {
   buildMarkerPairs,
   removeEnclosed,
+  syntaxNodeSkip,
   SKIP_ENCLOSURE_PRESETS,
 } from "../src/processors/pipeline/skipMarkers";
 describe("Unit Tests - removeEnclosed scanner", () => {
@@ -56,16 +57,46 @@ describe("Unit Tests - removeEnclosed scanner", () => {
     expect(removeEnclosed("anything (here)", [])).toBe("anything (here)");
   });
 
-  test("buildMarkerPairs ignores blank/invalid custom pairs", () => {
+  test("buildMarkerPairs ignores blank pairs but keeps same-delimiter pairs", () => {
     const pairs = buildMarkerPairs(
       ["square"],
       [
         { open: "  ", close: ")" },
         { open: "((", close: "" },
-        { open: "same", close: "same" },
+        { open: "**", close: "**" },
       ],
     );
-    expect(pairs).toEqual([{ open: "[", close: "]" }]);
+    expect(pairs).toEqual([
+      { open: "[", close: "]" },
+      { open: "**", close: "**" },
+    ]);
+  });
+
+  test("removes wiki-link style pairs at the raw-text level", () => {
+    const pairs = buildMarkerPairs([], [{ open: "[[", close: "]]" }]);
+    expect(removeEnclosed("before [[Page|alias]] after", pairs)).toBe(
+      "before after",
+    );
+  });
+
+  test("syntaxNodeSkip maps markdown delimiters to AST node types", () => {
+    expect(
+      syntaxNodeSkip([
+        { open: "**", close: "**" },
+        { open: "[[", close: "]]" },
+      ]),
+    ).toEqual({ strong: true, emphasis: false, inlineCode: false });
+    expect(
+      syntaxNodeSkip([
+        { open: "*", close: "*" },
+        { open: "`", close: "`" },
+      ]),
+    ).toEqual({ strong: false, emphasis: true, inlineCode: true });
+    expect(syntaxNodeSkip([{ open: "(", close: ")" }])).toEqual({
+      strong: false,
+      emphasis: false,
+      inlineCode: false,
+    });
   });
 
   test("preset ids all resolve to a pair", () => {

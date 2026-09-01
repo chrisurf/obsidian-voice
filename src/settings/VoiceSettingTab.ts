@@ -536,7 +536,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(markersEl)
       .setName("Custom marker pairs")
       .setDesc(
-        "Your own literal start/end markers (not regex). Everything between a start marker and its matching end marker is skipped; add as many pairs as you like.",
+        "Your own literal start/end markers (not regex). Everything between a start marker and its matching end marker is skipped. Markdown delimiters are recognized too: **/** skips bold, */* or _/_ skips italics, `/` skips inline code, and [[/]] skips wiki links.",
       );
 
     const pairsEl = markersEl.createDiv();

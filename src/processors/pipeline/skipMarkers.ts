@@ -65,16 +65,37 @@ export function buildMarkerPairs(
   const presets = SKIP_ENCLOSURE_PRESETS.filter((preset) =>
     enabledPresetIds.includes(preset.id),
   ).map((preset) => preset.pair);
+  // Same open/close delimiters ARE allowed (**bold**, *italic*, `code`,
+  // %%comment%%) — removeEnclosed handles them via depth counting.
   const custom = (customPairs ?? [])
     .filter(
-      (pair) =>
-        pair &&
-        pair.open.trim() !== "" &&
-        pair.close.trim() !== "" &&
-        pair.open !== pair.close,
+      (pair) => pair && pair.open.trim() !== "" && pair.close.trim() !== "",
     )
     .map((pair) => ({ open: pair.open.trim(), close: pair.close.trim() }));
   return [...presets, ...custom];
+}
+
+/**
+ * Markdown emphasis/strong/inline-code delimiters are consumed by the parser,
+ * so text wrapped in them only exists as AST nodes (strong / emphasis /
+ * inlineCode), never as literal characters in text nodes. When a configured
+ * pair uses one of these delimiters, CleanProcessor drops the matching node
+ * instead of relying on the text-level scanner.
+ */
+export interface SyntaxNodeSkip {
+  strong: boolean;
+  emphasis: boolean;
+  inlineCode: boolean;
+}
+
+export function syntaxNodeSkip(pairs: MarkerPair[]): SyntaxNodeSkip {
+  const has = (open: string, close: string): boolean =>
+    pairs.some((pair) => pair.open === open && pair.close === close);
+  return {
+    strong: has("**", "**") || has("__", "__"),
+    emphasis: has("*", "*") || has("_", "_"),
+    inlineCode: has("`", "`"),
+  };
 }
 
 /**

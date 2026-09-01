@@ -53,16 +53,22 @@ export interface VoiceSettings {
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
 
-  // MiniMax Text-to-Speech (T2A v2). MiniMax needs both an API key and a
-  // Group ID (the Group ID is sent as a query parameter). MINIMAX_HOST selects
-  // the regional endpoint host (global vs mainland China).
+  // MiniMax Text-to-Speech (T2A v2). MINIMAX_API_KEY authenticates (Bearer).
+  // MINIMAX_GROUP_ID is optional (only legacy accounts need it); MINIMAX_HOST
+  // selects the regional endpoint host; MINIMAX_VOICE may be any MiniMax voice
+  // id (including ids not in the built-in catalog); MINIMAX_LANGUAGE_BOOST maps
+  // to the request's language_boost field.
   MINIMAX_API_KEY: string;
   MINIMAX_GROUP_ID: string;
   MINIMAX_VOICE: string;
   MINIMAX_MODEL: string;
   MINIMAX_HOST: string;
+  MINIMAX_LANGUAGE_BOOST: string;
 
   // Content / speech options (shared across providers)
+  skipMarkersEnabled: boolean;
+  skipEnclosedTypes: string[];
+  customSkipPairs: { open: string; close: string }[];
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
   autoDownloadAudio: boolean;
@@ -358,24 +364,84 @@ export const OPENAI_VOICES: VoiceOption[] = [
 ];
 
 /**
- * MiniMax regional API hosts. The Group ID is appended as a query parameter and
- * the path is `/v1/t2a_v2`; only the host differs by region. Pick the host that
- * matches where your MiniMax account was created.
+ * MiniMax regional API hosts. The path is `/v1/t2a_v2`; the Group ID is only
+ * appended when one is configured (new API keys no longer need one). Pick the
+ * host that matches where your MiniMax account was created. The international
+ * platform moved from api.minimax.io to api.minimaxi.com in 2025; the legacy
+ * hosts are kept for accounts created before the migration.
  */
 export const MINIMAX_REGIONS: ModelOption[] = [
-  { id: "api.minimax.io", label: "Global (api.minimax.io)" },
+  { id: "api.minimaxi.com", label: "Global (api.minimaxi.com)" },
+  { id: "api-bj.minimaxi.com", label: "Global backup (api-bj.minimaxi.com)" },
   { id: "api.minimaxi.chat", label: "Mainland China (api.minimaxi.chat)" },
+  { id: "api.minimax.io", label: "Legacy global (api.minimax.io)" },
 ];
 
 /**
- * MiniMax T2A models. HD favours quality; Turbo favours latency/cost. Both the
- * 02 and 01 families accept the same inputs and return MP3 audio.
+ * MiniMax T2A models. HD favours quality; Turbo favours latency/cost. All
+ * families accept the same inputs and return MP3 audio. The 2.8/2.6 families
+ * are the current generation (2.8 also supports emotional paralinguistic tags);
+ * 02/01 remain supported by the API.
  */
 export const MINIMAX_MODELS: ModelOption[] = [
+  { id: "speech-2.8-hd", label: "Speech 2.8 HD (newest, best quality)" },
+  { id: "speech-2.8-turbo", label: "Speech 2.8 Turbo (newest, fast)" },
+  { id: "speech-2.6-hd", label: "Speech 2.6 HD (low latency)" },
+  { id: "speech-2.6-turbo", label: "Speech 2.6 Turbo (fast)" },
   { id: "speech-02-hd", label: "Speech 02 HD (quality)" },
   { id: "speech-02-turbo", label: "Speech 02 Turbo (fast)" },
-  { id: "speech-01-hd", label: "Speech 01 HD" },
-  { id: "speech-01-turbo", label: "Speech 01 Turbo" },
+  { id: "speech-01-hd", label: "Speech 01 HD (legacy)" },
+  { id: "speech-01-turbo", label: "Speech 01 Turbo (legacy)" },
+];
+
+/**
+ * language_boost options for the T2A request body. "auto" lets MiniMax detect
+ * the language; "off" omits the field; every other value is sent verbatim
+ * (e.g. "French"). Values mirror the official API enum.
+ */
+export const MINIMAX_LANGUAGE_BOOSTS: ModelOption[] = [
+  { id: "auto", label: "Auto-detect (recommended)" },
+  { id: "off", label: "Off (do not send language_boost)" },
+  { id: "Chinese", label: "Chinese" },
+  { id: "Chinese,Yue", label: "Chinese (Cantonese)" },
+  { id: "English", label: "English" },
+  { id: "French", label: "French" },
+  { id: "Spanish", label: "Spanish" },
+  { id: "German", label: "German" },
+  { id: "Italian", label: "Italian" },
+  { id: "Portuguese", label: "Portuguese" },
+  { id: "Russian", label: "Russian" },
+  { id: "Japanese", label: "Japanese" },
+  { id: "Korean", label: "Korean" },
+  { id: "Arabic", label: "Arabic" },
+  { id: "Turkish", label: "Turkish" },
+  { id: "Dutch", label: "Dutch" },
+  { id: "Ukrainian", label: "Ukrainian" },
+  { id: "Vietnamese", label: "Vietnamese" },
+  { id: "Indonesian", label: "Indonesian" },
+  { id: "Thai", label: "Thai" },
+  { id: "Polish", label: "Polish" },
+  { id: "Romanian", label: "Romanian" },
+  { id: "Greek", label: "Greek" },
+  { id: "Czech", label: "Czech" },
+  { id: "Finnish", label: "Finnish" },
+  { id: "Hindi", label: "Hindi" },
+  { id: "Bulgarian", label: "Bulgarian" },
+  { id: "Danish", label: "Danish" },
+  { id: "Hebrew", label: "Hebrew" },
+  { id: "Malay", label: "Malay" },
+  { id: "Persian", label: "Persian" },
+  { id: "Slovak", label: "Slovak" },
+  { id: "Swedish", label: "Swedish" },
+  { id: "Croatian", label: "Croatian" },
+  { id: "Filipino", label: "Filipino" },
+  { id: "Hungarian", label: "Hungarian" },
+  { id: "Norwegian", label: "Norwegian" },
+  { id: "Slovenian", label: "Slovenian" },
+  { id: "Catalan", label: "Catalan" },
+  { id: "Nynorsk", label: "Nynorsk" },
+  { id: "Tamil", label: "Tamil" },
+  { id: "Afrikaans", label: "Afrikaans" },
 ];
 
 /**
@@ -442,11 +508,15 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   MINIMAX_API_KEY: "",
   MINIMAX_GROUP_ID: "",
   MINIMAX_VOICE: "Wise_Woman",
-  MINIMAX_MODEL: "speech-02-hd",
-  MINIMAX_HOST: "api.minimax.io",
+  MINIMAX_MODEL: "speech-2.8-hd",
+  MINIMAX_HOST: "api.minimaxi.com",
+  MINIMAX_LANGUAGE_BOOST: "auto",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,
+  skipMarkersEnabled: false,
+  skipEnclosedTypes: [],
+  customSkipPairs: [],
   autoDownloadAudio: false,
   // Embed the saved MP3 in the note. On by default so manual downloads keep
   // their previous behaviour (save + embed). Turn off to download only.

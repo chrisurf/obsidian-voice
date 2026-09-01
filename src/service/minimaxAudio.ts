@@ -52,7 +52,7 @@ export function hexToBytes(hex: string): Uint8Array {
 export function minimaxErrorMessage(code: number, msg?: string): string {
   switch (code) {
     case 1004:
-      return "MiniMax: authentication failed — check your API key and Group ID.";
+      return "MiniMax: authentication failed — check your API key and that the Region host matches your account.";
     case 1002:
       return "MiniMax: rate limit reached. Please wait and try again.";
     case 1039:

@@ -1147,3 +1147,20 @@
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* Small provider/model name shown next to "Play selected text" (e.g. MiniMax). */
+.voice-model-badge {
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  border-radius: var(--radius-s);
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+/* Spacing under the "add custom marker pair" button in settings. */
+.voice-add-marker-pair-btn {
+  margin-bottom: 0.75em;
+}

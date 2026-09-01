@@ -15,6 +15,7 @@ export const DEFAULT_CONFIG: ProcessorConfig = {
   removeFrontmatter: true,
   removeHTML: true,
   skipUrls: false, // Read website URLs aloud by default; enable to skip them
+  skipMarkerPairs: [], // User-configured enclosed-content markers to skip
 
   // Enhancement options
   addHeadingEmphasis: true,

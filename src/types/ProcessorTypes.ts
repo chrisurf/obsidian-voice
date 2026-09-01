@@ -25,6 +25,7 @@ export interface ProcessorConfig {
   removeFrontmatter: boolean;
   removeHTML: boolean;
   skipUrls: boolean;
+  skipMarkerPairs?: import("../processors/pipeline/skipMarkers").MarkerPair[];
 
   // Enhancement options
   addHeadingEmphasis: boolean;
@@ -96,6 +97,8 @@ export interface CleanProcessorOptions {
   removeFrontmatter: boolean;
   removeHTML: boolean;
   skipUrls: boolean;
+  /** Literal marker pairs whose enclosed content is skipped in text nodes. */
+  skipMarkerPairs?: import("../processors/pipeline/skipMarkers").MarkerPair[];
 }
 
 /**

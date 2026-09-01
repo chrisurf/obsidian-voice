@@ -52,7 +52,7 @@ describe("Unit Tests - MiniMax audio helpers", () => {
       });
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error).toMatch(/API key and Group ID/i);
+        expect(result.error).toMatch(/authentication failed/i);
       }
     });
 
@@ -106,7 +106,7 @@ describe("Unit Tests - MiniMax Provider", () => {
     expect(service.getVoiceOptions().length).toBeGreaterThan(0);
   });
 
-  test("rejects missing key/Group ID without a network call", async () => {
+  test("rejects a missing API key without a network call (Group ID optional)", async () => {
     const service = new MiniMaxSpeechService(
       "",
       "",
@@ -155,6 +155,98 @@ describe("Unit Tests - MiniMax Provider", () => {
 
     // Audio should be cached for the active note (download support)
     expect(service.getLastGeneratedAudio("note.md")).not.toBeNull();
+  });
+
+  test("omits the GroupId query when no Group ID is configured (new API keys)", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: {
+        data: { audio: "fffb90", status: 2 },
+        base_resp: { status_code: 0, status_msg: "success" },
+      },
+    });
+
+    const service = new MiniMaxSpeechService(
+      "my-key",
+      "",
+      "male-qn-qingse",
+      "speech-2.8-hd",
+      "api.minimaxi.com",
+      1.0,
+    );
+    await service.speak("Hello world.", 1.0);
+
+    expect(mockRequestUrl).toHaveBeenCalledTimes(1);
+    const call = mockRequestUrl.mock.calls[0][0];
+    expect(call.url).toBe("https://api.minimaxi.com/v1/t2a_v2");
+    expect(call.url).not.toContain("GroupId");
+    expect(JSON.parse(call.body).model).toBe("speech-2.8-hd");
+  });
+
+  test("sends the configured language_boost (e.g. French)", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: {
+        data: { audio: "fffb90", status: 2 },
+        base_resp: { status_code: 0, status_msg: "success" },
+      },
+    });
+
+    const service = new MiniMaxSpeechService(
+      "my-key",
+      "",
+      "French_CasualMan",
+      "speech-2.8-hd",
+      "api.minimaxi.com",
+      1.0,
+      "French",
+    );
+    await service.speak("Bonjour.");
+
+    const body = JSON.parse(mockRequestUrl.mock.calls[0][0].body);
+    expect(body.language_boost).toBe("French");
+    expect(body.voice_setting.voice_id).toBe("French_CasualMan");
+  });
+
+  test("omits language_boost when set to off", async () => {
+    mockRequestUrl.mockResolvedValue({
+      status: 200,
+      json: {
+        data: { audio: "fffb90", status: 2 },
+        base_resp: { status_code: 0, status_msg: "success" },
+      },
+    });
+
+    const service = new MiniMaxSpeechService(
+      "my-key",
+      "",
+      "Wise_Woman",
+      "speech-02-turbo",
+      "api.minimaxi.com",
+      1.0,
+      "off",
+    );
+    await service.speak("Hello.");
+
+    const body = JSON.parse(mockRequestUrl.mock.calls[0][0].body);
+    expect(body).not.toHaveProperty("language_boost");
+  });
+
+  test("surfaces a custom voice id in the picker options", () => {
+    const service = new MiniMaxSpeechService(
+      "key",
+      "",
+      "French_CasualMan",
+      "speech-2.8-hd",
+      "api.minimaxi.com",
+      1.0,
+      "French",
+    );
+    const options = service.getVoiceOptions();
+    expect(options.some((v) => v.id === "French_CasualMan")).toBe(true);
+    expect(options.find((v) => v.id === "French_CasualMan")?.group).toBe(
+      "Custom voice ID",
+    );
   });
 
   test("throws and reports when credentials are missing", async () => {

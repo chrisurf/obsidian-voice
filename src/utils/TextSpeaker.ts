@@ -10,6 +10,10 @@ import {
   friendlySpeechError,
 } from "./speechFeedback";
 import { Notice } from "obsidian";
+import {
+  buildMarkerPairs,
+  type MarkerPair,
+} from "../processors/pipeline/skipMarkers";
 
 /**
  * TextSpeaker - Orchestrates text-to-speech conversion
@@ -36,6 +40,11 @@ export class TextSpeaker {
     spellOutAcronyms: boolean = false,
     readCodeBlocks: boolean = false,
     skipUrls: boolean = false,
+    skipMarkers: {
+      enabled: boolean;
+      enclosedTypes: string[];
+      customPairs: MarkerPair[];
+    } = { enabled: false, enclosedTypes: [], customPairs: [] },
   ) {
     this.provider = provider;
     this.markdownHelper = markdownHelper;
@@ -44,12 +53,19 @@ export class TextSpeaker {
     this.readCodeBlocks = readCodeBlocks;
     this.skipUrls = skipUrls;
 
+    // User-configured enclosed-content markers (brackets, custom pairs).
+    // Disabled → empty list → zero effect on the text.
+    const skipMarkerPairs = skipMarkers.enabled
+      ? buildMarkerPairs(skipMarkers.enclosedTypes, skipMarkers.customPairs)
+      : [];
+
     // Shared content options for both pipelines. When code blocks should be
     // read, keep them in the spoken output; otherwise the cleaner replaces
     // them with a short placeholder. URLs are stripped when skipUrls is on.
     const contentOptions = {
       removeCodeBlocks: !this.readCodeBlocks,
       skipUrls: this.skipUrls,
+      skipMarkerPairs,
     };
 
     // SSML pipeline (AWS Polly)

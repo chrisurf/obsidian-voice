@@ -70,9 +70,7 @@ export class VoicePlayerView extends ItemView {
   private providerSelect: HTMLSelectElement;
   private voiceSelect: HTMLSelectElement;
   private folderSelect: HTMLSelectElement;
-  private codeBtn: HTMLElement;
-  private acronymBtn: HTMLElement;
-  private urlBtn: HTMLElement;
+
   private embedBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
   private loadingFillEl: HTMLElement;
@@ -293,27 +291,8 @@ export class VoicePlayerView extends ItemView {
     setIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // On/off toggles: read code blocks, spell out acronyms, skip URLs, embed
-    // MP3. They sit in the same row as the action controls, spread evenly
-    // across its width.
-    this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
-    setIcon(this.codeBtn, "code");
-    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
-
-    this.acronymBtn = secondary.createEl("button", {
-      cls: "voice-player-toggle",
-    });
-    setIcon(this.acronymBtn, "case-sensitive");
-    this.registerDomEvent(this.acronymBtn, "click", () =>
-      this.toggleAcronyms(),
-    );
-
-    this.urlBtn = secondary.createEl("button", {
-      cls: "voice-player-toggle",
-    });
-    setIcon(this.urlBtn, "unlink");
-    this.registerDomEvent(this.urlBtn, "click", () => this.toggleSkipUrls());
-
+    // On/off toggle: embed MP3. Reading preferences (code blocks, acronyms,
+    // URL skipping) live in Settings, not the player, as they rarely change.
     this.embedBtn = secondary.createEl("button", {
       cls: "voice-player-toggle",
     });
@@ -566,31 +545,6 @@ export class VoicePlayerView extends ItemView {
     void this.plugin.persistActiveVoice(voiceId);
   }
 
-  /** Toggle whether code blocks are read aloud. */
-  private toggleCodeBlocks(): void {
-    this.plugin.settings.readCodeBlocks = !this.plugin.settings.readCodeBlocks;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateCodeButton();
-  }
-
-  /** Toggle whether acronyms (NASA, API) are spelled out letter by letter. */
-  private toggleAcronyms(): void {
-    this.plugin.settings.spellOutAcronyms =
-      !this.plugin.settings.spellOutAcronyms;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateAcronymButton();
-  }
-
-  /** Toggle whether website URLs are skipped (link labels are kept). */
-  private toggleSkipUrls(): void {
-    this.plugin.settings.skipUrls = !this.plugin.settings.skipUrls;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateUrlButton();
-  }
-
   /** Toggle whether saving an MP3 also embeds an audio player in the note. */
   private toggleEmbed(): void {
     this.plugin.settings.autoEmbedAudio = !this.plugin.settings.autoEmbedAudio;
@@ -605,9 +559,6 @@ export class VoicePlayerView extends ItemView {
     }
     this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
     this.populateVoiceOptions();
-    this.updateCodeButton();
-    this.updateAcronymButton();
-    this.updateUrlButton();
     this.updateEmbedButton();
     this.updateDownloadButton();
   }
@@ -638,42 +589,6 @@ export class VoicePlayerView extends ItemView {
    */
   syncControls(): void {
     this.refreshControls();
-  }
-
-  private updateCodeButton(): void {
-    if (!this.codeBtn) {
-      return;
-    }
-    const on = this.plugin.settings.readCodeBlocks;
-    this.codeBtn.toggleClass("is-active", on);
-    this.codeBtn.setAttribute(
-      "aria-label",
-      on ? "Read code blocks: on" : "Read code blocks: off",
-    );
-  }
-
-  private updateAcronymButton(): void {
-    if (!this.acronymBtn) {
-      return;
-    }
-    const on = this.plugin.settings.spellOutAcronyms;
-    this.acronymBtn.toggleClass("is-active", on);
-    this.acronymBtn.setAttribute(
-      "aria-label",
-      on ? "Spell out acronyms: on" : "Spell out acronyms: off",
-    );
-  }
-
-  private updateUrlButton(): void {
-    if (!this.urlBtn) {
-      return;
-    }
-    const on = this.plugin.settings.skipUrls;
-    this.urlBtn.toggleClass("is-active", on);
-    this.urlBtn.setAttribute(
-      "aria-label",
-      on ? "Skip website URLs: on" : "Skip website URLs: off",
-    );
   }
 
   private updateEmbedButton(): void {
@@ -1269,8 +1184,6 @@ export class VoicePlayerView extends ItemView {
       this.refreshControls();
     } else {
       this.voiceSelect.value = provider.getVoice();
-      this.updateCodeButton();
-      this.updateAcronymButton();
       this.updateEmbedButton();
     }
     this.updateDownloadButton();

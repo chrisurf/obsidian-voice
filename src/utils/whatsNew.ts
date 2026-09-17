@@ -28,10 +28,19 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (MiniMax), then the Voice player and everything added since 1.8.0,
+ * provider (OpenAI-compatible servers), then MiniMax, then the Voice player and everything added since 1.8.0,
  * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: MiniMax — text-to-speech that works from China
+export const WHATS_NEW = `## 🆕 New: bring any OpenAI-compatible server
+
+Voice now talks to **any server that speaks OpenAI's speech API** — hosted routers like **OpenRouter**, gateways like **LiteLLM**, or a **self-hosted** engine such as **Kokoro** running on your own machine.
+
+- 🔌 Choose **OpenAI-compatible** in **Settings → Voice**, enter the **server URL** (and an API key if it needs one), then press **Test Credentials**.
+- 📋 Voice **loads the server's models and voices** for you — and you can **add your own** if the server doesn't list them.
+- 🎧 Pick **MP3** or **WAV** — WAV files are saved and listed as chapters just like MP3s.
+- 📱 On a phone, \`localhost\` means the phone itself — use an address the phone can reach.
+
+## MiniMax — text-to-speech that works from China — text-to-speech that works from China
 
 Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
 

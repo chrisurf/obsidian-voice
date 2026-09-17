@@ -67,9 +67,10 @@ export class FileConflictModal extends Modal {
           }
         });
       });
+    const dot = this.fileName.lastIndexOf(".");
     nameSetting.controlEl.createSpan({
       cls: "voice-conflict-ext",
-      text: ".mp3",
+      text: dot === -1 ? "" : this.fileName.slice(dot),
     });
 
     new Setting(contentEl)

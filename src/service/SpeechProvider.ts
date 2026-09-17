@@ -27,6 +27,11 @@ export interface CredentialValidationResult {
    * instead of only the small hardcoded fallback list.
    */
   voices?: VoiceOption[];
+  /**
+   * Model ids the server offers, when validation read a model list (the
+   * OpenAI-compatible provider), so the settings can offer them in a dropdown.
+   */
+  models?: string[];
 }
 
 export interface SpeechProvider {

@@ -31,6 +31,12 @@ describe("Unit Tests - Custom Audio Folder", () => {
       expect(noteAudioPath("", "Notes", "My Note")).toBe("Notes/My Note.mp3");
     });
 
+    test("uses the given extension for WAV audio", () => {
+      expect(noteAudioPath("", "Notes", "My Note", "wav")).toBe(
+        "Notes/My Note.wav",
+      );
+    });
+
     test("uses the default folder when one is set", () => {
       expect(noteAudioPath("Media/Audio", "Notes", "My Note")).toBe(
         "Media/Audio/My Note.mp3",

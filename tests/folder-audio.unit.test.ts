@@ -1,5 +1,8 @@
 import { TFile, TFolder, type TAbstractFile } from "obsidian";
-import { mp3FilesInFolder, type FolderLookup } from "../src/utils/folderAudio";
+import {
+  audioFilesInFolder,
+  type FolderLookup,
+} from "../src/utils/folderAudio";
 
 function file(path: string, extension: string): TFile {
   const f = new TFile();
@@ -43,7 +46,7 @@ describe("folderAudio - Unit", () => {
       folder("Audio/Nested", [file("Audio/Nested/deep.mp3", "mp3")]),
     ]);
 
-    const result = mp3FilesInFolder(vault({ Audio: audio }), "Audio");
+    const result = audioFilesInFolder(vault({ Audio: audio }), "Audio");
 
     expect(result.map((f) => f.path)).toEqual([
       "Audio/one.mp3",
@@ -51,11 +54,26 @@ describe("folderAudio - Unit", () => {
     ]);
   });
 
+  it("includes WAV files next to MP3s", () => {
+    const audio = folder("Audio", [
+      file("Audio/one.mp3", "mp3"),
+      file("Audio/two.wav", "wav"),
+      file("Audio/cover.png", "png"),
+    ]);
+
+    const result = audioFilesInFolder(vault({ Audio: audio }), "Audio");
+
+    expect(result.map((f) => f.path)).toEqual([
+      "Audio/one.mp3",
+      "Audio/two.wav",
+    ]);
+  });
+
   it("resolves the requested folder instead of listing the whole vault", () => {
     const audio = folder("Audio", [file("Audio/one.mp3", "mp3")]);
     const v = vault({ Audio: audio });
 
-    mp3FilesInFolder(v, "Audio");
+    audioFilesInFolder(v, "Audio");
 
     expect(v.lookups).toEqual(["Audio"]);
   });
@@ -64,14 +82,14 @@ describe("folderAudio - Unit", () => {
     const root = folder("/", [file("root.mp3", "mp3"), file("root.md", "md")]);
     const v = vault({}, root);
 
-    expect(mp3FilesInFolder(v, "/").map((f) => f.path)).toEqual(["root.mp3"]);
+    expect(audioFilesInFolder(v, "/").map((f) => f.path)).toEqual(["root.mp3"]);
     expect(v.lookups).toEqual([]);
   });
 
   it("treats an empty path as the vault root", () => {
     const root = folder("/", [file("root.mp3", "mp3")]);
 
-    expect(mp3FilesInFolder(vault({}, root), "").map((f) => f.path)).toEqual([
+    expect(audioFilesInFolder(vault({}, root), "").map((f) => f.path)).toEqual([
       "root.mp3",
     ]);
   });
@@ -79,7 +97,7 @@ describe("folderAudio - Unit", () => {
   it("returns nothing when the folder is missing or is a file", () => {
     const v = vault({ "Audio/one.mp3": undefined as unknown as TFolder });
 
-    expect(mp3FilesInFolder(v, "Nope")).toEqual([]);
-    expect(mp3FilesInFolder(v, "Audio/one.mp3")).toEqual([]);
+    expect(audioFilesInFolder(v, "Nope")).toEqual([]);
+    expect(audioFilesInFolder(v, "Audio/one.mp3")).toEqual([]);
   });
 });

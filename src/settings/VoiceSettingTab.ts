@@ -1,5 +1,6 @@
 import {
   App,
+  type DropdownComponent,
   PluginSettingTab,
   Setting,
   type SettingDefinitionItem,
@@ -9,13 +10,21 @@ import {
   ELEVENLABS_MODELS,
   AZURE_REGIONS,
   OPENAI_MODELS,
+  OPENAI_COMPAT_FORMATS,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  type OpenAiCompatibleFormat,
   type TtsProvider,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import type { CredentialValidationResult } from "../service/SpeechProvider";
+import {
+  mergeModelChoices,
+  normalizeBaseUrl,
+  parseListInput,
+} from "../service/openAiCompatible";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -103,6 +112,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             google: "Google Cloud",
             azure: "Azure Speech",
             openai: "OpenAI",
+            "openai-compatible": "OpenAI-compatible",
             minimax: "MiniMax",
           },
         },
@@ -273,6 +283,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayAzureSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "openai") {
       this.displayOpenAISettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "openai-compatible") {
+      this.displayOpenAiCompatibleSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
       this.displayMiniMaxSettings(containerEl);
     } else {
@@ -297,6 +309,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("google", "Google Cloud")
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
+          .addOption("openai-compatible", "OpenAI-compatible")
           .addOption("minimax", "MiniMax")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
@@ -530,6 +543,168 @@ export class VoiceSettingTab extends PluginSettingTab {
         "Enter your OpenAI API key above, then click 'Test Credentials' to validate",
       helpText: "Need an OpenAI API key? ",
       helpUrl: "https://platform.openai.com/api-keys",
+    });
+  }
+
+  private displayOpenAiCompatibleSettings(containerEl: HTMLElement): void {
+    const settings = this.plugin.settings;
+    new Setting(containerEl).setName("OpenAI-compatible server").setHeading();
+
+    new Setting(containerEl)
+      .setName("Server URL")
+      .setDesc(
+        "The API address of a server that implements OpenAI's speech API, e.g. https://openrouter.ai/api/v1 or http://localhost:8880/v1. On a phone, localhost means the phone itself.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("https://openrouter.ai/api/v1")
+          .setValue(settings.OPENAI_COMPAT_BASE_URL)
+          .onChange(async (value) => {
+            settings.OPENAI_COMPAT_BASE_URL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          }),
+      );
+
+    this.addPasswordSetting(
+      containerEl,
+      "API key",
+      "Optional. Leave empty for servers that don't need a key.",
+      "Enter the server's API key",
+      settings.OPENAI_COMPAT_API_KEY,
+      async (value) => {
+        settings.OPENAI_COMPAT_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    // The model dropdown is rebuilt in place when models are loaded from the
+    // server or added by hand (re-rendering the section would re-trigger the
+    // automatic credential check).
+    let modelDropdown: DropdownComponent | undefined;
+    const fillModelOptions = (dropdown: DropdownComponent) => {
+      const choices = mergeModelChoices(
+        settings.openaiCompatModelCatalog ?? [],
+        parseListInput(settings.OPENAI_COMPAT_CUSTOM_MODELS),
+        settings.OPENAI_COMPAT_MODEL,
+      );
+      dropdown.selectEl.empty();
+      if (choices.length === 0) {
+        dropdown.addOption("", "Test the connection to load models");
+      }
+      for (const id of choices) {
+        dropdown.addOption(id, id);
+      }
+      dropdown.setValue(settings.OPENAI_COMPAT_MODEL);
+    };
+    const renderModelOptions = () => {
+      if (modelDropdown) {
+        fillModelOptions(modelDropdown);
+      }
+    };
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "Loaded from the server when you test the connection, plus any models you add below.",
+      )
+      .addDropdown((dropdown) => {
+        modelDropdown = dropdown;
+        fillModelOptions(dropdown);
+        dropdown.onChange(async (value) => {
+          settings.OPENAI_COMPAT_MODEL = value;
+          await this.plugin.saveSettings();
+          this.plugin.reinitializeProviderCredentials();
+        });
+      });
+
+    new Setting(containerEl)
+      .setName("Add models")
+      .setDesc(
+        "Models the server doesn't list, separated by commas. They appear in the model list above.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("tts-1, kokoro")
+          .setValue(settings.OPENAI_COMPAT_CUSTOM_MODELS)
+          .onChange(async (value) => {
+            settings.OPENAI_COMPAT_CUSTOM_MODELS = value;
+            await this.plugin.saveSettings();
+            renderModelOptions();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Add voices")
+      .setDesc(
+        "Voices the server doesn't list, separated by commas. Pick a voice in the player; without any voices, the standard OpenAI voices are offered.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("alloy, af_bella")
+          .setValue(settings.OPENAI_COMPAT_CUSTOM_VOICES)
+          .onChange(async (value) => {
+            settings.OPENAI_COMPAT_CUSTOM_VOICES = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+            this.plugin.refreshVoicePlayerControls();
+          }),
+      );
+
+    new Setting(containerEl)
+      .setName("Audio format")
+      .setDesc(
+        "MP3 works everywhere and keeps files small. Choose WAV for servers that only produce WAV; audio is then saved as .wav.",
+      )
+      .addDropdown((dropdown) => {
+        OPENAI_COMPAT_FORMATS.forEach((format) => {
+          dropdown.addOption(format.id, format.label);
+        });
+        dropdown
+          .setValue(settings.OPENAI_COMPAT_FORMAT)
+          .onChange(async (value) => {
+            settings.OPENAI_COMPAT_FORMAT = value as OpenAiCompatibleFormat;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "server",
+      isConfigured: () =>
+        normalizeBaseUrl(settings.OPENAI_COMPAT_BASE_URL) !== null,
+      missingMessage:
+        "Please enter a server URL starting with http:// or https:// before testing.",
+      promptMessage:
+        "Enter the server URL above, then click 'Test Credentials' to connect and load its models and voices",
+      helpText: "Which servers work? ",
+      helpUrl:
+        "https://github.com/chrisurf/obsidian-voice#openai-compatible-servers",
+      successMessage: (result) => {
+        const models = result.models?.length ?? 0;
+        const voices = result.voices?.length ?? 0;
+        return `✓ Connected! Found ${models} ${models === 1 ? "model" : "models"} and ${voices} ${voices === 1 ? "voice" : "voices"}.`;
+      },
+      onValidated: async (result) => {
+        settings.openaiCompatModelCatalog = result.models ?? [];
+        settings.openaiCompatVoiceCatalog = result.voices ?? [];
+        if (!settings.OPENAI_COMPAT_MODEL && result.models?.length) {
+          settings.OPENAI_COMPAT_MODEL = result.models[0];
+        }
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+        // Keep the chosen voice valid for the refreshed catalog.
+        const voices = this.plugin.getSpeechProvider().getVoiceOptions();
+        if (
+          voices.length > 0 &&
+          !voices.some((voice) => voice.id === settings.OPENAI_COMPAT_VOICE)
+        ) {
+          await this.plugin.persistActiveVoice(voices[0].id);
+        }
+        this.plugin.refreshVoicePlayerControls();
+        renderModelOptions();
+      },
     });
   }
 
@@ -787,6 +962,10 @@ export class VoiceSettingTab extends PluginSettingTab {
       promptMessage: string;
       helpText: string;
       helpUrl: string;
+      /** Status text on success; defaults to the voice-count message. */
+      successMessage?: (result: CredentialValidationResult) => string;
+      /** Runs after a successful check, e.g. to cache fetched catalogs. */
+      onValidated?: (result: CredentialValidationResult) => Promise<void>;
     },
   ): void {
     const validationContainer = containerEl.createDiv({
@@ -863,9 +1042,11 @@ export class VoiceSettingTab extends PluginSettingTab {
       if (isValid === true) {
         statusIndicator.addClass("is-valid");
         statusText.addClass("is-valid");
-        statusText.textContent = voiceCount
-          ? `✓ Credentials valid! Found ${voiceCount} voices available.`
-          : "✓ Credentials are valid!";
+        statusText.textContent = message
+          ? message
+          : voiceCount
+            ? `✓ Credentials valid! Found ${voiceCount} voices available.`
+            : "✓ Credentials are valid!";
         helpContainer.removeClass("is-visible");
       } else if (isValid === false) {
         statusIndicator.addClass("is-invalid");
@@ -904,7 +1085,13 @@ export class VoiceSettingTab extends PluginSettingTab {
             this.plugin.reinitializeProviderCredentials();
             this.plugin.refreshVoicePlayerControls();
           }
-          updateStatus(true, "", false, result.voiceCount);
+          await opts.onValidated?.(result);
+          updateStatus(
+            true,
+            opts.successMessage?.(result) ?? "",
+            false,
+            result.voiceCount,
+          );
         } else {
           updateStatus(false, result.error || "Validation failed", false);
         }

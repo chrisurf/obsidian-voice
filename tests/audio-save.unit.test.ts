@@ -93,4 +93,22 @@ describe("Unit Tests - Custom Audio Folder Save Path", () => {
     // Note lives at the root, so the MP3 should be saved at the root.
     expect(createdFiles).toContain("Untitled.mp3");
   });
+
+  test("saves WAV audio with a .wav extension and embeds that file", async () => {
+    const { app, vault, createdFiles } = makeFakeApp(["Audio"]);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const manager = new AudioFileManager(app as any);
+    const wavBlob = {
+      type: "audio/wav",
+      arrayBuffer: async () => new ArrayBuffer(8),
+    } as unknown as Blob;
+
+    await manager.downloadAndEmbed(wavBlob, true, "Audio");
+
+    expect(createdFiles).toContain("Audio/Untitled.wav");
+    expect(vault.modify).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.stringContaining("![[Untitled.wav]]"),
+    );
+  });
 });

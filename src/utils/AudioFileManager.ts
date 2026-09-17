@@ -1,7 +1,8 @@
 import { App, TFile, Notice, normalizePath } from "obsidian";
 import { suggestFreeBaseName } from "./audioFolders";
 import { normalizeFolderPath } from "./chapters";
-import { mp3FilesInFolder } from "./folderAudio";
+import { audioFilesInFolder } from "./folderAudio";
+import { audioExtensionForMime } from "./audioFormat";
 import type { ConflictChoice } from "../ui/FileConflictModal";
 
 /** Asks the user how to resolve a same-name conflict in the target folder. */
@@ -15,7 +16,7 @@ export type ConflictResolver = (info: {
  * AudioFileManager - Handles saving audio files and managing audio embeds
  *
  * Responsibilities:
- * - Save MP3 files to vault
+ * - Save audio files (MP3, or WAV when the provider returns WAV) to vault
  * - Detect and parse front matter
  * - Insert audio embed tags at correct position
  * - Validate filename synchronization
@@ -47,8 +48,13 @@ export class AudioFileManager {
       const dir = this.resolveSaveDir(params.folder, "");
       await this.ensureFolderExists(dir);
 
+      // A moved file keeps its own extension; fresh audio is named by format.
+      const ext =
+        params.kind === "move" && params.sourceFile
+          ? params.sourceFile.extension
+          : audioExtensionForMime(params.blob?.type || "");
       const pathFor = (base: string): string =>
-        normalizePath(dir ? `${dir}/${base}.mp3` : `${base}.mp3`);
+        normalizePath(dir ? `${dir}/${base}.${ext}` : `${base}.${ext}`);
       const sourcePath = params.sourceFile?.path;
 
       // Resolve same-name conflicts (a rename can still collide, so loop).
@@ -63,11 +69,11 @@ export class AudioFileManager {
           break;
         }
         const choice = await params.resolveConflict({
-          fileName: `${baseName}.mp3`,
+          fileName: `${baseName}.${ext}`,
           folder: dir === "" ? "the vault root" : dir,
           suggested: suggestFreeBaseName(
             baseName,
-            this.mp3BaseNamesInFolder(dir),
+            this.audioBaseNamesInFolder(dir),
           ),
         });
         if (choice.action === "cancel") {
@@ -89,7 +95,7 @@ export class AudioFileManager {
 
       await this.writeBlob(params.blob, finalPath);
       if (params.embed) {
-        await this.insertAudioEmbed(`${baseName}.mp3`);
+        await this.insertAudioEmbed(`${baseName}.${ext}`);
       }
     } catch (error) {
       console.error("Error saving/moving audio:", error);
@@ -135,14 +141,14 @@ export class AudioFileManager {
     }
   }
 
-  /** Base names (no extension) of the MP3s already in a vault folder. */
-  private mp3BaseNamesInFolder(dir: string): string[] {
+  /** Base names (no extension) of the audio files already in a vault folder. */
+  private audioBaseNamesInFolder(dir: string): string[] {
     const target = normalizeFolderPath(dir === "" ? "/" : dir);
-    return mp3FilesInFolder(this.app.vault, target).map((f) => f.basename);
+    return audioFilesInFolder(this.app.vault, target).map((f) => f.basename);
   }
 
   /**
-   * Save audio blob as an MP3 file.
+   * Save audio blob as an audio file (.mp3, or .wav for WAV audio).
    * @param audioBlob - The audio data to save
    * @param targetFolder - Vault-relative folder to save into ("/" or "" = vault
    *   root). When omitted, the MP3 is saved next to the active note, preserving
@@ -160,13 +166,12 @@ export class AudioFileManager {
         return null;
       }
 
-      // Construct MP3 filename based on active file
-      const fileName = activeFile.basename;
+      // Name the audio file after the active note
       const fileDir = this.resolveSaveDir(
         targetFolder,
         activeFile.parent?.path || "",
       );
-      const audioFileName = `${fileName}.mp3`;
+      const audioFileName = this.audioFileName(activeFile.basename, audioBlob);
       const audioFilePath = normalizePath(
         fileDir ? `${fileDir}/${audioFileName}` : audioFileName,
       );
@@ -202,6 +207,11 @@ export class AudioFileManager {
       new Notice(`Error saving audio file: ${error.message}`);
       return null;
     }
+  }
+
+  /** File name for a note's audio, with the extension matching its format. */
+  private audioFileName(baseName: string, audioBlob: Blob): string {
+    return `${baseName}.${audioExtensionForMime(audioBlob.type || "")}`;
   }
 
   /**
@@ -320,8 +330,7 @@ export class AudioFileManager {
         return;
       }
 
-      const fileName = activeFile.basename;
-      const audioFileName = `${fileName}.mp3`;
+      const audioFileName = this.audioFileName(activeFile.basename, audioBlob);
 
       // Save the audio file
       const savedFile = await this.saveAudioFile(audioBlob, targetFolder);

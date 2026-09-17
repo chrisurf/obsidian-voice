@@ -1,15 +1,17 @@
 /**
  * Chapter helpers for the Voice player.
  *
- * "Chapters" are the MP3 files that live in the same folder as the active
+ * "Chapters" are the audio files (MP3 or WAV) that live in the same folder as the active
  * note (e.g. the per-note audio the plugin exports). This module keeps the
  * pure, testable logic separate from the Obsidian view.
  */
 
+import { stripAudioExtension } from "./audioFormat";
+
 export interface ChapterFile {
-  /** Vault-relative path to the MP3 file. */
+  /** Vault-relative path to the audio file. */
   path: string;
-  /** Display name (file name without the .mp3 extension). */
+  /** Display name (file name without the audio extension). */
   name: string;
 }
 
@@ -81,12 +83,12 @@ export function listMp3Folders(mp3Paths: string[]): Mp3Folder[] {
 }
 
 /**
- * Display name for a chapter: the file name without folders or the .mp3
+ * Display name for a chapter: the file name without folders or the audio
  * extension (e.g. "notes/Chapter 2.mp3" → "Chapter 2").
  */
 export function chapterName(path: string): string {
   const file = path.split("/").pop() ?? path;
-  return file.replace(/\.mp3$/i, "");
+  return stripAudioExtension(file);
 }
 
 /**

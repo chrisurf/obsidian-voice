@@ -17,6 +17,10 @@ describe("Unit Tests - Chapter helpers", () => {
       expect(chapterName("Intro.MP3")).toBe("Intro");
     });
 
+    test("strips the .wav extension too", () => {
+      expect(chapterName("notes/Chapter 3.wav")).toBe("Chapter 3");
+    });
+
     test("leaves a bare name untouched", () => {
       expect(chapterName("Summary")).toBe("Summary");
     });

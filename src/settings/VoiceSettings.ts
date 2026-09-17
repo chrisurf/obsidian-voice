@@ -7,7 +7,11 @@ export type TtsProvider =
   | "google"
   | "azure"
   | "openai"
+  | "openai-compatible"
   | "minimax";
+
+/** Audio formats the OpenAI-compatible provider can request. */
+export type OpenAiCompatibleFormat = "mp3" | "wav";
 
 /**
  * Where saved MP3s are written.
@@ -52,6 +56,21 @@ export interface VoiceSettings {
   OPENAI_API_KEY: string;
   OPENAI_VOICE: string;
   OPENAI_MODEL: string;
+
+  // OpenAI-compatible server (OpenRouter, LiteLLM, Kokoro-FastAPI, …): any
+  // server implementing OpenAI's /audio/speech API. The API key is optional.
+  // Models and voices are read from the server on "Test Credentials" and cached
+  // in the catalogs below; the CUSTOM_* fields hold comma-separated entries the
+  // user added by hand.
+  OPENAI_COMPAT_BASE_URL: string;
+  OPENAI_COMPAT_API_KEY: string;
+  OPENAI_COMPAT_MODEL: string;
+  OPENAI_COMPAT_VOICE: string;
+  OPENAI_COMPAT_FORMAT: OpenAiCompatibleFormat;
+  OPENAI_COMPAT_CUSTOM_MODELS: string;
+  OPENAI_COMPAT_CUSTOM_VOICES: string;
+  openaiCompatModelCatalog?: string[];
+  openaiCompatVoiceCatalog?: VoiceOption[];
 
   // MiniMax Text-to-Speech (T2A v2). MiniMax needs both an API key and a
   // Group ID (the Group ID is sent as a query parameter). MINIMAX_HOST selects
@@ -357,6 +376,15 @@ export const OPENAI_VOICES: VoiceOption[] = [
   { id: "shimmer", label: "Shimmer (Soft)", lang: "en-US" },
 ];
 
+/** Audio formats selectable for the OpenAI-compatible provider. */
+export const OPENAI_COMPAT_FORMATS: {
+  id: OpenAiCompatibleFormat;
+  label: string;
+}[] = [
+  { id: "mp3", label: "MP3 (recommended)" },
+  { id: "wav", label: "WAV" },
+];
+
 /**
  * MiniMax regional API hosts. The Group ID is appended as a query parameter and
  * the path is `/v1/t2a_v2`; only the host differs by region. Pick the host that
@@ -438,6 +466,14 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_API_KEY: "",
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
+
+  OPENAI_COMPAT_BASE_URL: "",
+  OPENAI_COMPAT_API_KEY: "",
+  OPENAI_COMPAT_MODEL: "",
+  OPENAI_COMPAT_VOICE: "alloy",
+  OPENAI_COMPAT_FORMAT: "mp3",
+  OPENAI_COMPAT_CUSTOM_MODELS: "",
+  OPENAI_COMPAT_CUSTOM_VOICES: "",
 
   MINIMAX_API_KEY: "",
   MINIMAX_GROUP_ID: "",

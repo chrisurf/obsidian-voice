@@ -1,5 +1,6 @@
 import { TFile, TFolder, type TAbstractFile } from "obsidian";
 import { normalizeFolderPath } from "./chapters";
+import { isAudioExtension } from "./audioFormat";
 
 /**
  * The slice of Obsidian's Vault this helper needs. Typed structurally so the
@@ -11,7 +12,7 @@ export interface FolderLookup {
 }
 
 /**
- * MP3 files sitting directly inside one vault folder.
+ * Audio files (MP3 and WAV) sitting directly inside one vault folder.
  *
  * Resolves that single folder and reads its children rather than pulling every
  * file in the vault via `vault.getFiles()` and filtering down. Two reasons:
@@ -24,7 +25,7 @@ export interface FolderLookup {
  * Uses `getAbstractFileByPath` rather than the tidier `getFolderByPath`, which
  * requires Obsidian 1.5.7 while the manifest's minAppVersion is 1.5.0.
  */
-export function mp3FilesInFolder(
+export function audioFilesInFolder(
   vault: FolderLookup,
   folderPath: string,
 ): TFile[] {
@@ -40,6 +41,6 @@ export function mp3FilesInFolder(
 
   return folder.children.filter(
     (child): child is TFile =>
-      child instanceof TFile && child.extension === "mp3",
+      child instanceof TFile && isAudioExtension(child.extension),
   );
 }

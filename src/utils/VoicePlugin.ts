@@ -233,6 +233,8 @@ export class Voice extends Plugin {
       this.settings.AZURE_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "openai") {
       this.settings.OPENAI_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "openai-compatible") {
+      this.settings.OPENAI_COMPAT_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "minimax") {
       this.settings.MINIMAX_VOICE = voiceId;
     } else {

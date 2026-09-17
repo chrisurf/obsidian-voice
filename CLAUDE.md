@@ -9,8 +9,9 @@ workflow all live here. Keep it up to date as the codebase evolves.
 ## 1. What this is
 
 **Obsidian Voice** — a text-to-speech plugin for Obsidian that reads notes
-aloud with an audiobook-style player. It supports **five providers** (AWS Polly,
-ElevenLabs, OpenAI, Google Cloud, Azure Speech) and runs on **desktop and
+aloud with an audiobook-style player. It supports **seven providers** (AWS Polly,
+ElevenLabs, OpenAI, Google Cloud, Azure Speech, MiniMax, and any
+OpenAI-compatible server) and runs on **desktop and
 mobile** (iOS / Android). Users bring their own provider credentials; nothing is
 proxied through a third party.
 
@@ -64,7 +65,11 @@ All providers implement one interface so the rest of the plugin is
   implement what actually differs: `speak()`, `validateCredentials()`,
   `updateCredentials()`, `getVoiceOptions()`, and `inputFormat`.
 - Concrete services: `AwsPollyService`, `AzureSpeechService`, `GoogleTtsService`,
-  `ElevenLabsService`, `OpenAiSpeechService`.
+  `ElevenLabsService`, `OpenAiSpeechService`, `MiniMaxSpeechService`, and
+  `OpenAiCompatibleSpeechService` (extends the OpenAI service for any server
+  implementing OpenAI's `/audio/speech` API: user-set URL, optional key,
+  MP3/WAV, models and voices read from the server via the pure helpers in
+  `openAiCompatible.ts` and merged with hand-added entries).
 - `SpeechProviderFactory.ts` — `createSpeechProvider(settings)` builds the
   provider chosen in settings and applies rewind/forward prefs.
 - `textChunker.ts` — splits long text for the text-input providers.
@@ -78,7 +83,7 @@ All providers implement one interface so the rest of the plugin is
 `inputFormat` selects which content pipeline feeds the provider:
 
 - **`"ssml"`** → AWS Polly, Azure Speech, Google Cloud.
-- **`"text"`** → ElevenLabs, OpenAI.
+- **`"text"`** → ElevenLabs, OpenAI, OpenAI-compatible, MiniMax.
 
 ### Content pipeline (`src/processors/`)
 
@@ -128,6 +133,9 @@ orchestrators pick the path by `inputFormat`:
   next to note), default-folder + favorites toggles, picker ordering (default
   first, then favorites). Fully unit-tested.
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
+- `audioFormat.ts` — **pure** MP3/WAV helpers: extensions, MIME mapping, and
+  joining WAV chunks under one header. Saving, chapters, and the saved-audio
+  lookup accept both formats.
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
   play button: tap = play/pause/cancel, hold = regenerate). Shared by the
@@ -163,7 +171,7 @@ tests/                          # Jest unit + integration tests, mocks, helpers
 
 - **Stay provider-agnostic.** New shared behaviour goes in `BaseSpeechService`
   or the orchestration layer — never special-case one engine in the UI. Any
-  change should be considered against **all five providers** and **both
+  change should be considered against **all providers** and **both
   platforms** (desktop + mobile).
 - **Pure logic in small helpers, Obsidian glue thin.** Put testable logic in
   helpers like `utils/audioFolders.ts` / `utils/chapters.ts` and unit-test it;

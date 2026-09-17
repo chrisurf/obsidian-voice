@@ -8,7 +8,12 @@ import {
 } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
 import type { TtsProvider } from "../settings/VoiceSettings";
-import { mp3FilesInFolder } from "../utils/folderAudio";
+import { audioFilesInFolder } from "../utils/folderAudio";
+import {
+  AUDIO_EXTENSIONS,
+  isAudioExtension,
+  isAudioPath,
+} from "../utils/audioFormat";
 import {
   chapterName,
   listChapters,
@@ -35,6 +40,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "google", label: "Google Cloud" },
   { id: "azure", label: "Azure Speech" },
   { id: "openai", label: "OpenAI" },
+  { id: "openai-compatible", label: "OpenAI-compatible" },
   { id: "minimax", label: "MiniMax" },
 ];
 
@@ -122,14 +128,14 @@ export class VoicePlayerView extends ItemView {
 
     // Refresh the chapter list when audio files appear/disappear in the vault
     // (e.g. after a download), so newly saved MP3s show up immediately.
-    const refreshOnMp3 = (file: { path: string }) => {
-      if (file.path.toLowerCase().endsWith(".mp3")) {
+    const refreshOnAudio = (file: { path: string }) => {
+      if (isAudioPath(file.path)) {
         this.refreshContext();
       }
     };
-    this.registerEvent(this.app.vault.on("create", refreshOnMp3));
-    this.registerEvent(this.app.vault.on("delete", refreshOnMp3));
-    this.registerEvent(this.app.vault.on("rename", refreshOnMp3));
+    this.registerEvent(this.app.vault.on("create", refreshOnAudio));
+    this.registerEvent(this.app.vault.on("delete", refreshOnAudio));
+    this.registerEvent(this.app.vault.on("rename", refreshOnAudio));
   }
 
   private provider() {
@@ -461,15 +467,21 @@ export class VoicePlayerView extends ItemView {
    * the player falls back to synthesizing.
    */
   private existingNoteAudio(active: TFile): TFile | null {
-    const path = normalizePath(
-      noteAudioPath(
-        this.plugin.settings.defaultAudioFolder,
-        active.parent?.path ?? "",
-        active.basename,
-      ),
-    );
-    const file = this.app.vault.getAbstractFileByPath(path);
-    return file instanceof TFile ? file : null;
+    for (const extension of AUDIO_EXTENSIONS) {
+      const path = normalizePath(
+        noteAudioPath(
+          this.plugin.settings.defaultAudioFolder,
+          active.parent?.path ?? "",
+          active.basename,
+          extension,
+        ),
+      );
+      const file = this.app.vault.getAbstractFileByPath(path);
+      if (file instanceof TFile) {
+        return file;
+      }
+    }
+    return null;
   }
 
   /**
@@ -764,10 +776,10 @@ export class VoicePlayerView extends ItemView {
     const active = this.app.workspace.getActiveFile();
 
     // Collect every folder in the vault that holds at least one MP3.
-    const mp3Files = this.app.vault
+    const audioFiles = this.app.vault
       .getFiles()
-      .filter((f) => f.extension === "mp3");
-    this.folders = listMp3Folders(mp3Files.map((f) => f.path));
+      .filter((f) => isAudioExtension(f.extension));
+    this.folders = listMp3Folders(audioFiles.map((f) => f.path));
 
     this.selectedFolderPath = this.resolveSelectedFolder(active);
     this.renderFolderOptions();
@@ -840,7 +852,7 @@ export class VoicePlayerView extends ItemView {
     const mp3Paths =
       folderPath === null
         ? []
-        : mp3FilesInFolder(this.app.vault, folderPath).map((f) => f.path);
+        : audioFilesInFolder(this.app.vault, folderPath).map((f) => f.path);
     this.chapters = listChapters(mp3Paths);
 
     this.subtitleEl.setText(

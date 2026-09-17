@@ -9,6 +9,7 @@ import { ElevenLabsService } from "./ElevenLabsService";
 import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
+import { OpenAiCompatibleSpeechService } from "./OpenAiCompatibleSpeechService";
 import { MiniMaxSpeechService } from "./MiniMaxSpeechService";
 
 /**
@@ -45,6 +46,8 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.OPENAI_MODEL,
       Number(settings.SPEED),
     );
+  } else if (settings.TTS_PROVIDER === "openai-compatible") {
+    provider = new OpenAiCompatibleSpeechService(settings);
   } else if (settings.TTS_PROVIDER === "minimax") {
     provider = new MiniMaxSpeechService(
       settings.MINIMAX_API_KEY,

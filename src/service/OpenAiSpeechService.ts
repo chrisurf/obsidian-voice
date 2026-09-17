@@ -4,6 +4,12 @@ import {
   type VoiceOption,
   type VoiceSettings,
 } from "../settings/VoiceSettings";
+import {
+  concatWavBuffers,
+  isWavBuffer,
+  mimeForAudioExtension,
+  type AudioExtension,
+} from "../utils/audioFormat";
 import { BaseSpeechService } from "./BaseSpeechService";
 import type { CredentialValidationResult } from "./SpeechProvider";
 import { chunkPlainText } from "./textChunker";
@@ -14,12 +20,16 @@ import { chunkPlainText } from "./textChunker";
  * - Receives plain spoken text from TextSpeaker (OpenAI's speech endpoint does
  *   not support SSML, so the text pipeline is used instead of the SSML pipeline).
  * - Chunks long notes to stay within the per-request input limit and
- *   concatenates the resulting MP3 blobs.
+ *   concatenates the resulting audio.
  * - Uses Obsidian's requestUrl() with a Bearer token to bypass browser CORS
  *   (same rationale as the other HTTP providers) and to keep the key out of
  *   fetch/XHR client requests.
  * - Playback/controls/caching are inherited from BaseSpeechService. Speed is
  *   applied client-side via the audio element, so it is not sent to the API.
+ *
+ * OpenAiCompatibleSpeechService extends this class for any other server that
+ * speaks the same `/audio/speech` API; the protected members below are the
+ * points where the two differ.
  */
 
 const OPENAI_BASE_URL = "https://api.openai.com/v1";
@@ -31,8 +41,12 @@ const MAX_CHUNK_CHARS = 2000;
 export class OpenAiSpeechService extends BaseSpeechService {
   readonly inputFormat = "text" as const;
 
-  private apiKey: string;
-  private model: string;
+  protected apiKey: string;
+  protected model: string;
+  /** Provider name used in error messages. */
+  protected readonly providerLabel: string = "OpenAI";
+  /** Audio format requested from the speech endpoint. */
+  protected responseFormat: AudioExtension = "mp3";
 
   constructor(apiKey: string, voice: string, model: string, speed?: number) {
     super(voice, speed);
@@ -49,8 +63,26 @@ export class OpenAiSpeechService extends BaseSpeechService {
     this.model = settings.OPENAI_MODEL || "gpt-4o-mini-tts";
   }
 
+  /** The API root that `/audio/speech` and `/models` are appended to. */
+  protected baseUrl(): string {
+    return OPENAI_BASE_URL;
+  }
+
   /**
-   * Synthesize and play plain text via OpenAI.
+   * Why synthesis cannot start with the current configuration, or null when it
+   * can. OpenAI needs an API key.
+   */
+  protected configurationError(): string | null {
+    return this.apiKey ? null : "Missing OpenAI API key";
+  }
+
+  /** Request headers carrying the API key, when one is set. */
+  protected authHeaders(): Record<string, string> {
+    return this.apiKey ? { Authorization: `Bearer ${this.apiKey}` } : {};
+  }
+
+  /**
+   * Synthesize and play plain text via the speech endpoint.
    */
   async speak(
     content: string,
@@ -58,11 +90,12 @@ export class OpenAiSpeechService extends BaseSpeechService {
     filePath?: string,
   ): Promise<void> {
     if (this.isLoading) {
-      throw new Error("OpenAI call already in progress.");
+      throw new Error(`${this.providerLabel} call already in progress.`);
     }
 
-    if (!this.apiKey) {
-      const error = new Error("Missing OpenAI API key");
+    const configError = this.configurationError();
+    if (configError) {
+      const error = new Error(configError);
       this.reportError(error);
       throw error;
     }
@@ -77,32 +110,31 @@ export class OpenAiSpeechService extends BaseSpeechService {
       this.reportProgress(0, 1);
 
       const chunks = chunkPlainText(text, MAX_CHUNK_CHARS);
-      const audioBlobs: Blob[] = [];
+      const audioChunks: ArrayBuffer[] = [];
 
       for (let i = 0; i < chunks.length; i++) {
         if (this.abortController?.signal.aborted) {
           throw new Error("AbortError");
         }
 
-        const blob = await this.synthesizeChunk(chunks[i]);
+        const audio = await this.synthesizeChunk(chunks[i]);
 
         if (this.abortController?.signal.aborted) {
           throw new Error("AbortError");
         }
 
-        audioBlobs.push(blob);
+        audioChunks.push(audio);
 
         // Reserve the last slice of the bar for concatenation + buffering.
         this.reportProgress(((i + 1) / chunks.length) * 0.95, 1);
       }
 
-      const finalBlob = new Blob(audioBlobs, { type: "audio/mpeg" });
-      this.playBlob(finalBlob, speed, filePath);
+      this.playBlob(joinAudioChunks(audioChunks), speed, filePath);
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;
       }
-      console.error("Error in OpenAI speak:", error);
+      console.error(`Error in ${this.providerLabel} speak:`, error);
       this.reportError(error);
       throw error;
     } finally {
@@ -112,36 +144,39 @@ export class OpenAiSpeechService extends BaseSpeechService {
   }
 
   /**
-   * Synthesize a single text chunk and return the MP3 blob.
+   * Synthesize a single text chunk and return its audio bytes.
    */
-  private async synthesizeChunk(text: string): Promise<Blob> {
+  private async synthesizeChunk(text: string): Promise<ArrayBuffer> {
     const response = await requestUrl({
-      url: `${OPENAI_BASE_URL}/audio/speech`,
+      url: `${this.baseUrl()}/audio/speech`,
       method: "POST",
       headers: {
-        Authorization: `Bearer ${this.apiKey}`,
+        ...this.authHeaders(),
         "Content-Type": "application/json",
-        Accept: "audio/mpeg",
+        Accept: mimeForAudioExtension(this.responseFormat),
       },
       body: JSON.stringify({
-        model: this.model,
+        // Omitted when empty: some compatible servers have a single model and
+        // reject an empty id, but accept a request without one.
+        ...(this.model ? { model: this.model } : {}),
         input: text,
         voice: this.voice,
-        response_format: "mp3",
+        response_format: this.responseFormat,
       }),
       throw: false,
     });
 
+    const label = this.providerLabel;
     if (response.status === 401) {
-      throw new Error("OpenAI: invalid or expired API key (401)");
+      throw new Error(`${label}: invalid or expired API key (401)`);
     }
     if (response.status === 429) {
-      throw new Error("OpenAI: rate limit or quota reached (429)");
+      throw new Error(`${label}: rate limit or quota reached (429)`);
     }
     if (response.status >= 400) {
-      const message = response.json?.error?.message;
+      const message = errorMessageFrom(response);
       throw new Error(
-        `OpenAI API error (HTTP ${response.status})${
+        `${label} API error (HTTP ${response.status})${
           message ? `: ${message}` : ""
         }`,
       );
@@ -149,10 +184,10 @@ export class OpenAiSpeechService extends BaseSpeechService {
 
     const arrayBuffer = response.arrayBuffer;
     if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-      throw new Error("OpenAI returned an empty audio response");
+      throw new Error(`${label} returned an empty audio response`);
     }
 
-    return new Blob([arrayBuffer], { type: "audio/mpeg" });
+    return arrayBuffer;
   }
 
   /**
@@ -167,9 +202,9 @@ export class OpenAiSpeechService extends BaseSpeechService {
 
     try {
       const response = await requestUrl({
-        url: `${OPENAI_BASE_URL}/models`,
+        url: `${this.baseUrl()}/models`,
         method: "GET",
-        headers: { Authorization: `Bearer ${this.apiKey}` },
+        headers: this.authHeaders(),
         throw: false,
       });
 
@@ -215,4 +250,40 @@ export class OpenAiSpeechService extends BaseSpeechService {
     }
     return "OpenAI error. Please try again.";
   }
+}
+
+/**
+ * Join the per-chunk audio into one playable blob. MP3 frames can simply be
+ * appended; WAV chunks each carry a header, so they are merged into one file.
+ * The format is read from the bytes rather than trusted from the request, since
+ * some servers ignore `response_format`.
+ */
+export function joinAudioChunks(chunks: ArrayBuffer[]): Blob {
+  if (chunks.length > 0 && isWavBuffer(chunks[0])) {
+    return new Blob([concatWavBuffers(chunks)], {
+      type: mimeForAudioExtension("wav"),
+    });
+  }
+  return new Blob(chunks, { type: mimeForAudioExtension("mp3") });
+}
+
+/** Best-effort error text from a JSON error body (`{ error: { message } }`). */
+function errorMessageFrom(response: { json?: unknown }): string {
+  try {
+    const body = response.json as
+      | { error?: { message?: unknown } | string; detail?: unknown }
+      | undefined;
+    if (typeof body?.error === "string") {
+      return body.error;
+    }
+    if (typeof body?.error?.message === "string") {
+      return body.error.message;
+    }
+    if (typeof body?.detail === "string") {
+      return body.detail;
+    }
+  } catch {
+    // Non-JSON body (requestUrl's json getter throws) — no detail to add.
+  }
+  return "";
 }

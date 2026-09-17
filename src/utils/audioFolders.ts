@@ -35,17 +35,19 @@ export function resolveSaveFolder(
  * @param defaultFolder The user's default audio folder (may be empty).
  * @param noteFolder    The note's folder (vault-relative; "" or "/" = root).
  * @param baseName      The note's base name (no extension).
+ * @param extension     The audio file extension (MP3 unless saved as WAV).
  */
 export function noteAudioPath(
   defaultFolder: string,
   noteFolder: string,
   baseName: string,
+  extension: string = "mp3",
 ): string {
   const folder = resolveSaveFolder(defaultFolder, noteFolder);
   // resolveSaveFolder reports the vault root as "/"; an empty dir keeps the
   // path from becoming "/file.mp3".
   const dir = folder === "/" ? "" : folder;
-  return dir ? `${dir}/${baseName}.mp3` : `${baseName}.mp3`;
+  return dir ? `${dir}/${baseName}.${extension}` : `${baseName}.${extension}`;
 }
 
 /**

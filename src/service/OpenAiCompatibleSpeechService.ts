@@ -8,6 +8,7 @@ import type { CredentialValidationResult } from "./SpeechProvider";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
 import {
   VOICE_LIST_PATHS,
+  countModelEntries,
   mergeVoiceCatalog,
   normalizeBaseUrl,
   parseListInput,
@@ -109,7 +110,18 @@ export class OpenAiCompatibleSpeechService extends OpenAiSpeechService {
         };
       }
       if (response.status === 200) {
-        models = parseModelList(safeJson(response));
+        const body = safeJson(response);
+        // A server that answers 200 with no model list at all is almost
+        // certainly not an OpenAI-compatible endpoint (a proxy or web page
+        // answering on that URL), so say so instead of reporting success.
+        if (countModelEntries(body) === 0) {
+          return {
+            isValid: false,
+            error:
+              "The server answered but listed no models — is this an OpenAI-compatible endpoint?",
+          };
+        }
+        models = parseModelList(body);
       } else if (response.status !== 404) {
         return {
           isValid: false,

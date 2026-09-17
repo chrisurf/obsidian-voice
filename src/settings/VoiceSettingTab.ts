@@ -24,6 +24,7 @@ import {
   mergeModelChoices,
   normalizeBaseUrl,
   parseListInput,
+  reconcileModel,
 } from "../service/openAiCompatible";
 
 export class VoiceSettingTab extends PluginSettingTab {
@@ -689,9 +690,13 @@ export class VoiceSettingTab extends PluginSettingTab {
       onValidated: async (result) => {
         settings.openaiCompatModelCatalog = result.models ?? [];
         settings.openaiCompatVoiceCatalog = result.voices ?? [];
-        if (!settings.OPENAI_COMPAT_MODEL && result.models?.length) {
-          settings.OPENAI_COMPAT_MODEL = result.models[0];
-        }
+        // Drop a model the new server doesn't offer (e.g. left over from a
+        // different server) in favour of one it does.
+        settings.OPENAI_COMPAT_MODEL = reconcileModel(
+          settings.OPENAI_COMPAT_MODEL,
+          result.models ?? [],
+          parseListInput(settings.OPENAI_COMPAT_CUSTOM_MODELS),
+        );
         await this.plugin.saveSettings();
         this.plugin.reinitializeProviderCredentials();
         // Keep the chosen voice valid for the refreshed catalog.

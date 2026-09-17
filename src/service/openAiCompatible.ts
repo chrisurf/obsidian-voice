@@ -109,6 +109,46 @@ export function parseModelList(json: unknown): string[] {
     });
 }
 
+/**
+ * How many models the `/models` response listed at all, before any filtering.
+ * Zero from a server that answered with HTTP 200 means the body was not a model
+ * list — most likely not an OpenAI-compatible endpoint.
+ */
+export function countModelEntries(json: unknown): number {
+  let count = 0;
+  const seen = new Set<string>();
+  for (const entry of listEntries(json, ["data", "models"])) {
+    const raw = (typeof entry === "string" ? { id: entry } : entry) as RawModel;
+    const id = typeof raw?.id === "string" ? raw.id.trim() : "";
+    if (id && !seen.has(id)) {
+      seen.add(id);
+      count++;
+    }
+  }
+  return count;
+}
+
+/**
+ * The model to use once the server's list is known: keep the current one when
+ * the server offers it or the user added it by hand, otherwise fall back to the
+ * server's first model. Keeps a stale model from a previous server — which the
+ * new one would reject on the first play — from silently staying selected.
+ */
+export function reconcileModel(
+  current: string,
+  serverModels: string[],
+  customModels: string[],
+): string {
+  const chosen = current.trim();
+  if (
+    chosen &&
+    (serverModels.includes(chosen) || customModels.includes(chosen))
+  ) {
+    return chosen;
+  }
+  return serverModels[0] ?? chosen;
+}
+
 interface RawVoice {
   id?: unknown;
   voice_id?: unknown;

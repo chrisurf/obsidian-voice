@@ -4,12 +4,14 @@ import { createSpeechProvider } from "../src/service/SpeechProviderFactory";
 import {
   CUSTOM_VOICE_GROUP,
   SERVER_VOICE_GROUP,
+  countModelEntries,
   mergeModelChoices,
   mergeVoiceCatalog,
   normalizeBaseUrl,
   parseListInput,
   parseModelList,
   parseVoiceList,
+  reconcileModel,
 } from "../src/service/openAiCompatible";
 import {
   DEFAULT_SETTINGS,
@@ -155,6 +157,36 @@ describe("Unit Tests - OpenAI-compatible helpers", () => {
     expect(merged[1].group).toBe(CUSTOM_VOICE_GROUP);
 
     expect(mergeVoiceCatalog([], [], OPENAI_VOICES)).toBe(OPENAI_VOICES);
+  });
+
+  test("counts every listed model, before any filtering", () => {
+    expect(
+      countModelEntries({
+        data: [
+          { id: "gpt-4o", architecture: { output_modalities: ["text"] } },
+          { id: "gpt-4o" },
+        ],
+      }),
+    ).toBe(1);
+    expect(countModelEntries({ error: "not found" })).toBe(0);
+  });
+
+  describe("reconcileModel", () => {
+    test("keeps a model the server or the user offers", () => {
+      expect(reconcileModel("tts-1", ["tts-1", "kokoro"], [])).toBe("tts-1");
+      expect(reconcileModel("my-model", ["tts-1"], ["my-model"])).toBe(
+        "my-model",
+      );
+    });
+
+    test("falls back to the server's first model for a stale or empty choice", () => {
+      expect(reconcileModel("from-old-server", ["tts-1"], [])).toBe("tts-1");
+      expect(reconcileModel("", ["tts-1"], [])).toBe("tts-1");
+    });
+
+    test("keeps the current model when the server lists none", () => {
+      expect(reconcileModel("tts-1", [], [])).toBe("tts-1");
+    });
   });
 
   test("merges model choices and keeps the selected model", () => {
@@ -314,6 +346,19 @@ describe("Unit Tests - OpenAI-compatible Provider", () => {
           ([req]) => req.url === "https://gateway.example/v1/voices",
         ),
       ).toBe(false);
+    });
+
+    test("rejects a 200 answer that is not a model list", async () => {
+      mockRequestUrl.mockResolvedValue({
+        status: 200,
+        json: { message: "Hello from my web server" },
+      });
+      const service = new OpenAiCompatibleSpeechService(settings());
+
+      const result = await service.validateCredentials();
+
+      expect(result.isValid).toBe(false);
+      expect(result.error).toMatch(/listed no models/);
     });
 
     test("treats a server without /models as reachable", async () => {

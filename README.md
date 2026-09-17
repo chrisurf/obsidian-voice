@@ -265,6 +265,8 @@ Many services and self-hosted servers offer the same speech API as OpenAI. Choos
 
 **Audio format.** MP3 is the default and works everywhere. Switch **Audio format** to **WAV** for servers that only produce WAV — saved files then end in `.wav` and show up in the chapter list like MP3s.
 
+**Security.** Prefer `https://` with a real certificate (Let's Encrypt, a Tailscale cert); self-signed certificates are not supported. Plain `http://` sends your notes unencrypted and may be blocked by the operating system, especially on iOS — only use it on a network you trust.
+
 **On mobile**, `localhost` means the phone itself, so a server running on your computer isn't reachable that way. Use an address the phone can reach — your computer's network address or a hosted HTTPS server.
 
 ## Troubleshooting & Help

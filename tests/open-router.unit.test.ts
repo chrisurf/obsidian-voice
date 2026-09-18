@@ -71,6 +71,11 @@ function catalogResponse() {
         supported_voices: ["conversational_a"],
       },
       {
+        id: "canopylabs/orpheus-3b-0.1-ft",
+        name: "Canopy Labs: Orpheus 3B",
+        supported_voices: ["tara"],
+      },
+      {
         id: "fish-audio/s1",
         name: "Fish Audio: S1",
         supported_voices: null,
@@ -100,11 +105,12 @@ describe("Unit Tests - OpenRouter helpers", () => {
     expect(models[2].voices).toEqual([]);
   });
 
-  test("drops excluded models (PCM-only gemini + input-capped sesame)", () => {
+  test("drops excluded models (PCM-only gemini + input-capped sesame/orpheus)", () => {
     const models = parseOpenRouterModels(catalogResponse());
     for (const bad of [
       "google/gemini-3.1-flash-tts-preview",
       "sesame/csm-1b",
+      "canopylabs/orpheus-3b-0.1-ft",
     ]) {
       expect(models.some((m) => m.id === bad)).toBe(false);
     }

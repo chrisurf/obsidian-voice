@@ -36,6 +36,7 @@ export const OPENROUTER_VOICE_GROUP = "OpenRouter voices";
  *   few hundred characters per request, far below the plugin's ~2000-char
  *   chunk size, so normal playback always errors. (An empty voice 400s too, but
  *   the request-size cap is what breaks real notes.)
+ * - Orpheus 3B FT: an even tighter cap — works only for ~a dozen words.
  *
  * OpenRouter's API does not advertise these limits, so this is a curated
  * denylist (verified by probing `/audio/speech`); it grows as more broken
@@ -49,6 +50,10 @@ export const OPENROUTER_EXCLUDED_MODELS: { id: string; reason: string }[] = [
   {
     id: "sesame/csm-1b",
     reason: "rejects inputs longer than ~a few hundred characters",
+  },
+  {
+    id: "canopylabs/orpheus-3b-0.1-ft",
+    reason: "rejects inputs longer than ~a few dozen characters",
   },
 ];
 

@@ -10,6 +10,7 @@ import { GoogleTtsService } from "./GoogleTtsService";
 import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
 import { OpenAiCompatibleSpeechService } from "./OpenAiCompatibleSpeechService";
+import { OpenRouterSpeechService } from "./OpenRouterSpeechService";
 import { MiniMaxSpeechService } from "./MiniMaxSpeechService";
 
 /**
@@ -48,6 +49,8 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
     );
   } else if (settings.TTS_PROVIDER === "openai-compatible") {
     provider = new OpenAiCompatibleSpeechService(settings);
+  } else if (settings.TTS_PROVIDER === "openrouter") {
+    provider = new OpenRouterSpeechService(settings);
   } else if (settings.TTS_PROVIDER === "minimax") {
     provider = new MiniMaxSpeechService(
       settings.MINIMAX_API_KEY,

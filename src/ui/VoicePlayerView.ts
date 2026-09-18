@@ -41,6 +41,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "azure", label: "Azure Speech" },
   { id: "openai", label: "OpenAI" },
   { id: "openai-compatible", label: "OpenAI-compatible" },
+  { id: "openrouter", label: "OpenRouter" },
   { id: "minimax", label: "MiniMax" },
 ];
 
@@ -615,6 +616,7 @@ export class VoicePlayerView extends ItemView {
     if (!this.providerSelect) {
       return;
     }
+    this.renderProviderLabel();
     this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
     this.populateVoiceOptions();
     this.updateCodeButton();
@@ -622,6 +624,26 @@ export class VoicePlayerView extends ItemView {
     this.updateUrlButton();
     this.updateEmbedButton();
     this.updateDownloadButton();
+  }
+
+  /**
+   * Update the provider dropdown's OpenRouter option label to name the selected
+   * model (e.g. "Deepgram: Flux TTS"), so the choice is visible at a glance in
+   * the player. Falls back to the plain provider name when no model is chosen
+   * yet or a model is selected that isn't in the current catalog.
+   */
+  private renderProviderLabel(): void {
+    const option = Array.from(this.providerSelect.options).find(
+      (opt) => opt.value === "openrouter",
+    );
+    if (!option) {
+      return;
+    }
+    const modelId = this.plugin.settings.OPENROUTER_MODEL.trim();
+    const model = this.plugin.settings.openrouterModelCatalog?.find(
+      (m) => m.id === modelId,
+    );
+    option.text = model?.name || (modelId ? modelId : "OpenRouter");
   }
 
   /**

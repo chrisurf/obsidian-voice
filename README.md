@@ -173,7 +173,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 | Setting                         | What it does                                                                                                                                                                                                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                |
+| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, **OpenRouter**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                |
 | **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
 | **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
 | **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
@@ -207,7 +207,7 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 ## Bring Your Own Provider
 
-Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings — and use **OpenRouter** when you want OpenRouter's hosted TTS. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
 The newest addition, **MiniMax**, adds a selectable **mainland-China region** and strong Chinese-language voices — so Voice now works even where the other engines are hard to reach.
 
@@ -242,6 +242,8 @@ Start with the provider you already have — you can switch anytime.
 
 **OpenAI-compatible** — Any server that speaks OpenAI's speech API. See [OpenAI-compatible servers](#openai-compatible-servers) below.
 
+**OpenRouter** — OpenRouter's hosted TTS, as a dedicated provider. See [OpenRouter](#openrouter) below.
+
 **MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**.
 
 ### OpenAI-compatible servers
@@ -250,11 +252,12 @@ Many services and self-hosted servers offer the same speech API as OpenAI. Choos
 
 1. Enter the **Server URL** — the address the API paths hang off, for example:
 
-   | Server                                                             | Server URL                     |
-   | ------------------------------------------------------------------ | ------------------------------ |
-   | [OpenRouter](https://openrouter.ai/)                               | `https://openrouter.ai/api/v1` |
-   | [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) (local) | `http://localhost:8880/v1`     |
-   | [LiteLLM](https://docs.litellm.ai/) proxy (local)                  | `http://localhost:4000/v1`     |
+   | Server                                                             | Server URL                 |
+   | ------------------------------------------------------------------ | -------------------------- |
+   | [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) (local) | `http://localhost:8880/v1` |
+   | [LiteLLM](https://docs.litellm.ai/) proxy (local)                  | `http://localhost:4000/v1` |
+
+   > Prefer OpenRouter here? Use the dedicated **OpenRouter** provider instead — it loads OpenRouter's models and per-model voices automatically.
 
    The URL is used exactly as entered; Voice appends `/audio/speech` and `/models` to it.
 
@@ -268,6 +271,17 @@ Many services and self-hosted servers offer the same speech API as OpenAI. Choos
 **Security.** Prefer `https://` with a real certificate (Let's Encrypt, a Tailscale cert); self-signed certificates are not supported. Plain `http://` sends your notes unencrypted and may be blocked by the operating system, especially on iOS — only use it on a network you trust.
 
 **On mobile**, `localhost` means the phone itself, so a server running on your computer isn't reachable that way. Use an address the phone can reach — your computer's network address or a hosted HTTPS server.
+
+### OpenRouter
+
+OpenRouter also offers its own hosted text-to-speech, surfaced as a dedicated **OpenRouter** provider. It is separate from the **OpenAI-compatible** provider so the two never share settings, and because OpenRouter's model/voice model differs: each model has its **own** set of voices, so the voice you can pick depends on the model you choose.
+
+1. In **Settings → Voice**, choose **OpenRouter** as the **Speech Provider**.
+2. Paste your **OpenRouter API key** ([openrouter.ai/keys](https://openrouter.ai/keys)) — required.
+3. Press **Test Credentials**. Voice connects and loads the TTS models your account can access from OpenRouter's `/models/user` endpoint.
+4. Pick a **Model**. The **voice** dropdown in the player then shows only that model's supported voices (each model carries its own list).
+
+**Audio format.** OpenRouter returns MP3 audio; saved files are `.mp3` and appear in the chapter list like any other track.
 
 ## Troubleshooting & Help
 

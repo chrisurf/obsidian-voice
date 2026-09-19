@@ -28,10 +28,19 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (OpenAI-compatible servers), then MiniMax, then the Voice player and everything added since 1.8.0,
- * so both new and long-time users catch up at a glance.
+ * provider (OpenRouter), then OpenAI-compatible servers, MiniMax, then the Voice
+ * player and everything added since 1.8.0, so both new and long-time users catch
+ * up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: bring any OpenAI-compatible server
+export const WHATS_NEW = `## 🆕 New: OpenRouter is its own provider
+
+Voice now has a dedicated **OpenRouter** provider, alongside the OpenAI-compatible one — so OpenRouter's hosted TTS gets first-class support without colliding with your other compatible-server settings.
+
+- 🗣️ In **Settings → Voice**, choose **OpenRouter**, paste your **API key**, then press **Test Credentials**. Voice loads the TTS models your account can access from OpenRouter's \`/models/user\` endpoint — no manual model or voice lists.
+- 🎧 Each OpenRouter model carries its **own** voices, so the player's voice picker shows only the voices the selected model supports.
+- 🔌 It stays separate from **OpenAI-compatible**, so your other casual-server setups are untouched.
+
+## 🆕 New: bring any OpenAI-compatible server
 
 Voice now talks to **any server that speaks OpenAI's speech API** — hosted routers like **OpenRouter**, gateways like **LiteLLM**, or a **self-hosted** engine such as **Kokoro** running on your own machine.
 

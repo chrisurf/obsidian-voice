@@ -8,6 +8,7 @@ export type TtsProvider =
   | "azure"
   | "openai"
   | "openai-compatible"
+  | "openrouter"
   | "minimax";
 
 /** Audio formats the OpenAI-compatible provider can request. */
@@ -71,6 +72,19 @@ export interface VoiceSettings {
   OPENAI_COMPAT_CUSTOM_VOICES: string;
   openaiCompatModelCatalog?: string[];
   openaiCompatVoiceCatalog?: VoiceOption[];
+
+  // OpenRouter: OpenRouter's own hosted TTS, kept as a dedicated provider (and
+  // separate settings) so it can't collide with the OpenAI-compatible server
+  // config. The API root and the way voices work differ: OpenRouter's
+  // `/models/user` endpoint returns each model with its OWN supported voices,
+  // so the model catalog is a list of models each carrying a voice list, and
+  // only the currently selected model's voices are offered in the picker.
+  // Model + voices are read from OpenRouter on "Test Credentials" and cached
+  // in openrouterModelCatalog.
+  OPENROUTER_API_KEY: string;
+  OPENROUTER_MODEL: string;
+  OPENROUTER_VOICE: string;
+  openrouterModelCatalog?: OpenRouterModel[];
 
   // MiniMax Text-to-Speech (T2A v2). MiniMax needs both an API key and a
   // Group ID (the Group ID is sent as a query parameter). MINIMAX_HOST selects
@@ -146,6 +160,17 @@ export interface VoiceOption {
 export interface ModelOption {
   id: string;
   label: string;
+}
+
+/**
+ * A model in OpenRouter's speech catalog: its id, a human-readable name, and
+ * the voices that model supports. OpenRouter's voices are per-model, so the
+ * voice picker offers the selected model's list rather than a server-wide one.
+ */
+export interface OpenRouterModel {
+  id: string;
+  name: string;
+  voices: VoiceOption[];
 }
 
 export const VOICES: VoiceOption[] = [
@@ -474,6 +499,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_COMPAT_FORMAT: "mp3",
   OPENAI_COMPAT_CUSTOM_MODELS: "",
   OPENAI_COMPAT_CUSTOM_VOICES: "",
+
+  OPENROUTER_API_KEY: "",
+  OPENROUTER_MODEL: "",
+  OPENROUTER_VOICE: "",
 
   MINIMAX_API_KEY: "",
   MINIMAX_GROUP_ID: "",

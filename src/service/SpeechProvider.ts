@@ -32,6 +32,13 @@ export interface CredentialValidationResult {
    * OpenAI-compatible provider), so the settings can offer them in a dropdown.
    */
   models?: string[];
+  /**
+   * The full model catalog with per-model voices, when validation fetched one
+   * (OpenRouter). Lets the settings cache the models and each model's own
+   * voices so both the model dropdown and the per-model voice picker are
+   * populated. Undefined for providers that don't expose a nested catalog.
+   */
+  modelCatalog?: { id: string; name: string; voices: VoiceOption[] }[];
 }
 
 export interface SpeechProvider {

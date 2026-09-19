@@ -26,6 +26,7 @@ import {
   parseListInput,
   reconcileModel,
 } from "../service/openAiCompatible";
+import { reconcileOpenRouterModel } from "../service/openRouter";
 
 export class VoiceSettingTab extends PluginSettingTab {
   plugin: Voice;
@@ -114,6 +115,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             azure: "Azure Speech",
             openai: "OpenAI",
             "openai-compatible": "OpenAI-compatible",
+            openrouter: "OpenRouter",
             minimax: "MiniMax",
           },
         },
@@ -286,6 +288,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayOpenAISettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "openai-compatible") {
       this.displayOpenAiCompatibleSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "openrouter") {
+      this.displayOpenRouterSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
       this.displayMiniMaxSettings(containerEl);
     } else {
@@ -311,6 +315,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("azure", "Azure Speech")
           .addOption("openai", "OpenAI")
           .addOption("openai-compatible", "OpenAI-compatible")
+          .addOption("openrouter", "OpenRouter")
           .addOption("minimax", "MiniMax")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
@@ -709,6 +714,116 @@ export class VoiceSettingTab extends PluginSettingTab {
         }
         this.plugin.refreshVoicePlayerControls();
         renderModelOptions();
+      },
+    });
+  }
+
+  /**
+   * OpenRouter settings: a required API key, a model dropdown loaded from the
+   * cached catalog, and credential validation that refreshes the catalog.
+   * Voice selection happens in the player, scoped to the chosen model.
+   */
+  private displayOpenRouterSettings(containerEl: HTMLElement): void {
+    const settings = this.plugin.settings;
+    new Setting(containerEl).setName("OpenRouter").setHeading();
+
+    this.addPasswordSetting(
+      containerEl,
+      "API key",
+      "Your OpenRouter API key (OpenRouter → Keys). Required — OpenRouter is a hosted service.",
+      "Enter your OpenRouter API key",
+      settings.OPENROUTER_API_KEY,
+      async (value) => {
+        settings.OPENROUTER_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    // The model dropdown is rebuilt in place when the catalog is loaded from
+    // OpenRouter (re-rendering the section would re-trigger the automatic
+    // credential check).
+    let modelDropdown: DropdownComponent | undefined;
+    const fillModelOptions = (dropdown: DropdownComponent) => {
+      const catalog = settings.openrouterModelCatalog ?? [];
+      dropdown.selectEl.empty();
+      if (catalog.length === 0) {
+        dropdown.addOption("", "Test the connection to load models");
+      }
+      for (const model of catalog) {
+        // Show the friendly name but persist the provider id.
+        dropdown.addOption(model.id, model.name);
+      }
+      // Keep a saved model that isn't in the (possibly older) catalog visible.
+      if (
+        settings.OPENROUTER_MODEL &&
+        !catalog.some((m) => m.id === settings.OPENROUTER_MODEL)
+      ) {
+        dropdown.addOption(
+          settings.OPENROUTER_MODEL,
+          settings.OPENROUTER_MODEL,
+        );
+      }
+      dropdown.setValue(settings.OPENROUTER_MODEL);
+    };
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "Loaded from OpenRouter when you test the connection. Each model has its own voices, chosen in the player.",
+      )
+      .addDropdown((dropdown) => {
+        modelDropdown = dropdown;
+        fillModelOptions(dropdown);
+        dropdown.onChange(async (value) => {
+          settings.OPENROUTER_MODEL = value;
+          await this.plugin.saveSettings();
+          this.plugin.reinitializeProviderCredentials();
+          // Each model has its own voices: keep the chosen voice valid by
+          // falling back to the new model's first voice when needed.
+          const voices = this.plugin.getSpeechProvider().getVoiceOptions();
+          if (
+            voices.length > 0 &&
+            !voices.some((voice) => voice.id === settings.OPENROUTER_VOICE)
+          ) {
+            await this.plugin.persistActiveVoice(voices[0].id);
+          }
+          this.plugin.refreshVoicePlayerControls();
+        });
+      });
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "OpenRouter",
+      isConfigured: () => !!settings.OPENROUTER_API_KEY,
+      missingMessage: "Please enter your OpenRouter API key before testing.",
+      promptMessage:
+        "Enter your OpenRouter API key above, then click 'Test Credentials' to load its models and voices",
+      helpText: "Need an OpenRouter API key? ",
+      helpUrl: "https://openrouter.ai/keys",
+      successMessage: (result) => {
+        const models = result.modelCatalog?.length ?? 0;
+        return `✓ Connected! OpenRouter offers ${models} ${models === 1 ? "model" : "models"}.`;
+      },
+      onValidated: async (result) => {
+        settings.openrouterModelCatalog = result.modelCatalog ?? [];
+        settings.OPENROUTER_MODEL = reconcileOpenRouterModel(
+          settings.OPENROUTER_MODEL,
+          result.modelCatalog ?? [],
+        );
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+        // Keep the chosen voice valid for the selected model's voices.
+        const voices = this.plugin.getSpeechProvider().getVoiceOptions();
+        if (
+          voices.length > 0 &&
+          !voices.some((voice) => voice.id === settings.OPENROUTER_VOICE)
+        ) {
+          await this.plugin.persistActiveVoice(voices[0].id);
+        }
+        this.plugin.refreshVoicePlayerControls();
+        if (modelDropdown) {
+          fillModelOptions(modelDropdown);
+        }
       },
     });
   }

@@ -13,6 +13,7 @@ import {
   OPENAI_COMPAT_FORMATS,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
+  MIMO_REGIONS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
   type OpenAiCompatibleFormat,
@@ -115,6 +116,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             openai: "OpenAI",
             "openai-compatible": "OpenAI-compatible",
             minimax: "MiniMax",
+            mimo: "Xiaomi MiMo TTS",
           },
         },
       },
@@ -288,6 +290,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayOpenAiCompatibleSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
       this.displayMiniMaxSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "mimo") {
+      this.displayMimoSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
@@ -312,6 +316,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("openai", "OpenAI")
           .addOption("openai-compatible", "OpenAI-compatible")
           .addOption("minimax", "MiniMax")
+          .addOption("mimo", "Xiaomi MiMo TTS")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
@@ -499,6 +504,69 @@ export class VoiceSettingTab extends PluginSettingTab {
         "Enter your MiniMax API key and Group ID above, then click 'Test Credentials' to validate",
       helpText: "Need a MiniMax API key? ",
       helpUrl: "https://platform.minimax.io/",
+    });
+  }
+
+  private displayMimoSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Xiaomi MiMo TTS").setHeading();
+
+    new Setting(containerEl)
+      .setName("Endpoint")
+      .setDesc(
+        "Pay-as-you-go keys (sk-…) use the global host. Token Plan keys (tp-…) must use the regional host from the Token Plan console.",
+      )
+      .addDropdown((dropdown) => {
+        MIMO_REGIONS.forEach((region) => {
+          dropdown.addOption(region.id, region.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.MIMO_HOST)
+          .onChange(async (value) => {
+            this.plugin.settings.MIMO_HOST = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    this.addPasswordSetting(
+      containerEl,
+      "API key",
+      "Your Xiaomi MiMo TTS API key (console → API keys). Pay-as-you-go and Token Plan keys cannot be mixed.",
+      "Enter your Xiaomi MiMo TTS API key",
+      this.plugin.settings.MIMO_API_KEY,
+      async (value) => {
+        this.plugin.settings.MIMO_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    new Setting(containerEl)
+      .setName("Style instruction")
+      .setDesc(
+        "Optional. Natural-language speaking style (emotion, pace, dialect). This is a prompt, not spoken. Inline tags such as (温柔) in the note also work.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder(
+            "Warm, calm narrator. Slightly slower than conversation.",
+          )
+          .setValue(this.plugin.settings.MIMO_STYLE)
+          .onChange(async (value) => {
+            this.plugin.settings.MIMO_STYLE = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          }),
+      );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Xiaomi MiMo TTS",
+      isConfigured: () => !!this.plugin.settings.MIMO_API_KEY,
+      missingMessage: "Please enter your Xiaomi MiMo TTS API key before testing.",
+      promptMessage:
+        "Enter your Xiaomi MiMo TTS API key above, then click 'Test Credentials' to validate",
+      helpText: "Need a Xiaomi MiMo TTS API key? ",
+      helpUrl: "https://platform.xiaomimimo.com/",
     });
   }
 

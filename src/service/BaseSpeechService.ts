@@ -12,12 +12,15 @@
 import type {
   SpeechProvider,
   CredentialValidationResult,
+  NoteSectionInfo,
 } from "./SpeechProvider";
 import type { VoiceSettings, VoiceOption } from "../settings/VoiceSettings";
 import {
   DEFAULT_SKIP_SECONDS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  MIN_PLAYBACK_SPEED,
+  MAX_PLAYBACK_SPEED,
 } from "../settings/VoiceSettings";
 import type { PauseStyle } from "../types/ProcessorTypes";
 
@@ -39,12 +42,21 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // Last reported synthesis progress (0..1), exposed via getProgress() for
   // pollers such as the Voice player's loading bar.
   protected lastProgress: number = 0;
+  // In-note playlist: heading/chunk blobs played in sequence so the first
+  // section can start before the rest of the note has finished synthesizing.
+  private noteSections: { title: string; blob: Blob | null }[] = [];
+  private noteSectionIndex = 0;
+  private notePlaylistActive = false;
+  private noteWaitingForNext = false;
+  private notePlaylistSpeed?: number;
+  private noteObjectUrls: string[] = [];
 
   constructor(voice: string, speed?: number) {
     this.voice = voice;
     this.speed = speed || 1.0;
     this.audio = new Audio();
     this.audio.src = "";
+    this.audio.addEventListener("ended", () => this.onNotePlaylistEnded());
   }
 
   // --- Provider-specific members implemented by subclasses ---
@@ -59,6 +71,23 @@ export abstract class BaseSpeechService implements SpeechProvider {
     speed?: number,
     filePath?: string,
   ): Promise<void>;
+
+  /**
+   * Default: join titled parts and speak as one blob. Providers that can play
+   * section-by-section (MiMo) override this.
+   */
+  async speakNoteSections(
+    sections: { title: string; text: string }[],
+    speed?: number,
+    filePath?: string,
+  ): Promise<void> {
+    const joined = sections
+      .map((section) => section.text.trim())
+      .filter((text) => text.length > 0)
+      .join("\n\n");
+    return this.speak(joined, speed, filePath);
+  }
+
   abstract validateCredentials(): Promise<CredentialValidationResult>;
   abstract updateCredentials(settings: VoiceSettings): void;
   abstract getVoiceOptions(): VoiceOption[];
@@ -96,10 +125,10 @@ export abstract class BaseSpeechService implements SpeechProvider {
     let fSpeed =
       typeof speed === "number" ? parseFloat(speed.toFixed(2)) : this.speed;
 
-    if (fSpeed < 0.5) {
-      fSpeed = 0.5;
-    } else if (fSpeed > 2) {
-      fSpeed = 2;
+    if (fSpeed < MIN_PLAYBACK_SPEED) {
+      fSpeed = MIN_PLAYBACK_SPEED;
+    } else if (fSpeed > MAX_PLAYBACK_SPEED) {
+      fSpeed = MAX_PLAYBACK_SPEED;
     }
 
     this.audio.playbackRate = fSpeed;
@@ -120,6 +149,14 @@ export abstract class BaseSpeechService implements SpeechProvider {
   }
 
   hasEnded(): boolean {
+    if (this.notePlaylistActive) {
+      const last = this.noteSections.length - 1;
+      const allReady =
+        last >= 0 && this.noteSections.every((section) => section.blob);
+      return (
+        this.audio.ended && this.noteSectionIndex >= last && allReady
+      );
+    }
     return this.audio.ended;
   }
 
@@ -187,11 +224,10 @@ export abstract class BaseSpeechService implements SpeechProvider {
       let fSpeed =
         typeof speed === "number" ? parseFloat(speed.toFixed(2)) : this.speed;
 
-      // Clamp speed to supported range
-      if (fSpeed < 0.5) {
-        fSpeed = 0.5;
-      } else if (fSpeed > 2) {
-        fSpeed = 2;
+      if (fSpeed < MIN_PLAYBACK_SPEED) {
+        fSpeed = MIN_PLAYBACK_SPEED;
+      } else if (fSpeed > MAX_PLAYBACK_SPEED) {
+        fSpeed = MAX_PLAYBACK_SPEED;
       }
 
       this.audio.playbackRate = fSpeed;
@@ -257,6 +293,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
       this.currentRequestId = null;
       this.isLoading = false;
       this.abortController = undefined;
+      this.clearNotePlaylist();
 
       // Reset progress UI
       this.reportProgress(0, 1);
@@ -339,5 +376,109 @@ export abstract class BaseSpeechService implements SpeechProvider {
   setCachedAudio(audioBlob: Blob, filePath: string): void {
     this.lastGeneratedAudio = audioBlob;
     this.lastGeneratedAudioFilePath = filePath;
+  }
+
+  // --- In-note playlist (heading/chunk jump + play-as-you-go) ---
+
+  getNoteSections(): NoteSectionInfo[] {
+    if (!this.notePlaylistActive) {
+      return [];
+    }
+    return this.noteSections.map((section) => ({
+      title: section.title,
+      ready: section.blob !== null,
+    }));
+  }
+
+  getNoteSectionIndex(): number {
+    return this.notePlaylistActive ? this.noteSectionIndex : -1;
+  }
+
+  playNoteSection(index: number): void {
+    if (!this.notePlaylistActive || !this.noteSections[index]?.blob) {
+      return;
+    }
+    this.noteWaitingForNext = false;
+    this.playNoteSectionBlob(index, this.notePlaylistSpeed);
+  }
+
+  clearNotePlaylist(): void {
+    this.notePlaylistActive = false;
+    this.noteWaitingForNext = false;
+    this.noteSectionIndex = 0;
+    this.noteSections = [];
+    this.revokeNoteObjectUrls();
+  }
+
+  /**
+   * Start an in-note playlist. `appendNoteSection` fills blobs in order and
+   * starts playback as soon as the first one arrives.
+   */
+  protected beginNotePlaylist(titles: string[], filePath?: string): void {
+    this.revokeNoteObjectUrls();
+    this.noteSections = titles.map((title) => ({ title, blob: null }));
+    this.noteSectionIndex = 0;
+    this.notePlaylistActive = true;
+    this.noteWaitingForNext = false;
+    if (filePath) {
+      this.lastGeneratedAudioFilePath = filePath;
+    }
+  }
+
+  /** Push the next synthesized section and play it if nothing is playing. */
+  protected appendNoteSection(blob: Blob, speed?: number): void {
+    const index = this.noteSections.findIndex((section) => section.blob === null);
+    if (index === -1) {
+      return;
+    }
+    this.noteSections[index].blob = blob;
+    this.notePlaylistSpeed = speed;
+    if (index === 0 || this.noteWaitingForNext) {
+      this.noteWaitingForNext = false;
+      this.playNoteSectionBlob(index, speed);
+    }
+  }
+
+  /** Cache the concatenated note audio for download once every section is in. */
+  protected finishNotePlaylist(joined: Blob, filePath?: string): void {
+    this.lastGeneratedAudio = joined;
+    if (filePath) {
+      this.lastGeneratedAudioFilePath = filePath;
+    }
+    this.reportProgress(1, 1);
+  }
+
+  private playNoteSectionBlob(index: number, speed?: number): void {
+    const section = this.noteSections[index];
+    if (!section?.blob) {
+      return;
+    }
+    this.noteSectionIndex = index;
+    const url = URL.createObjectURL(section.blob);
+    this.noteObjectUrls.push(url);
+    this.audio.src = url;
+    void this.playAudio(speed ?? this.notePlaylistSpeed);
+  }
+
+  private onNotePlaylistEnded(): void {
+    if (!this.notePlaylistActive) {
+      return;
+    }
+    const next = this.noteSectionIndex + 1;
+    if (next >= this.noteSections.length) {
+      return;
+    }
+    if (this.noteSections[next].blob) {
+      this.playNoteSectionBlob(next, this.notePlaylistSpeed);
+    } else {
+      this.noteWaitingForNext = true;
+    }
+  }
+
+  private revokeNoteObjectUrls(): void {
+    for (const url of this.noteObjectUrls) {
+      URL.revokeObjectURL(url);
+    }
+    this.noteObjectUrls = [];
   }
 }

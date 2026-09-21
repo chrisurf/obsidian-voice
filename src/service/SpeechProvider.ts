@@ -34,6 +34,13 @@ export interface CredentialValidationResult {
   models?: string[];
 }
 
+/** A heading (or chunk) of the note currently being read, for in-player jump. */
+export interface NoteSectionInfo {
+  title: string;
+  /** False until that section's audio has been synthesized. */
+  ready: boolean;
+}
+
 export interface SpeechProvider {
   /**
    * The kind of content this provider expects from the processing pipeline:
@@ -54,6 +61,25 @@ export interface SpeechProvider {
    * Synthesize and play the given processed content.
    */
   speak(content: string, speed?: number, filePath?: string): Promise<void>;
+
+  /**
+   * Synthesize titled parts of a note (one per markdown heading). Providers
+   * that do not override this join the parts and call `speak()`.
+   */
+  speakNoteSections(
+    sections: { title: string; text: string }[],
+    speed?: number,
+    filePath?: string,
+  ): Promise<void>;
+
+  /** Heading/chunk list for the note being read; empty when idle. */
+  getNoteSections(): NoteSectionInfo[];
+  /** Index of the section currently playing, or -1. */
+  getNoteSectionIndex(): number;
+  /** Jump to a synthesized section. No-op if that section is not ready. */
+  playNoteSection(index: number): void;
+  /** Drop the in-note playlist (e.g. when the user plays a saved chapter file). */
+  clearNotePlaylist(): void;
 
   // Playback controls
   playAudio(speed?: number): Promise<void>;

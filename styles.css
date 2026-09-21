@@ -839,6 +839,11 @@
   background: var(--background-modifier-active-hover);
 }
 
+.voice-player-chapter.is-pending {
+  cursor: default;
+  opacity: 0.55;
+}
+
 .voice-player-chapter-index {
   font-size: 11px;
   color: var(--text-muted);

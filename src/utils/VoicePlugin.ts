@@ -237,6 +237,8 @@ export class Voice extends Plugin {
       this.settings.OPENAI_COMPAT_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "minimax") {
       this.settings.MINIMAX_VOICE = voiceId;
+    } else if (this.settings.TTS_PROVIDER === "mimo") {
+      this.settings.MIMO_VOICE = voiceId;
     } else {
       this.settings.VOICE = voiceId;
     }

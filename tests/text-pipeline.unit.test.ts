@@ -3,6 +3,7 @@ import type { Node } from "unist";
 import { ElevenLabsService } from "../src/service/ElevenLabsService";
 import { OpenAiSpeechService } from "../src/service/OpenAiSpeechService";
 import { MiniMaxSpeechService } from "../src/service/MiniMaxSpeechService";
+import { MimoSpeechService } from "../src/service/MimoSpeechService";
 import { AzureSpeechService } from "../src/service/AzureSpeechService";
 
 // Small mdast builders (the serializer only reads `type`, `value`, `children`).
@@ -134,6 +135,17 @@ describe("Unit Tests - Provider pause-style declarations", () => {
 
   test("OpenAI reads markup literally, so it gets no pause markup", () => {
     const s = new OpenAiSpeechService("k", "alloy", "gpt-4o-mini-tts", 1);
+    expect(s.textPauseStyle).toBe("none");
+  });
+
+  test("MiMo reads markup literally, so it gets no pause markup", () => {
+    const s = new MimoSpeechService(
+      "k",
+      "mimo_default",
+      "api.xiaomimimo.com",
+      "",
+      1,
+    );
     expect(s.textPauseStyle).toBe("none");
   });
 

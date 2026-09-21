@@ -9,8 +9,8 @@ workflow all live here. Keep it up to date as the codebase evolves.
 ## 1. What this is
 
 **Obsidian Voice** — a text-to-speech plugin for Obsidian that reads notes
-aloud with an audiobook-style player. It supports **seven providers** (AWS Polly,
-ElevenLabs, OpenAI, Google Cloud, Azure Speech, MiniMax, and any
+aloud with an audiobook-style player. It supports **eight providers** (AWS Polly,
+ElevenLabs, OpenAI, Google Cloud, Azure Speech, MiniMax, Xiaomi MiMo TTS, and any
 OpenAI-compatible server) and runs on **desktop and
 mobile** (iOS / Android). Users bring their own provider credentials; nothing is
 proxied through a third party.
@@ -65,7 +65,9 @@ All providers implement one interface so the rest of the plugin is
   implement what actually differs: `speak()`, `validateCredentials()`,
   `updateCredentials()`, `getVoiceOptions()`, and `inputFormat`.
 - Concrete services: `AwsPollyService`, `AzureSpeechService`, `GoogleTtsService`,
-  `ElevenLabsService`, `OpenAiSpeechService`, `MiniMaxSpeechService`, and
+  `ElevenLabsService`, `OpenAiSpeechService`, `MiniMaxSpeechService`,
+  `MimoSpeechService` (Xiaomi MiMo chat-completions TTS; audio is base64 in
+  JSON, decoded by the pure helpers in `mimoAudio.ts`), and
   `OpenAiCompatibleSpeechService` (extends the OpenAI service for any server
   implementing OpenAI's `/audio/speech` API: user-set URL, optional key,
   MP3/WAV, models and voices read from the server via the pure helpers in
@@ -83,7 +85,7 @@ All providers implement one interface so the rest of the plugin is
 `inputFormat` selects which content pipeline feeds the provider:
 
 - **`"ssml"`** → AWS Polly, Azure Speech, Google Cloud.
-- **`"text"`** → ElevenLabs, OpenAI, OpenAI-compatible, MiniMax.
+- **`"text"`** → ElevenLabs, OpenAI, OpenAI-compatible, MiniMax, Xiaomi MiMo TTS.
 
 ### Content pipeline (`src/processors/`)
 

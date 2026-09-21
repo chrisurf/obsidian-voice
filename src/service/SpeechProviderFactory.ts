@@ -11,6 +11,7 @@ import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
 import { OpenAiCompatibleSpeechService } from "./OpenAiCompatibleSpeechService";
 import { MiniMaxSpeechService } from "./MiniMaxSpeechService";
+import { MimoSpeechService } from "./MimoSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -55,6 +56,14 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.MINIMAX_VOICE,
       settings.MINIMAX_MODEL,
       settings.MINIMAX_HOST,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "mimo") {
+    provider = new MimoSpeechService(
+      settings.MIMO_API_KEY,
+      settings.MIMO_VOICE,
+      settings.MIMO_HOST,
+      settings.MIMO_STYLE,
       Number(settings.SPEED),
     );
   } else {

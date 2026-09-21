@@ -66,6 +66,12 @@ class MockAudio {
 // Make Audio available globally for tests
 (global as any).Audio = MockAudio;
 
+// Obsidian code uses `window.atob` (the linter forbids globalThis). Node 16+
+// already has atob on the global object; expose it as window for unit tests.
+if (!(global as any).window) {
+  (global as any).window = global;
+}
+
 // Mock object URL helpers used when wiring audio blobs to the audio element
 if (!(global as any).URL.createObjectURL) {
   (global as any).URL.createObjectURL = jest.fn(() => "blob:mock");

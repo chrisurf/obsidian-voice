@@ -3,6 +3,10 @@ import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 import { attachPressGesture } from "./pressGesture";
+import {
+  MIN_PLAYBACK_SPEED,
+  MAX_PLAYBACK_SPEED,
+} from "../settings/VoiceSettings";
 
 export class MobileControlBar {
   private app: App;
@@ -222,7 +226,10 @@ export class MobileControlBar {
 
   private decreaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.max(0.5, Math.round((currentSpeed - 0.1) * 10) / 10);
+    const newSpeed = Math.max(
+      MIN_PLAYBACK_SPEED,
+      Math.round((currentSpeed - 0.1) * 10) / 10,
+    );
 
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);
@@ -234,7 +241,10 @@ export class MobileControlBar {
 
   private increaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.min(1.9, Math.round((currentSpeed + 0.1) * 10) / 10);
+    const newSpeed = Math.min(
+      MAX_PLAYBACK_SPEED,
+      Math.round((currentSpeed + 0.1) * 10) / 10,
+    );
 
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);

@@ -8,7 +8,8 @@ export type TtsProvider =
   | "azure"
   | "openai"
   | "openai-compatible"
-  | "minimax";
+  | "minimax"
+  | "mimo";
 
 /** Audio formats the OpenAI-compatible provider can request. */
 export type OpenAiCompatibleFormat = "mp3" | "wav";
@@ -81,6 +82,14 @@ export interface VoiceSettings {
   MINIMAX_MODEL: string;
   MINIMAX_HOST: string;
 
+  // Xiaomi MiMo TTS (mimo-v2.5-tts). MIMO_HOST selects pay-as-you-go vs a
+  // Token Plan regional endpoint. MIMO_STYLE is an optional speaking-style
+  // prompt (user message, never spoken).
+  MIMO_API_KEY: string;
+  MIMO_VOICE: string;
+  MIMO_HOST: string;
+  MIMO_STYLE: string;
+
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
   readCodeBlocks: boolean;
@@ -130,6 +139,10 @@ export interface VoiceSettings {
 export const MIN_SKIP_SECONDS = 1;
 export const MAX_SKIP_SECONDS = 60;
 export const DEFAULT_SKIP_SECONDS = 3;
+
+/** Bounds for client-side playback rate (the HTML audio element). */
+export const MIN_PLAYBACK_SPEED = 0.5;
+export const MAX_PLAYBACK_SPEED = 3.0;
 
 export interface VoiceOption {
   id: string;
@@ -443,6 +456,44 @@ export const MINIMAX_VOICES: VoiceOption[] = [
   },
 ];
 
+/**
+ * Xiaomi MiMo API hosts. Pay-as-you-go keys (`sk-…`) use the global host;
+ * Token Plan keys (`tp-…`) must use the regional host shown in the Token
+ * Plan console. The path is always `/v1/chat/completions`.
+ */
+export const MIMO_REGIONS: ModelOption[] = [
+  { id: "api.xiaomimimo.com", label: "Pay-as-you-go (api.xiaomimimo.com)" },
+  {
+    id: "token-plan-cn.xiaomimimo.com",
+    label: "Token Plan China",
+  },
+  {
+    id: "token-plan-sgp.xiaomimimo.com",
+    label: "Token Plan Singapore",
+  },
+  {
+    id: "token-plan-ams.xiaomimimo.com",
+    label: "Token Plan Amsterdam",
+  },
+];
+
+/**
+ * Built-in MiMo-V2.5-TTS voices. The `id` is the API `audio.voice` value
+ * (Chinese names are used as-is). Voices are multilingual; `lang` only groups
+ * the picker. `mimo_default` follows the cluster (冰糖 in China, Mia elsewhere).
+ */
+export const MIMO_VOICES: VoiceOption[] = [
+  { id: "mimo_default", label: "MiMo Default", lang: "zh-CN" },
+  { id: "冰糖", label: "冰糖 (Bright female)", lang: "zh-CN" },
+  { id: "茉莉", label: "茉莉 (Warm female)", lang: "zh-CN" },
+  { id: "苏打", label: "苏打 (Energetic male)", lang: "zh-CN" },
+  { id: "白桦", label: "白桦 (Deep male)", lang: "zh-CN" },
+  { id: "Mia", label: "Mia (Youthful female)", lang: "en-US" },
+  { id: "Chloe", label: "Chloe (Warm female)", lang: "en-US" },
+  { id: "Milo", label: "Milo (Energetic male)", lang: "en-US" },
+  { id: "Dean", label: "Dean (Deep male)", lang: "en-US" },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -480,6 +531,11 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   MINIMAX_VOICE: "Wise_Woman",
   MINIMAX_MODEL: "speech-02-hd",
   MINIMAX_HOST: "api.minimax.io",
+
+  MIMO_API_KEY: "",
+  MIMO_VOICE: "mimo_default",
+  MIMO_HOST: "api.xiaomimimo.com",
+  MIMO_STYLE: "",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

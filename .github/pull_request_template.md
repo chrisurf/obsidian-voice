@@ -28,8 +28,11 @@ Closes #
 - [ ] AWS Polly
 - [ ] ElevenLabs
 - [ ] OpenAI
+- [ ] OpenAI-compatible
 - [ ] Google Cloud
 - [ ] Azure Speech
+- [ ] MiniMax
+- [ ] Xiaomi MiMo TTS
 
 ## Platform impact
 

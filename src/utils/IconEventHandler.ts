@@ -8,6 +8,10 @@ import { FileConflictModal } from "../ui/FileConflictModal";
 import { resolveSaveFolder } from "./audioFolders";
 import { attachPressGesture } from "./pressGesture";
 import { friendlySpeechError } from "./speechFeedback";
+import {
+  MIN_PLAYBACK_SPEED,
+  MAX_PLAYBACK_SPEED,
+} from "../settings/VoiceSettings";
 
 export class IconEventHandler {
   private pollyService: SpeechProvider;
@@ -444,7 +448,10 @@ export class IconEventHandler {
 
   public decreaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.max(0.5, Math.round((currentSpeed - 0.1) * 10) / 10);
+    const newSpeed = Math.max(
+      MIN_PLAYBACK_SPEED,
+      Math.round((currentSpeed - 0.1) * 10) / 10,
+    );
 
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);
@@ -456,7 +463,10 @@ export class IconEventHandler {
 
   public increaseSpeed(): void {
     const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.min(1.9, Math.round((currentSpeed + 0.1) * 10) / 10);
+    const newSpeed = Math.min(
+      MAX_PLAYBACK_SPEED,
+      Math.round((currentSpeed + 0.1) * 10) / 10,
+    );
 
     if (newSpeed !== currentSpeed) {
       this.pollyService.setSpeed(newSpeed);

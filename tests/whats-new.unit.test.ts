@@ -29,6 +29,8 @@ describe("Unit Tests - What's New", () => {
       expect(WHATS_NEW).toMatch(/Google Cloud/);
       expect(WHATS_NEW).toMatch(/Azure/);
       expect(WHATS_NEW).toMatch(/OpenAI/);
+      expect(WHATS_NEW).toMatch(/MiMo/);
+      expect(WHATS_NEW).toMatch(/MiniMax/);
     });
   });
 });

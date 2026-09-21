@@ -28,10 +28,18 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (OpenAI-compatible servers), then MiniMax, then the Voice player and everything added since 1.8.0,
+ * provider (MiMo), then OpenAI-compatible servers, then MiniMax, then the Voice player and everything added since 1.8.0,
  * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: bring any OpenAI-compatible server
+export const WHATS_NEW = `## 🆕 New: Xiaomi MiMo TTS
+
+Voice now talks to **Xiaomi MiMo TTS** — Chinese and English preset voices with optional **style instructions** (emotion, pace, dialect).
+
+- 🔑 Choose **Xiaomi MiMo TTS** in **Settings → Voice**, pick the **endpoint** (pay-as-you-go, or a Token Plan region), paste your **API key**, then press **Test Credentials**.
+- 🗣️ Nine built-in voices (冰糖, 茉莉, 苏打, 白桦, Mia, Chloe, Milo, Dean, plus a cluster default) — pick them in the player.
+- 🎭 Optional **style instruction** is a prompt, not spoken. Inline tags such as \`(温柔)\` or \`(东北话)\` in the note also work.
+
+## Bring any OpenAI-compatible server
 
 Voice now talks to **any server that speaks OpenAI's speech API** — hosted routers like **OpenRouter**, gateways like **LiteLLM**, or a **self-hosted** engine such as **Kokoro** running on your own machine.
 
@@ -82,9 +90,9 @@ Every control is one button; a few do double duty — **tap** vs. **press & hold
 
 ## ✨ Everything at a glance
 
-**Six providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · **MiniMax**.
+**Eight providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · MiniMax · **Xiaomi MiMo TTS** · OpenAI-compatible.
 
-**Player & playback** — chapters, scrubber, speed (0.5×–2.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
+**Player & playback** — chapters, scrubber, speed (0.5×–3.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
 
 **Your audio** — save MP3s next to the note or in a **default folder**, optionally **auto-save** and **embed** them, and **move / rename / delete** saved chapters from the player.
 

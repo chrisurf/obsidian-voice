@@ -7,7 +7,11 @@ import {
   normalizePath,
 } from "obsidian";
 import type { Voice } from "../utils/VoicePlugin";
-import type { TtsProvider } from "../settings/VoiceSettings";
+import {
+  MIN_PLAYBACK_SPEED,
+  MAX_PLAYBACK_SPEED,
+  type TtsProvider,
+} from "../settings/VoiceSettings";
 import { audioFilesInFolder } from "../utils/folderAudio";
 import {
   AUDIO_EXTENSIONS,
@@ -28,8 +32,7 @@ import { groupVoicesByLanguage } from "../service/voiceCatalog";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
-const MIN_SPEED = 0.5;
-const MAX_SPEED = 2.0;
+
 
 type RepeatMode = "none" | "one" | "all";
 
@@ -42,6 +45,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "openai", label: "OpenAI" },
   { id: "openai-compatible", label: "OpenAI-compatible" },
   { id: "minimax", label: "MiniMax" },
+  { id: "mimo", label: "Xiaomi MiMo TTS" },
 ];
 
 /**
@@ -67,6 +71,7 @@ export class VoicePlayerView extends ItemView {
   private nextTrackBtn: HTMLElement;
   private repeatBtn: HTMLElement;
   private speedEl: HTMLElement;
+  private chaptersTitleEl: HTMLElement;
   private chaptersListEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
   private folderBtn: HTMLButtonElement;
@@ -92,6 +97,8 @@ export class VoicePlayerView extends ItemView {
   private selectedFolderPath: string | null = null;
   private repeatMode: RepeatMode = "none";
   private endedHandled = false;
+  /** Signature of the in-note section list last rendered, to avoid flicker. */
+  private noteSectionSig = "";
   // The open per-chapter action bar (Move / Rename / Delete) and a disposer for
   // its outside-click / Escape listeners, if one is currently shown.
   private openActionsEl: HTMLElement | null = null;
@@ -361,9 +368,10 @@ export class VoicePlayerView extends ItemView {
 
     // Chapters
     const chapters = root.createDiv({ cls: "voice-player-chapters" });
-    chapters
-      .createDiv({ cls: "voice-player-chapters-title" })
-      .setText("Chapters");
+    this.chaptersTitleEl = chapters.createDiv({
+      cls: "voice-player-chapters-title",
+    });
+    this.chaptersTitleEl.setText("Chapters");
     this.chaptersListEl = chapters.createDiv({
       cls: "voice-player-chapters-list",
     });
@@ -379,13 +387,15 @@ export class VoicePlayerView extends ItemView {
 
   private togglePlay(): void {
     const provider = this.provider();
-    // A tap while a synthesis is running cancels it.
-    if (provider.isOperationInProgress()) {
-      provider.cancelOperation();
-      return;
-    }
     if (provider.isPlaying()) {
       provider.pauseAudio();
+      return;
+    }
+    // Tap-to-cancel only while we are still waiting for the first audio.
+    // Once a section is playing, further taps pause/resume even if later
+    // sections are still synthesizing.
+    if (provider.isOperationInProgress() && !this.audio().currentSrc) {
+      provider.cancelOperation();
       return;
     }
 
@@ -751,8 +761,8 @@ export class VoicePlayerView extends ItemView {
   private changeSpeed(delta: number): void {
     const current = this.provider().getSpeed();
     const next = Math.min(
-      MAX_SPEED,
-      Math.max(MIN_SPEED, Math.round((current + delta) * 10) / 10),
+      MAX_PLAYBACK_SPEED,
+      Math.max(MIN_PLAYBACK_SPEED, Math.round((current + delta) * 10) / 10),
     );
     if (next !== current) {
       this.provider().setSpeed(next);
@@ -855,6 +865,7 @@ export class VoicePlayerView extends ItemView {
         : audioFilesInFolder(this.app.vault, folderPath).map((f) => f.path);
     this.chapters = listChapters(mp3Paths);
 
+    this.chaptersTitleEl.setText("Chapters");
     this.subtitleEl.setText(
       this.chapters.length === 1
         ? "1 chapter"
@@ -862,6 +873,47 @@ export class VoicePlayerView extends ItemView {
     );
     this.renderChapters(this.chapters);
     this.updateDownloadButton();
+  }
+
+  /** Render heading/chunk sections of the note currently being read. */
+  private renderNoteSections(
+    sections: { title: string; ready: boolean }[],
+    currentIndex: number,
+  ): void {
+    this.closeChapterActions();
+    this.chaptersTitleEl.setText("In this note");
+    this.subtitleEl.setText(
+      sections.length === 1
+        ? "1 section"
+        : `${sections.length} sections`,
+    );
+    this.chaptersListEl.empty();
+    sections.forEach((section, index) => {
+      const item = this.chaptersListEl.createDiv({
+        cls: "voice-player-chapter",
+        attr: { "data-section-index": `${index}` },
+      });
+      if (!section.ready) {
+        item.addClass("is-pending");
+      }
+      if (index === currentIndex) {
+        item.addClass("is-current");
+      }
+      item
+        .createSpan({ cls: "voice-player-chapter-index" })
+        .setText(`${index + 1}`);
+      item
+        .createSpan({ cls: "voice-player-chapter-name" })
+        .setText(section.ready ? section.title : `${section.title}…`);
+      this.registerDomEvent(item, "click", () => {
+        if (section.ready) {
+          this.currentChapterPath = null;
+          this.provider().playNoteSection(index);
+          this.updateTitle();
+        }
+      });
+    });
+    this.updateTrackButtons();
   }
 
   private renderChapters(chapters: ChapterFile[]): void {
@@ -1111,6 +1163,8 @@ export class VoicePlayerView extends ItemView {
   }
 
   private playChapter(path: string): void {
+    this.provider().clearNotePlaylist();
+    this.noteSectionSig = "";
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
       return;
@@ -1158,6 +1212,15 @@ export class VoicePlayerView extends ItemView {
 
   /** Play the chapter before the current one, if any. */
   private playPrevTrack(): void {
+    const provider = this.provider();
+    const sections = provider.getNoteSections();
+    if (sections.length > 0) {
+      const current = provider.getNoteSectionIndex();
+      if (current > 0) {
+        provider.playNoteSection(current - 1);
+      }
+      return;
+    }
     const index = this.currentChapterIndex();
     if (index > 0) {
       this.playChapter(this.chapters[index - 1].path);
@@ -1169,6 +1232,15 @@ export class VoicePlayerView extends ItemView {
    * (index -1) this starts the first chapter.
    */
   private playNextTrack(): void {
+    const provider = this.provider();
+    const sections = provider.getNoteSections();
+    if (sections.length > 0) {
+      const next = provider.getNoteSectionIndex() + 1;
+      if (next < sections.length && sections[next].ready) {
+        provider.playNoteSection(next);
+      }
+      return;
+    }
     const next = this.currentChapterIndex() + 1;
     if (next < this.chapters.length) {
       this.playChapter(this.chapters[next].path);
@@ -1178,6 +1250,17 @@ export class VoicePlayerView extends ItemView {
   /** Enable/disable the prev/next buttons at the list boundaries. */
   private updateTrackButtons(): void {
     if (!this.prevTrackBtn) {
+      return;
+    }
+    const sections = this.provider().getNoteSections();
+    if (sections.length > 0) {
+      const index = this.provider().getNoteSectionIndex();
+      this.prevTrackBtn.toggleClass("is-disabled", index <= 0);
+      const nextReady =
+        index >= 0 &&
+        index < sections.length - 1 &&
+        sections[index + 1].ready;
+      this.nextTrackBtn.toggleClass("is-disabled", !nextReady);
       return;
     }
     const index = this.currentChapterIndex();
@@ -1220,6 +1303,12 @@ export class VoicePlayerView extends ItemView {
    * auto-advances through the chapter list.
    */
   private handleEnded(): void {
+    // In-note sections are chained by the provider on the audio "ended"
+    // event; the folder chapter list must not steal that.
+    if (this.provider().getNoteSections().length > 0) {
+      return;
+    }
+
     if (this.repeatMode === "one") {
       const audio = this.audio();
       audio.currentTime = 0;
@@ -1260,13 +1349,17 @@ export class VoicePlayerView extends ItemView {
 
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
 
-    // Loading feedback while a note is being synthesized: grow the bottom bar to
-    // the real synthesis progress and spin the play button (a tap cancels it).
+    // Loading bar tracks remaining synthesis. The play button only spins
+    // while we are still waiting for the first audio; after that it is
+    // play/pause even if later sections are still generating.
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
     if (loading) {
       const pct = Math.round(provider.getProgress() * 100);
       this.loadingFillEl.setCssProps({ "--voice-progress": `${pct}%` });
+    }
+    const waitingForFirstAudio = loading && !audio.currentSrc;
+    if (waitingForFirstAudio) {
       if (!this.playPauseBtn.hasClass("rotating-icon")) {
         this.playPauseBtn.addClass("rotating-icon");
         setIcon(this.playPauseBtn, "refresh-ccw");
@@ -1274,6 +1367,22 @@ export class VoicePlayerView extends ItemView {
     } else {
       this.playPauseBtn.removeClass("rotating-icon");
       setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
+    }
+
+    const noteSections = provider.getNoteSections();
+    if (noteSections.length > 0) {
+      const sig =
+        noteSections.map((s) => `${s.title}:${s.ready ? "1" : "0"}`).join("|") +
+        `@${provider.getNoteSectionIndex()}`;
+      if (sig !== this.noteSectionSig) {
+        this.noteSectionSig = sig;
+        this.renderNoteSections(noteSections, provider.getNoteSectionIndex());
+      } else {
+        this.updateTrackButtons();
+      }
+    } else if (this.noteSectionSig) {
+      this.noteSectionSig = "";
+      this.renderSelectedFolderChapters();
     }
 
     // Keep the selectors/toggles in sync if settings changed elsewhere.

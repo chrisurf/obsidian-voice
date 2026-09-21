@@ -27,6 +27,29 @@ describe("Unit Tests - Plain text chunker", () => {
     const chunks = chunkPlainText(text, 100);
     // No whitespace to break on, but it still must not lose content.
     expect(chunks.join("")).toBe(text);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(100);
+    }
+  });
+
+  test("splits Chinese on 。！？ and never exceeds the limit", () => {
+    const sentence = "这是一句用来测试分块的中文。";
+    const text = sentence.repeat(40);
+    const chunks = chunkPlainText(text, 80);
+    expect(chunks.length).toBeGreaterThan(1);
+    expect(chunks.join("").replace(/\s/g, "")).toBe(text);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(80);
+    }
+  });
+
+  test("hard-splits a long Chinese paragraph with no punctuation", () => {
+    const text = "汉字".repeat(200);
+    const chunks = chunkPlainText(text, 50);
+    expect(chunks.join("")).toBe(text);
+    for (const chunk of chunks) {
+      expect(chunk.length).toBeLessThanOrEqual(50);
+    }
   });
 
   test("does not produce empty chunks", () => {

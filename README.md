@@ -1,8 +1,8 @@
 # Obsidian Voice Plugin 🔊
 
-![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, Azure Speech, OpenAI, or MiniMax](./assets/hero.png)
+![Obsidian Voice — listen to your notes in natural, lifelike speech with AWS Polly, ElevenLabs, Google Cloud, Azure Speech, OpenAI, MiniMax, or Xiaomi MiMo TTS](./assets/hero.png)
 
-Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — using the text-to-speech provider you already have. It supports all the major engines — **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax** — plus **any OpenAI-compatible server** such as OpenRouter or a self-hosted Kokoro — so you can listen with whichever one you prefer. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
+Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian Voice Plugin reads your notes aloud in natural, lifelike speech — using the text-to-speech provider you already have. It supports all the major engines — **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, and **Xiaomi MiMo TTS** — plus **any OpenAI-compatible server** such as OpenRouter or a self-hosted Kokoro — so you can listen with whichever one you prefer. Listen with a dedicated player, jump between notes like chapters, change the speed on the fly, and save audio offline — with your credentials kept private in your own account.
 
 <p align="center">
   <a href="https://www.buymeacoffee.com/chrisurf" target="_blank">
@@ -26,7 +26,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 ## Highlights
 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
-- **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
+- **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, and **Xiaomi MiMo TTS**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
@@ -49,7 +49,7 @@ Every control is a single button. Some do **two things**: a quick **tap** and a 
 | ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                                       |
 | ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                                       |
 | 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                                       |
-| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                                       |
+| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–3.0×)                        | —                                                                       |
 | ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default           |
 | 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                                       |
 | `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                                       |
@@ -122,7 +122,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 - Use rewind / fast-forward and on-the-fly speed changes for quick navigation — from the player or the status bar.
 - Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
-- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×) or from the status bar; hotkeys can also jump to preset tempos.
+- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–3.0×) or from the status bar; hotkeys can also jump to preset tempos.
 
   ![speed control](./assets/tempo.png)
 
@@ -173,7 +173,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 | Setting                         | What it does                                                                                                                                                                                                                                                                              |
 | ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                |
+| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, **MiniMax**, or **Xiaomi MiMo TTS**. The credential fields below adapt to your choice.                                                                          |
 | **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
 | **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
 | **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
@@ -207,16 +207,16 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 ## Bring Your Own Provider
 
-Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, **Xiaomi MiMo TTS**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-The newest addition, **MiniMax**, adds a selectable **mainland-China region** and strong Chinese-language voices — so Voice now works even where the other engines are hard to reach.
+The newest addition, **Xiaomi MiMo TTS**, adds Chinese and English preset voices with optional style instructions — emotion, pace, dialect — so notes can be read in a tone you describe.
 
-|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    |
-| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    |
-| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) |
-| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      |
-| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        |
+|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    | **Xiaomi MiMo TTS**                            |
+| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- | ---------------------------------------------- |
+| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    | Chinese & English presets (冰糖, 茉莉, Mia, …) |
+| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) | Xiaomi MiMo TTS API key (endpoint-selectable)  |
+| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      | Style prompt + inline tags such as (温柔)      |
+| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        | mimo-v2.5-tts                                  |
 
 ## Getting Started
 
@@ -243,6 +243,8 @@ Start with the provider you already have — you can switch anytime.
 **OpenAI-compatible** — Any server that speaks OpenAI's speech API. See [OpenAI-compatible servers](#openai-compatible-servers) below.
 
 **MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**.
+
+**Xiaomi MiMo TTS** — Sign in at [platform.xiaomimimo.com](https://platform.xiaomimimo.com/) and create an **API key**. In **Settings → Voice**, choose **Xiaomi MiMo TTS**, pick the matching **endpoint** (pay-as-you-go, or a Token Plan region), paste the key, optionally add a **style instruction**, and press **Test Credentials**. Choose the voice in the player. Inline tags such as `(温柔)` or `(东北话)` in the note are spoken in that style.
 
 ### OpenAI-compatible servers
 

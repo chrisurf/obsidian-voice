@@ -10,6 +10,7 @@ import {
   friendlySpeechError,
 } from "./speechFeedback";
 import { Notice } from "obsidian";
+import { splitMarkdownByHeading } from "./textSections";
 
 /**
  * TextSpeaker - Orchestrates text-to-speech conversion
@@ -116,32 +117,49 @@ export class TextSpeaker {
       // Show processing notice for immediate feedback
       const processingNotice = new Notice("Processing text...", 2000);
 
-      // Process through the pipeline matching the provider's input format
-      const content = await this.processContent(rawText);
-
-      // Hide processing notice
-      processingNotice.hide();
-
-      // Validate request still active after async operation
-      if (!this.provider.isCurrentRequest(requestId)) {
-        return;
-      }
-
-      if (content === null) {
-        // Processing failed (e.g. SSML validation); a notice was already shown
-        return;
-      }
-
-      // Get current file path for caching
       const activeFilePath = this.markdownHelper.getActiveFilePath();
 
-      // Hand the processed content to the active provider. The provider already
-      // surfaces its own failures through the error callback (a single friendly
-      // notice via IconEventHandler), so swallow the re-thrown error here rather
-      // than showing a duplicate notice; the outer catch only handles errors
-      // that don't come from synthesis (e.g. the content pipeline).
       try {
-        await this.provider.speak(content, speed, activeFilePath || undefined);
+        if (this.provider.inputFormat === "text") {
+          const sections = splitMarkdownByHeading(rawText);
+          const parts: { title: string; text: string }[] = [];
+          for (const section of sections) {
+            const text = await this.processContent(section.markdown);
+            if (text && text.trim()) {
+              parts.push({
+                title: section.title || "Note",
+                text,
+              });
+            }
+          }
+          processingNotice.hide();
+          if (!this.provider.isCurrentRequest(requestId)) {
+            return;
+          }
+          if (parts.length === 0) {
+            new Notice(EMPTY_NOTE_MESSAGE);
+            return;
+          }
+          await this.provider.speakNoteSections(
+            parts,
+            speed,
+            activeFilePath || undefined,
+          );
+        } else {
+          const content = await this.processContent(rawText);
+          processingNotice.hide();
+          if (!this.provider.isCurrentRequest(requestId)) {
+            return;
+          }
+          if (content === null) {
+            return;
+          }
+          await this.provider.speak(
+            content,
+            speed,
+            activeFilePath || undefined,
+          );
+        }
       } catch (speakError) {
         if (speakError instanceof Error && speakError.name === "AbortError") {
           return;

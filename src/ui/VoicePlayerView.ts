@@ -42,6 +42,7 @@ const PROVIDERS: { id: TtsProvider; label: string }[] = [
   { id: "openai", label: "OpenAI" },
   { id: "openai-compatible", label: "OpenAI-compatible" },
   { id: "minimax", label: "MiniMax" },
+  { id: "fish-audio", label: "Fish Audio" },
 ];
 
 /**

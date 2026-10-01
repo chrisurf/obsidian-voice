@@ -100,4 +100,25 @@ describe("E2E: Voice settings tab", function () {
     expect(text).toContain("ElevenLabs API Key");
     expect(text).not.toContain("AWS Access Key ID");
   });
+
+  it("renders the Fish Audio model, voice, and API key fields", async function () {
+    const text: string = await browser.executeObsidian(
+      async ({ app }, id: string) => {
+        const a = app as unknown as ObsidianInternals;
+        const plugin = a.plugins.plugins[id];
+        plugin.settings.TTS_PROVIDER = "fish-audio";
+        await plugin.saveSettings();
+        a.setting.openTabById("about");
+        a.setting.openTabById(id);
+        return a.setting.activeTab?.containerEl?.textContent ?? "";
+      },
+      PLUGIN_ID,
+    );
+
+    expect(text).toContain("Fish Audio");
+    expect(text).toContain("Voice model ID");
+    expect(text).toContain("Fish Audio API Key");
+    expect(text).toContain("Test Credentials");
+    expect(text).not.toContain("AWS Access Key ID");
+  });
 });

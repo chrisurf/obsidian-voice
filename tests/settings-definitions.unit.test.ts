@@ -102,7 +102,7 @@ describe("Unit: VoiceSettingTab declarative settings", () => {
     expect(keys).toEqual([...EXPECTED_CONTROL_KEYS].sort());
   });
 
-  it("offers all seven providers in the dropdown", () => {
+  it("offers all eight providers in the dropdown", () => {
     const controls = collectControls(
       makeTab(makePlugin()).getSettingDefinitions() as Controlish[],
     );
@@ -112,6 +112,7 @@ describe("Unit: VoiceSettingTab declarative settings", () => {
       [
         "azure",
         "elevenlabs",
+        "fish-audio",
         "google",
         "minimax",
         "openai",

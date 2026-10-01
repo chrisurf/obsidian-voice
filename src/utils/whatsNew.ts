@@ -28,10 +28,19 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (OpenAI-compatible servers), then MiniMax, then the Voice player and everything added since 1.8.0,
+ * provider (Fish Audio), then OpenAI-compatible servers, MiniMax, the Voice
+ * player, and everything added since 1.8.0,
  * so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: bring any OpenAI-compatible server
+export const WHATS_NEW = `## 🆕 New: Fish Audio
+
+Voice now supports **Fish Audio** — including its latest S2 models and an **S2.1 Pro Free** model made for development and testing.
+
+- 🐟 Choose **Fish Audio** in **Settings → Voice**, keep **S2.1 Pro Free** while testing, paste your API key, then press **Test Credentials**.
+- 🗣️ Leave **Voice model ID** blank for Fish Audio's default voice, or paste any public/private voice model ID.
+- 🎧 Long notes are split safely, synthesized in order, and played as one MP3.
+
+## Bring any OpenAI-compatible server
 
 Voice now talks to **any server that speaks OpenAI's speech API** — hosted routers like **OpenRouter**, gateways like **LiteLLM**, or a **self-hosted** engine such as **Kokoro** running on your own machine.
 
@@ -40,9 +49,9 @@ Voice now talks to **any server that speaks OpenAI's speech API** — hosted rou
 - 🎧 Pick **MP3** or **WAV** — WAV files are saved and listed as chapters just like MP3s.
 - 📱 On a phone, \`localhost\` means the phone itself — use an address the phone can reach.
 
-## MiniMax — text-to-speech that works from China — text-to-speech that works from China
+## MiniMax — text-to-speech that works from China
 
-Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
+**MiniMax** is a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
 
 - 🌏 **Choose your region** — **global** or **mainland China** — so the API works wherever your account lives.
 - 🗣️ **Natural, multilingual voices** with especially strong Chinese support (Speech 02 HD/Turbo · Speech 01 HD/Turbo).
@@ -82,7 +91,7 @@ Every control is one button; a few do double duty — **tap** vs. **press & hold
 
 ## ✨ Everything at a glance
 
-**Six providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · **MiniMax**.
+**Eight providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · MiniMax · **Fish Audio** · OpenAI-compatible.
 
 **Player & playback** — chapters, scrubber, speed (0.5×–2.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
 

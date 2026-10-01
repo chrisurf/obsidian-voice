@@ -13,6 +13,7 @@ import {
   OPENAI_COMPAT_FORMATS,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
+  FISH_AUDIO_MODELS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
   type OpenAiCompatibleFormat,
@@ -103,7 +104,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     return [
       {
         name: "Speech provider",
-        desc: "Choose which text-to-speech engine to use. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
+        desc: "Choose which text-to-speech engine to use. Every provider offers the same plugin features; each uses its own credentials and voices.",
         control: {
           type: "dropdown",
           key: "TTS_PROVIDER",
@@ -115,6 +116,7 @@ export class VoiceSettingTab extends PluginSettingTab {
             openai: "OpenAI",
             "openai-compatible": "OpenAI-compatible",
             minimax: "MiniMax",
+            "fish-audio": "Fish Audio",
           },
         },
       },
@@ -288,6 +290,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       this.displayOpenAiCompatibleSettings(containerEl);
     } else if (this.plugin.settings.TTS_PROVIDER === "minimax") {
       this.displayMiniMaxSettings(containerEl);
+    } else if (this.plugin.settings.TTS_PROVIDER === "fish-audio") {
+      this.displayFishAudioSettings(containerEl);
     } else {
       this.displayPollySettings(containerEl);
     }
@@ -301,7 +305,7 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Speech Provider")
       .setDesc(
-        "Choose which text-to-speech engine to use. AWS Polly, ElevenLabs, and Google Cloud offer the same plugin features; each uses its own credentials and voices.",
+        "Choose which text-to-speech engine to use. Every provider offers the same plugin features; each uses its own credentials and voices.",
       )
       .addDropdown((dropdown) => {
         dropdown
@@ -312,6 +316,7 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("openai", "OpenAI")
           .addOption("openai-compatible", "OpenAI-compatible")
           .addOption("minimax", "MiniMax")
+          .addOption("fish-audio", "Fish Audio")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
@@ -499,6 +504,68 @@ export class VoiceSettingTab extends PluginSettingTab {
         "Enter your MiniMax API key and Group ID above, then click 'Test Credentials' to validate",
       helpText: "Need a MiniMax API key? ",
       helpUrl: "https://platform.minimax.io/",
+    });
+  }
+
+  private displayFishAudioSettings(containerEl: HTMLElement): void {
+    new Setting(containerEl).setName("Fish Audio").setHeading();
+
+    new Setting(containerEl)
+      .setName("Model")
+      .setDesc(
+        "The Fish Audio TTS model. S2.1 Pro Free is intended for development and local testing.",
+      )
+      .addDropdown((dropdown) => {
+        FISH_AUDIO_MODELS.forEach((model) => {
+          dropdown.addOption(model.id, model.label);
+        });
+        dropdown
+          .setValue(this.plugin.settings.FISH_AUDIO_MODEL)
+          .onChange(async (value) => {
+            this.plugin.settings.FISH_AUDIO_MODEL = value;
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+          });
+      });
+
+    new Setting(containerEl)
+      .setName("Voice model ID")
+      .setDesc(
+        "Optional. Paste a public or private Fish Audio voice model ID. Leave empty to use the default voice.",
+      )
+      .addText((text) =>
+        text
+          .setPlaceholder("Leave empty for the default voice")
+          .setValue(this.plugin.settings.FISH_AUDIO_VOICE)
+          .onChange(async (value) => {
+            this.plugin.settings.FISH_AUDIO_VOICE = value.trim();
+            await this.plugin.saveSettings();
+            this.plugin.reinitializeProviderCredentials();
+            this.plugin.refreshVoicePlayerControls();
+          }),
+      );
+
+    this.addPasswordSetting(
+      containerEl,
+      "Fish Audio API Key",
+      "Your Fish Audio API key (Fish Audio dashboard → API keys).",
+      "Enter your Fish Audio API key",
+      this.plugin.settings.FISH_AUDIO_API_KEY,
+      async (value) => {
+        this.plugin.settings.FISH_AUDIO_API_KEY = value;
+        await this.plugin.saveSettings();
+        this.plugin.reinitializeProviderCredentials();
+      },
+    );
+
+    this.renderCredentialValidation(containerEl, {
+      providerName: "Fish Audio",
+      isConfigured: () => !!this.plugin.settings.FISH_AUDIO_API_KEY,
+      missingMessage: "Please enter your Fish Audio API key before testing.",
+      promptMessage:
+        "Enter your Fish Audio API key above, then click 'Test Credentials' to validate",
+      helpText: "Need a Fish Audio API key? ",
+      helpUrl: "https://fish.audio/app/api-keys/",
     });
   }
 

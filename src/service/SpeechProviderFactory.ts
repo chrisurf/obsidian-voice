@@ -11,6 +11,7 @@ import { AzureSpeechService } from "./AzureSpeechService";
 import { OpenAiSpeechService } from "./OpenAiSpeechService";
 import { OpenAiCompatibleSpeechService } from "./OpenAiCompatibleSpeechService";
 import { MiniMaxSpeechService } from "./MiniMaxSpeechService";
+import { FishAudioSpeechService } from "./FishAudioSpeechService";
 
 /**
  * Create the speech provider selected in settings.
@@ -55,6 +56,13 @@ export function createSpeechProvider(settings: VoiceSettings): SpeechProvider {
       settings.MINIMAX_VOICE,
       settings.MINIMAX_MODEL,
       settings.MINIMAX_HOST,
+      Number(settings.SPEED),
+    );
+  } else if (settings.TTS_PROVIDER === "fish-audio") {
+    provider = new FishAudioSpeechService(
+      settings.FISH_AUDIO_API_KEY,
+      settings.FISH_AUDIO_VOICE,
+      settings.FISH_AUDIO_MODEL,
       Number(settings.SPEED),
     );
   } else {

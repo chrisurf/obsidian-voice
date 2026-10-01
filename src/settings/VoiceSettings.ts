@@ -8,7 +8,8 @@ export type TtsProvider =
   | "azure"
   | "openai"
   | "openai-compatible"
-  | "minimax";
+  | "minimax"
+  | "fish-audio";
 
 /** Audio formats the OpenAI-compatible provider can request. */
 export type OpenAiCompatibleFormat = "mp3" | "wav";
@@ -80,6 +81,12 @@ export interface VoiceSettings {
   MINIMAX_VOICE: string;
   MINIMAX_MODEL: string;
   MINIMAX_HOST: string;
+
+  // Fish Audio Text-to-Speech. A blank voice uses Fish Audio's default voice;
+  // otherwise FISH_AUDIO_VOICE is sent as the API's `reference_id`.
+  FISH_AUDIO_API_KEY: string;
+  FISH_AUDIO_VOICE: string;
+  FISH_AUDIO_MODEL: string;
 
   // Content / speech options (shared across providers)
   spellOutAcronyms: boolean;
@@ -443,6 +450,27 @@ export const MINIMAX_VOICES: VoiceOption[] = [
   },
 ];
 
+/** Fish Audio TTS models. The free tier is the development-friendly default. */
+export const FISH_AUDIO_MODELS: ModelOption[] = [
+  { id: "s2.1-pro-free", label: "S2.1 Pro Free (development)" },
+  { id: "s2.1-pro", label: "S2.1 Pro (recommended)" },
+  { id: "s2-pro", label: "S2 Pro" },
+  { id: "s1", label: "S1" },
+];
+
+/**
+ * Fish Audio can synthesize without a reference_id. A user-provided voice model
+ * id is appended to this catalog by FishAudioSpeechService at runtime.
+ */
+export const FISH_AUDIO_VOICES: VoiceOption[] = [
+  {
+    id: "",
+    label: "Default voice",
+    lang: "und",
+    group: "Fish Audio",
+  },
+];
+
 export const DEFAULT_SETTINGS: VoiceSettings = {
   TTS_PROVIDER: "polly",
 
@@ -480,6 +508,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   MINIMAX_VOICE: "Wise_Woman",
   MINIMAX_MODEL: "speech-02-hd",
   MINIMAX_HOST: "api.minimax.io",
+
+  FISH_AUDIO_API_KEY: "",
+  FISH_AUDIO_VOICE: "",
+  FISH_AUDIO_MODEL: "s2.1-pro-free",
 
   spellOutAcronyms: false,
   readCodeBlocks: false,

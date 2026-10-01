@@ -103,6 +103,12 @@ Choose the AWS region closest to you for lower latency. You can change it anytim
 - Pick a model that fits your needs: **Multilingual v2** for quality, **Flash v2.5** for speed, or **Turbo v2.5** for a balance.
 - Create your key under **Settings → API Keys** in the ElevenLabs dashboard.
 
+### Fish Audio
+
+- Use **S2.1 Pro Free** while developing locally; switch to a paid model when you are ready for production use.
+- Leave **Voice model ID** blank to use the default voice. For a custom voice, copy the model ID from its Fish Audio page.
+- HTTP 402 means the selected model needs available credits; HTTP 429 means you have reached the current concurrency limit.
+
 ## How Caching Works
 
 After a note is synthesized, the audio is cached for that note. Replaying it costs nothing and is instant — until the note's content changes, at which point the plugin generates fresh audio. This keeps your provider usage (and bill) low.

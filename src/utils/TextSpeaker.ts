@@ -17,7 +17,7 @@ import { Notice } from "obsidian";
  * Processes the active note and hands the result to the active speech
  * provider. Providers declare which input they need via `inputFormat`:
  * - "ssml" (AWS Polly) → MarkdownToSSMLProcessor
- * - "text" (ElevenLabs) → MarkdownToTextProcessor
+ * - "text" (ElevenLabs, OpenAI, MiniMax, Fish Audio, …) → MarkdownToTextProcessor
  */
 export class TextSpeaker {
   private provider: SpeechProvider;

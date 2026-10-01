@@ -1,5 +1,6 @@
 /**
- * Shared plain-text chunker for text-input TTS providers (ElevenLabs, OpenAI).
+ * Shared plain-text chunker for text-input TTS providers (ElevenLabs, OpenAI,
+ * MiniMax, Fish Audio, and OpenAI-compatible servers).
  *
  * Splits text into chunks under a character limit, preferring paragraph, then
  * sentence, then word boundaries so the synthesized audio stays natural and no

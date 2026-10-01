@@ -30,6 +30,9 @@ Closes #
 - [ ] OpenAI
 - [ ] Google Cloud
 - [ ] Azure Speech
+- [ ] OpenAI-compatible
+- [ ] MiniMax
+- [ ] Fish Audio
 
 ## Platform impact
 

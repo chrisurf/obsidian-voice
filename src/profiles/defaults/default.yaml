@@ -9,7 +9,7 @@ content:
   acronyms: word # word | spell  (acronyms not listed below)
   codeBlocks: placeholder # placeholder | read
   codePlaceholder: Code snippet.
-  urls: read # read | skip
+  urls: skip # skip | read  (link labels are always read)
   abbreviations: expand # expand | keep
 
 # Acronyms. "spell": read letter by letter, comma-separated; plurals such as

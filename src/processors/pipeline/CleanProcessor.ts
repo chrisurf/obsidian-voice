@@ -16,6 +16,7 @@ import type { Paragraph, Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
 import { removeBlockIds } from "./blockIds";
+import { mergeTextRuns, removeUrls } from "./urls";
 
 /**
  * Create a clean processor plugin
@@ -138,6 +139,18 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         }
       }
     });
+
+    // Dropped addresses (often autolink nodes of their own) leave texts such
+    // as "see " and "." side by side; join and tidy them ("see.").
+    if (options.skipUrls) {
+      visit(tree, (node) => {
+        if ("children" in node && Array.isArray(node.children)) {
+          (node as Parent).children = mergeTextRuns(
+            (node as Parent).children as { type: string; value?: string }[],
+          ) as Parent["children"];
+        }
+      });
+    }
   };
 }
 
@@ -185,23 +198,6 @@ function removeAudioEmbeds(text: string): string {
     /!\[\[([^\]]+)\.(mp3|wav|ogg|m4a|flac|aac|wma)\]\]/gi,
     "",
   );
-}
-
-/**
- * Remove website URLs from text so they are not read aloud
- * Strips http(s):// links as well as bare "www." links up to the next
- * whitespace. Collapses any double spaces left behind by the removal.
- * Examples:
- *   "Visit https://example.com today" -> "Visit today"
- *   "See www.example.com/path for more" -> "See for more"
- */
-function removeUrls(text: string): string {
-  // Strip the URL, then collapse any double spaces it leaves behind. Leading
-  // and trailing spaces are kept so words stay separated from adjacent inline
-  // nodes (e.g. "A normal " + link + " link").
-  return text
-    .replace(/(?:https?:\/\/|www\.)[^\s]+/gi, "")
-    .replace(/[ \t]{2,}/g, " ");
 }
 
 /**

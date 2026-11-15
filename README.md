@@ -65,7 +65,7 @@ Below them sits a row of **toggles** that light up when on:
 | **Cache**   | ▶️ reuses the note's existing audio instead of generating it again (see below)          | on      |
 | **Spell**   | Spell out acronyms — read `NASA`, `API` letter by letter                                | off     |
 | **Code**    | Read fenced code blocks (Mermaid, YAML, …) aloud instead of a short placeholder         | off     |
-| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept | off     |
+| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept | on      |
 | **Embed**   | Add an audio player to the note whenever you save its MP3                               | off     |
 
 **Spell**, **Code** and **No URLs** are stored in your [speech profile](#speech-profiles-how-voice-reads), so they follow the language you're listening in.

@@ -18,7 +18,7 @@ export const BASE_PROFILE: ResolvedProfile = {
     acronyms: "word",
     codeBlocks: "placeholder",
     codePlaceholder: "Code snippet.",
-    urls: "read",
+    urls: "skip",
     abbreviations: "expand",
   },
   structure: {

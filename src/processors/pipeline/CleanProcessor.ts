@@ -15,6 +15,7 @@ import { visit, SKIP } from "unist-util-visit";
 import type { Paragraph, Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
+import { removeBlockIds } from "./blockIds";
 
 /**
  * Create a clean processor plugin
@@ -125,9 +126,10 @@ export function cleanProcessor(options: CleanProcessorOptions) {
       }
 
       // Handle Obsidian-specific wikilinks [[page]] or [[page|alias]]
-      // Also remove audio embeds and emojis from text
+      // Also remove block IDs (^id), audio embeds and emojis from text
       if (node.type === "text") {
         const textNode = node as { type: "text"; value: string };
+        textNode.value = removeBlockIds(textNode.value);
         textNode.value = removeAudioEmbeds(textNode.value);
         textNode.value = cleanWikiLinks(textNode.value);
         textNode.value = removeEmojis(textNode.value);

@@ -15,6 +15,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - [Highlights](#highlights)
 - [The Voice Player](#the-voice-player)
 - [Feature Tour](#feature-tour)
+- [Speech Profiles: How Voice Reads](#speech-profiles-how-voice-reads)
 - [Settings](#settings)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Bring Your Own Provider](#bring-your-own-provider)
@@ -29,6 +30,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same look and controls on desktop, iPhone, iPad, and Android, on any Obsidian version, with a touch-friendly mobile player and control bar.
+- **Reads the way the language is spoken** — per-language speech profiles handle pronunciation, abbreviations and pauses, so Voice never stops mid-sentence. German comes built in.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
 - **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and with **Cache** never pay twice for the same note by accident.
 - **Stay private** — your credentials live in your own provider account; nothing is routed through a third party.
@@ -43,7 +45,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 | Control                                       | What it does                                                                                                            |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                                                                       |
+| ▶️ **Play**                                   | Play or pause. While a note is generated it shows ⏹ inside a ring that fills with the progress — tap to cancel          |
 | ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
 | ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
 | ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
@@ -166,7 +168,9 @@ A **speech profile** decides how Voice reads in one language: how words are pron
 - **Pronunciation.** A lexicon says what to say instead of a word — `KI` → "Ka-I", a name, a brand. German abbreviations (`z. B.`, `d. h.`, `usw.`, `Dr.`) and acronyms (`KI`, `EU`, `API`) are built in.
 - **Structure.** Pauses after headings and between paragraphs and list items; numbered lists read as "Erstens, …", as numbers, or not at all; wrapped lines inside a paragraph are joined, so Voice never stops mid-sentence.
 - **YAML or JSON.** Voice detects the format. Edit a profile in **Settings → Voice → Speech profiles** — with quick controls for every setting, or as text — paste one in, or import a file.
-- **Where they live.** In the plugin's folder by default; turn on **Store profiles in the vault** to keep them in a vault folder, where they sync and can be edited like notes.
+- **Where they live.** In the plugin's folder by default (`.obsidian/plugins/voice/profiles/`); turn on **Store profiles in the vault** to keep them in a vault folder (default `Voice/Profiles`), where they sync and can be edited like notes.
+- **Your toggles live here too.** The player's **Spell**, **Code** and **No URLs** read and write the profile of the language you're listening in. On the first start, Voice creates a **default** profile from your previous settings.
+- **Upper and lower case matter.** Lexicon entries match whole words and are case-sensitive by default — `IT` can be read "I-T" while `it` and `Item` stay as they are.
 - **Versioned.** Each file starts with `voiceProfile: 1`. A newer format is refused with a clear message instead of being misread, and settings a version doesn't know are kept but not applied.
 
 ```yaml
@@ -234,14 +238,14 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the player toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-The newest addition, **MiniMax**, adds a selectable **mainland-China region** and strong Chinese-language voices — so Voice now works even where the other engines are hard to reach.
+**OpenAI-compatible** connects any server that speaks OpenAI's speech API — hosted routers like OpenRouter or a voice running on your own machine (see [below](#openai-compatible-servers)). **MiniMax** adds a selectable **mainland-China region** and strong Chinese-language voices, so Voice works even where the other engines are hard to reach.
 
-|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    |
-| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    |
-| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) |
-| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      |
-| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        |
+|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    | **OpenAI-compatible**                                       |
+| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    | Whatever the server offers (read from it, or added by hand) |
+| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) | Server URL + optional API key                               |
+| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      | Natural prosody (no SSML)                                   |
+| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        | Read from the server (MP3 or WAV)                           |
 
 ## Getting Started
 

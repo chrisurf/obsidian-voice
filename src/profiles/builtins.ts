@@ -15,7 +15,7 @@ export const BASE_PROFILE: ResolvedProfile = {
   acronyms: { spell: [], say: {} },
   abbreviations: {},
   content: {
-    acronyms: "word",
+    acronyms: "spell",
     codeBlocks: "placeholder",
     codePlaceholder: "Code snippet.",
     urls: "skip",

@@ -223,12 +223,10 @@ export class Voice extends Plugin {
     if (!current || current.parsed.data?.acronyms === undefined) {
       const carried: Record<string, unknown> = {};
       for (const key of ["acronyms", "codeBlocks", "urls"]) {
-        // URLs are skipped by default now; carry only a deliberate "skip",
-        // not the old default ("read") nobody chose.
-        if (
-          typeof content?.[key] === "string" &&
-          !(key === "urls" && content[key] === "read")
-        ) {
+        // Acronyms are spelled and URLs skipped by default now; carry only a
+        // deliberate choice, not the old defaults ("word", "read").
+        const oldDefault = { acronyms: "word", urls: "read" }[key];
+        if (typeof content?.[key] === "string" && content[key] !== oldDefault) {
           carried[`content.${key}`] = content[key];
         }
       }

@@ -41,6 +41,7 @@ Voice now reads the way the language is spoken. A **speech profile** per languag
 - 🇩🇪 **Every language its own words:** "z. B." becomes "zum Beispiel", "e.g." "for example", and numbered lists start with "Erstens", "First" or "Premièrement".
 - ⏸️ **No more pauses mid-sentence:** lines wrapped inside a paragraph are read as one sentence; list items and table rows end with a natural stop.
 - 📖 **Your own words:** add an acronym, abbreviation or name to a profile — per language, plus a default for all.
+- 🔠 **Acronyms are spelled** by default (**Spell** in the player) — words like NASA or NATO stay words, listed in the profile.
 - 🔗 **Web addresses are skipped** by default — nobody wants a URL read out letter by letter. Link labels are still read; turn **No URLs** off in the player to hear addresses again.
 - ⚙️ Edit profiles in **Settings → Voice → Speech profiles** with quick controls, as YAML/JSON text, or import a file. A note can pick its language with \`lang:\` in its frontmatter.
 - 🔁 **Your toggles moved in:** the player's **Spell**, **Code** and **No URLs** now live in the profile of the language you're listening in — your previous choices were carried over.

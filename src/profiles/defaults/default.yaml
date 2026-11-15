@@ -6,7 +6,7 @@
 voiceProfile: 1
 
 content:
-  acronyms: word # word | spell  (acronyms not listed below)
+  acronyms: spell # spell | word  (all-caps words not listed below)
   codeBlocks: placeholder # placeholder | read
   codePlaceholder: Code snippet.
   urls: skip # skip | read  (link labels are always read)
@@ -22,6 +22,12 @@ acronyms:
     FAQ, SLA, CEO, CTO, CIO, CFO, COO, HR, PR, QA, CI, CD, IoT, NPM, BBC,
     FBI, CIA, UN, EU, UK, US, USA, ETA, DIY, TBD, ASAP, FYI
   say:
+    NASA: Nasa # acronyms spoken as a word, not spelled
+    NATO: Nato
+    UNESCO: Unesco
+    UNICEF: Unicef
+    FIFA: Fifa
+    OPEC: Opec
     JSON: jay-son
     SQL: sequel
     GUI: gooey

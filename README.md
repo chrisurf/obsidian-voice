@@ -60,13 +60,13 @@ While a note is being generated, the play button shows ⏹ and a ring around it 
 
 Below them sits a row of **toggles** that light up when on:
 
-| Toggle      | On                                                                                      | Default |
-| ----------- | --------------------------------------------------------------------------------------- | ------- |
-| **Cache**   | ▶️ reuses the note's existing audio instead of generating it again (see below)          | on      |
-| **Spell**   | Spell out acronyms — read `NASA`, `API` letter by letter                                | off     |
-| **Code**    | Read fenced code blocks (Mermaid, YAML, …) aloud instead of a short placeholder         | off     |
-| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept | on      |
-| **Embed**   | Add an audio player to the note whenever you save its MP3                               | off     |
+| Toggle      | On                                                                                                              | Default |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | ------- |
+| **Cache**   | ▶️ reuses the note's existing audio instead of generating it again (see below)                                  | on      |
+| **Spell**   | Spell out acronyms — read `API`, `CEO` letter by letter (word-like ones such as NASA are listed in the profile) | on      |
+| **Code**    | Read fenced code blocks (Mermaid, YAML, …) aloud instead of a short placeholder                                 | off     |
+| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept                         | on      |
+| **Embed**   | Add an audio player to the note whenever you save its MP3                                                       | off     |
 
 **Spell**, **Code** and **No URLs** are stored in your [speech profile](#speech-profiles-how-voice-reads), so they follow the language you're listening in.
 

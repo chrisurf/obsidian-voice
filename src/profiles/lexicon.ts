@@ -86,3 +86,34 @@ export function applyLexicon(text: string, entries: LexiconEntry[]): string {
   }
   return segments.map((s) => s.text).join("");
 }
+
+/**
+ * Letters of an acronym joined by hyphens, which every engine reads as
+ * letter names: "API" → "A-P-I", "IoT" → "I-o-T".
+ */
+export function spellOut(acronym: string): string {
+  return acronym.replace(/([\p{L}\p{N}])(?=[\p{L}\p{N}])/gu, "$1-");
+}
+
+/** Lexicon entries that spell acronyms, the plural ("APIs") before the word. */
+export function spelledAcronymEntries(acronyms: string[]): LexiconEntry[] {
+  return acronyms.flatMap((acronym) => {
+    const spelled = spellOut(acronym);
+    const plural: LexiconEntry[] = /[a-z]$/i.test(acronym)
+      ? [{ match: `${acronym}s`, say: `${spelled}s` }]
+      : [];
+    return [...plural, { match: acronym, say: spelled }];
+  });
+}
+
+/** Lexicon entries for "written: spoken" pairs, longest written form first. */
+export function pairEntries(pairs: Record<string, string>): LexiconEntry[] {
+  return Object.entries(pairs)
+    .sort(([a], [b]) => b.length - a.length)
+    .map(([match, say]) =>
+      // A spoken form ending in "." keeps the sentence's full stop ("etc.").
+      say.endsWith(".") && match.endsWith(".")
+        ? { match, say: say.slice(0, -1), keepStop: true }
+        : { match, say },
+    );
+}

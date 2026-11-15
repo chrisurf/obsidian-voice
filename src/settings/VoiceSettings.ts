@@ -122,6 +122,9 @@ export interface VoiceSettings {
   // readCodeBlocks, skipUrls) into the default speech profile, which is their
   // source of truth since; the three settings above are legacy after it.
   profilesMigrated: boolean;
+  // Internal: tracks the one-time creation of the shipped profiles (American
+  // English default, en-GB, de, fr) with their word lists.
+  profilesSeeded: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
@@ -520,6 +523,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   profilesInVault: false,
   profilesFolder: "Voice/Profiles",
   profilesMigrated: false,
+  profilesSeeded: false,
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",

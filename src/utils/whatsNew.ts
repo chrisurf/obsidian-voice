@@ -35,11 +35,12 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
  */
 export const WHATS_NEW = `## 🗣️ New: speech profiles — reading that sounds natural
 
-Voice now reads the way the language is spoken. A **speech profile** per language decides pronunciation and pacing — and German comes built in.
+Voice now reads the way the language is spoken. A **speech profile** per language decides pronunciation and pacing — **American and British English, German and French** ship as editable YAML files.
 
-- 🇩🇪 **German, properly:** "z. B." becomes "zum Beispiel", "KI" is "Ka-I" (not "key"), and numbered lists start with "Erstens, Zweitens".
+- 🔤 **Acronyms read right:** "API", "IT" or "KI" are spelled instead of read as odd words ("key"), "JSON" says "jay-son" — from a simple, comma-separated list you can extend.
+- 🇩🇪 **Every language its own words:** "z. B." becomes "zum Beispiel", "e.g." "for example", and numbered lists start with "Erstens", "First" or "Premièrement".
 - ⏸️ **No more pauses mid-sentence:** lines wrapped inside a paragraph are read as one sentence; list items and table rows end with a natural stop.
-- 📖 **Your own words:** add a lexicon entry to say a name, brand or abbreviation your way — per language, plus a default for all.
+- 📖 **Your own words:** add an acronym, abbreviation or name to a profile — per language, plus a default for all.
 - ⚙️ Edit profiles in **Settings → Voice → Speech profiles** with quick controls, as YAML/JSON text, or import a file. A note can pick its language with \`lang:\` in its frontmatter.
 - 🔁 **Your toggles moved in:** the player's **Spell**, **Code** and **No URLs** now live in the profile of the language you're listening in — your previous choices were carried over.
 
@@ -100,7 +101,7 @@ Every control is one button; the save button does double duty — **tap** vs. **
 
 **Your audio** — save MP3s next to the note or in a **default folder**, optionally **auto-save** and **embed** them, and **move / rename / delete** saved chapters from the player.
 
-**Reads it your way** — a **speech profile** per language for pronunciation and pacing (German built in), plus one-tap **Spell**, **Code** and **No URLs** in the player — and **Cache**, so you never pay twice for the same note.
+**Reads it your way** — a **speech profile** per language for acronyms, abbreviations and pacing (English, German and French included), plus one-tap **Spell**, **Code** and **No URLs** in the player — and **Cache**, so you never pay twice for the same note.
 
 Open the player from the **audio-waveform ribbon icon**, the **"Open the player."** command, or the button below.`;
 

@@ -1,0 +1,73 @@
+# Voice-Sprachprofil: wie Voice deutsche Texte vorliest.
+# Gilt für deutsche Stimmen und für Notizen mit "lang: de". Frei erweiterbar:
+# Akronyme, Abkürzungen oder Wörter einfach ergänzen.
+# Zeilen mit # sind Kommentare. JSON geht auch: Voice erkennt das Format.
+voiceProfile: 1
+language: de
+
+content:
+  codePlaceholder: Codebeispiel.
+
+# Akronyme. "spell": werden buchstabiert, durch Komma getrennt; Mehrzahl wie
+# "APIs" ist automatisch abgedeckt. "say": Akronyme mit eigener Aussprache.
+# Groß-/Kleinschreibung zählt: "IT" wird buchstabiert, "it" nicht.
+acronyms:
+  spell: >-
+    KI, IT, EU, API, UI, UX, ID, OS, PC, USB, PDF, URL, HTTP, HTTPS, HTML,
+    CSS, XML, CSV, SDK, CLI, IDE, VM, VPN, DNS, IP, TCP, SSH, SSL, TLS, SSO,
+    MFA, CPU, GPU, SQL, AWS, GCP, LLM, GPT, NLP, OCR, CRM, ERP, SAP, KPI,
+    MVP, PoC, POC, FAQ, SLA, CEO, CTO, CIO, CFO, HR, PR, QA, CI, CD, IoT,
+    USA, UK, DSGVO, GmbH, AG, ARD, ZDF, BMW, DB
+  say:
+    AI: Ei-Ei
+    RAM: Ramm
+    RAG: Räg
+    JSON: Dschäisen
+    YAML: Jammel
+    SaaS: Sahs
+    PaaS: Pahs
+    GUI: Guh-I
+    WLAN: Weh-Lahn
+    CI/CD: C-I-C-D
+    npm: N-P-M
+    macOS: Mäck-O-S
+    iOS: Ei-O-S
+    GitHub: Git-Hab
+    Kubernetes: Kuberneetis
+    Azure: Äscher
+
+# Abkürzungen: geschrieben: gesprochen. Endet die gesprochene Form mit einem
+# Punkt, bleibt der Satzpunkt erhalten, wenn die Abkürzung den Satz beendet.
+abbreviations:
+  z. B.: zum Beispiel
+  z.B.: zum Beispiel
+  d. h.: das heißt
+  d.h.: das heißt
+  u. a.: unter anderem
+  u.a.: unter anderem
+  usw.: und so weiter.
+  etc.: et cetera.
+  bzw.: beziehungsweise
+  ca.: circa
+  evtl.: eventuell
+  ggf.: gegebenenfalls
+  inkl.: inklusive
+  vgl.: vergleiche
+  Nr.: Nummer
+  Dr.: Doktor
+  Prof.: Professor
+  bspw.: beispielsweise
+  sog.: sogenannte
+  zzgl.: zuzüglich
+  Mio.: Millionen
+  Mrd.: Milliarden
+
+structure:
+  lists:
+    ordinals: Erstens, Zweitens, Drittens, Viertens, Fünftens, Sechstens, Siebtens, Achtens, Neuntens, Zehntens
+
+# Aussprache für Sonderfälle: ohne Groß-/Kleinschreibung, Lautschrift.
+lexicon:
+  # - match: Obsidian
+  #   say: Obsidjen
+  #   caseSensitive: false

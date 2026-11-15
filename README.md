@@ -30,7 +30,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
 - **Designed for every device** — the same look and controls on desktop, iPhone, iPad, and Android, on any Obsidian version, with a touch-friendly mobile player and control bar.
-- **Reads the way the language is spoken** — per-language speech profiles handle pronunciation, abbreviations and pauses, so Voice never stops mid-sentence. German comes built in.
+- **Reads the way the language is spoken** — per-language speech profiles handle acronyms, abbreviations and pauses, so Voice never stops mid-sentence. English (US and UK), German and French ship as editable YAML files.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
 - **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and with **Cache** never pay twice for the same note by accident.
 - **Stay private** — your credentials live in your own provider account; nothing is routed through a third party.
@@ -164,39 +164,48 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Speech Profiles: How Voice Reads
 
-A **speech profile** decides how Voice reads in one language: how words are pronounced, what is read at all, and how a note's structure sounds. Voice ships sensible defaults (with German and English built in), and you change only what you want.
+A **speech profile** decides how Voice reads in one language: how words are pronounced, which acronyms are spelled, how abbreviations are said, and how a note's structure sounds. Profiles are plain **YAML (or JSON) files you can read and extend** — nothing language-specific is hidden in the code.
 
-- **Per language.** A profile per language (`de`, `en-US`, …) plus an optional **default** for every language without its own. The voice's language picks the profile; a note can override it with `lang:` or `language:` in its frontmatter.
-- **Pronunciation.** A lexicon says what to say instead of a word — `KI` → "Ka-I", a name, a brand. German abbreviations (`z. B.`, `d. h.`, `usw.`, `Dr.`) and acronyms (`KI`, `EU`, `API`) are built in.
-- **Structure.** Pauses after headings and between paragraphs and list items; numbered lists read as "Erstens, …", as numbers, or not at all; wrapped lines inside a paragraph are joined, so Voice never stops mid-sentence.
-- **YAML or JSON.** Voice detects the format. Edit a profile in **Settings → Voice → Speech profiles** — with quick controls for every setting, or as text — paste one in, or import a file.
+- **Four profiles ship with Voice** and are created on the first start: **default** (American English — it applies to every language without its own profile), **en-GB** (only what British usage changes, on top of the default), **de** (German) and **fr** (French). Add a profile for any other language in settings.
+- **Per language.** The voice's language picks the profile (`de-DE` uses default + `de` + `de-DE`); a note can override it with `lang:` or `language:` in its frontmatter.
+- **Acronyms** as a simple, comma-separated list: `spell` reads them letter by letter (plurals like "APIs" included), `say` gives one its own pronunciation (`JSON: jay-son`). Upper and lower case matter — `IT` is spelled, `it` and `Item` stay as they are.
+- **Abbreviations** as `written: spoken` pairs (`e.g.: for example`, `z. B.: zum Beispiel`); end the spoken form with a dot to keep a sentence's full stop (`etc.: et cetera.`).
+- **Structure.** Pauses after headings and between paragraphs and list items; numbered lists read with the profile's ordinal words ("First, …", "Erstens, …"), as numbers, or not at all; wrapped lines inside a paragraph are joined, so Voice never stops mid-sentence.
+- **Edit, paste or import** in **Settings → Voice → Speech profiles** — with quick controls for every setting, or as text. Voice detects YAML or JSON.
 - **Where they live.** In the plugin's folder by default (`.obsidian/plugins/voice/profiles/`); turn on **Store profiles in the vault** to keep them in a vault folder (default `Voice/Profiles`), where they sync and can be edited like notes.
-- **Your toggles live here too.** The player's **Spell**, **Code** and **No URLs** read and write the profile of the language you're listening in. On the first start, Voice creates a **default** profile from your previous settings.
-- **Upper and lower case matter.** Lexicon entries match whole words and are case-sensitive by default — `IT` can be read "I-T" while `it` and `Item` stay as they are.
+- **Your toggles live here too.** The player's **Spell**, **Code** and **No URLs** read and write the profile of the language you're listening in; your previous choices are carried over.
 - **Versioned.** Each file starts with `voiceProfile: 1`. A newer format is refused with a clear message instead of being misread, and settings a version doesn't know are kept but not applied.
 
 ![Speech profile editor: quick controls for every setting above the profile's text](./assets/profile-editor.png)
 
+A shortened example — long lists can span several lines with YAML's standard folded style (`>-`):
+
 ```yaml
 voiceProfile: 1
 language: de
-lexicon:
-  - match: KI
-    say: Ka-I
+
+acronyms:
+  spell: >-
+    KI, IT, EU, API, URL, HTTP, PDF,
+    DSGVO, GmbH
+  say:
+    JSON: Dschäisen
+
+abbreviations:
+  z. B.: zum Beispiel
+  usw.: und so weiter.
+
+structure:
+  lists:
+    ordinals: Erstens, Zweitens, Drittens
+
+lexicon: # special cases: case-insensitive, phonetic spelling
   - match: Obsidian
     say: Obsidjen
-content:
-  acronyms: word # word | spell
-  codeBlocks: placeholder # placeholder | read
-  urls: skip # read | skip
-structure:
-  headings:
-    pause: 800ms
-  lists:
-    numbering: ordinal # ordinal | number | none
+    caseSensitive: false
 ```
 
-The full list of settings, with what each does, is in the template Voice creates when you add a profile. Headings, bold text, and pauses are additionally emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
+Every setting is documented in the shipped profiles and in the template Voice creates when you add a profile for another language. Headings, bold text, and pauses are additionally emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
 
 ## Settings
 

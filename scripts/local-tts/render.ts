@@ -4,7 +4,8 @@
  *
  * Usage:
  *   npx tsx scripts/local-tts/render.ts note.md|- [--lang de-DE]
- *       [--profile de.yaml ...]   profile files; the file name is the key
+ *       [--profile de.yaml ...]   profile files on top of the shipped ones
+ *                                 (src/profiles/defaults); the file name is the key
  *       [--legacy]                the pipeline without any speech profile
  */
 
@@ -47,8 +48,17 @@ async function main(): Promise<void> {
     return;
   }
 
+  // The profiles Voice ships (as on a fresh install), then any given ones.
+  const shippedDir = path.resolve(__dirname, "../../src/profiles/defaults");
+  const profileFiles = [
+    ...fs
+      .readdirSync(shippedDir)
+      .filter((f) => f.endsWith(".yaml"))
+      .map((f) => path.join(shippedDir, f)),
+    ...options("--profile"),
+  ];
   const layers: ProfileLayers = {};
-  for (const profileFile of options("--profile")) {
+  for (const profileFile of profileFiles) {
     const parsed = parseProfile(
       fs.readFileSync(profileFile, "utf8"),
       parseYaml,

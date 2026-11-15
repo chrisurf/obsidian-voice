@@ -152,10 +152,18 @@ function checkField(field: FieldDefinition, value: unknown): string | null {
     }
     case "text":
       return typeof value === "string" ? null : "use text";
-    case "textList":
-      return Array.isArray(value) && value.every((v) => typeof v === "string")
+    case "list":
+      return typeof value === "string" ||
+        (Array.isArray(value) && value.every((v) => typeof v === "string"))
         ? null
-        : "use a list of words";
+        : "use comma-separated words, e.g. IT, API, URL";
+    case "map":
+      return value &&
+        typeof value === "object" &&
+        !Array.isArray(value) &&
+        Object.values(value).every((v) => typeof v === "string")
+        ? null
+        : 'use one "written: spoken" pair per line';
   }
 }
 

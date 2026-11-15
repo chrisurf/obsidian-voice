@@ -21,8 +21,21 @@ import {
   FIELDS,
   getPath,
   parseDuration,
+  parseWordList,
   type FieldDefinition,
 } from "../profiles/schema";
+
+/** "written: spoken" lines → pairs; the first ": " splits a line. */
+function parsePairs(text: string): Record<string, string> {
+  const pairs: Record<string, string> = {};
+  for (const line of text.split("\n")) {
+    const at = line.indexOf(": ");
+    if (at > 0) {
+      pairs[line.slice(0, at).trim()] = line.slice(at + 2).trim();
+    }
+  }
+  return pairs;
+}
 import { ProfileStore } from "../profiles/ProfileStore";
 import { setProfileValue } from "../profiles/edit";
 import { normalizeLanguageKey, resolveProfile } from "../profiles/resolve";
@@ -197,23 +210,30 @@ export class ProfileEditorModal extends Modal {
             .onChange((next) => set(next)),
         );
         break;
-      case "textList":
+      case "list":
+        // Comma-separated, the way the profile files write word lists.
         setting.addTextArea((area) =>
           area
             .setPlaceholder(
               Array.isArray(inherited) && inherited.length > 0
-                ? inherited.join("\n")
-                : "One per line",
+                ? inherited.join(", ")
+                : "IT, API, URL",
             )
-            .setValue(Array.isArray(value) ? value.join("\n") : "")
-            .onChange((next) =>
-              set(
-                next
-                  .split("\n")
-                  .map((line) => line.trim())
-                  .filter(Boolean),
-              ),
-            ),
+            .setValue(parseWordList(value).join(", "))
+            .onChange((next) => set(parseWordList(next).join(", "))),
+        );
+        break;
+      case "map":
+        // One "written: spoken" pair per line.
+        setting.addTextArea((area) =>
+          area
+            .setPlaceholder("JSON: jay-son")
+            .setValue(
+              Object.entries(value && typeof value === "object" ? value : {})
+                .map(([k, v]) => `${k}: ${String(v)}`)
+                .join("\n"),
+            )
+            .onChange((next) => set(parsePairs(next))),
         );
         break;
     }

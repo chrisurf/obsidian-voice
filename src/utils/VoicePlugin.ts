@@ -18,6 +18,7 @@ import { ProfileStore } from "../profiles/ProfileStore";
 import { readingLanguage } from "../profiles/language";
 import { profileKeysFor, resolveProfile } from "../profiles/resolve";
 import { profileTemplate } from "../profiles/template";
+import { SHIPPED_PROFILES } from "../profiles/defaults";
 import { getPath as getPathValue } from "../profiles/schema";
 import type { ResolvedProfile } from "../profiles/schema";
 
@@ -202,23 +203,40 @@ export class Voice extends Plugin {
    * their source of truth from then on.
    */
   private async loadProfiles(): Promise<void> {
-    await this.profileStore.load();
-    if (this.settings.profilesMigrated) {
+    const store = this.profileStore;
+    await store.load();
+    if (this.settings.profilesSeeded) {
       return;
     }
-    if (!this.profileStore.get("default")) {
-      await this.profileStore.save(
-        "default",
-        profileTemplate("default", {
-          "content.acronyms": this.settings.spellOutAcronyms ? "spell" : "word",
-          "content.codeBlocks": this.settings.readCodeBlocks
-            ? "read"
-            : "placeholder",
-          "content.urls": this.settings.skipUrls ? "skip" : "read",
-        }),
-      );
+    // The content toggles' values: from the settings the first time, from the
+    // default profile of an earlier version (without word lists) after that.
+    const content = this.settings.profilesMigrated
+      ? (store.get("default")?.parsed.data?.content as
+          | Record<string, unknown>
+          | undefined)
+      : {
+          acronyms: this.settings.spellOutAcronyms ? "spell" : "word",
+          codeBlocks: this.settings.readCodeBlocks ? "read" : "placeholder",
+          urls: this.settings.skipUrls ? "skip" : "read",
+        };
+    const current = store.get("default");
+    if (!current || current.parsed.data?.acronyms === undefined) {
+      const carried: Record<string, unknown> = {};
+      for (const key of ["acronyms", "codeBlocks", "urls"]) {
+        if (typeof content?.[key] === "string") {
+          carried[`content.${key}`] = content[key];
+        }
+      }
+      await store.save("default", profileTemplate("default", carried));
+    }
+    // The shipped language profiles, unless the user already has their own.
+    for (const key of Object.keys(SHIPPED_PROFILES)) {
+      if (!store.get(key)) {
+        await store.save(key, profileTemplate(key));
+      }
     }
     this.settings.profilesMigrated = true;
+    this.settings.profilesSeeded = true;
     await this.saveSettings();
   }
 

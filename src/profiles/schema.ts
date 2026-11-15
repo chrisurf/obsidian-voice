@@ -47,7 +47,19 @@ export type ListItemEnd = "stop" | "comma" | "none";
 /** A profile with every setting resolved (built-in defaults filled in). */
 export interface ResolvedProfile {
   language: string;
+  /**
+   * Every pronunciation rule in the order they are tried: the profiles'
+   * lexicon entries, then their acronyms and (when expanded) abbreviations.
+   */
   lexicon: LexiconEntry[];
+  acronyms: {
+    /** Read letter by letter ("API" → "A-P-I"), plurals included. */
+    spell: string[];
+    /** Acronyms with a pronunciation of their own ("JSON" → "jay-son"). */
+    say: Record<string, string>;
+  };
+  /** Written form → spoken form ("e.g." → "for example"). */
+  abbreviations: Record<string, string>;
   content: {
     acronyms: AcronymMode;
     codeBlocks: CodeBlockMode;
@@ -75,7 +87,8 @@ export type FieldKind =
   | "boolean" // toggle
   | "duration" // slider, milliseconds
   | "text" // text field
-  | "textList"; // multi-line text, one entry per line
+  | "list" // comma-separated words (or a YAML list) → text area
+  | "map"; // "written: spoken" pairs → text area, one pair per line
 
 export interface FieldDefinition {
   /** Dotted path in the profile, e.g. "content.acronyms". */
@@ -164,9 +177,9 @@ export const FIELDS: FieldDefinition[] = [
   },
   {
     path: "structure.lists.ordinals",
-    kind: "textList",
+    kind: "list",
     label: "Ordinal words",
-    description: "Words for numbered list items, in order (one per line).",
+    description: "Words for numbered list items, in order, comma-separated.",
   },
   {
     path: "structure.lists.pause",
@@ -193,6 +206,26 @@ export const FIELDS: FieldDefinition[] = [
     max: 2000,
   },
   {
+    path: "acronyms.spell",
+    kind: "list",
+    label: "Acronyms to spell",
+    description:
+      'Read letter by letter, comma-separated (IT, API, URL). Plurals like "APIs" are covered. Case matters: "IT" is spelled, "it" is not.',
+  },
+  {
+    path: "acronyms.say",
+    kind: "map",
+    label: "Acronyms with their own pronunciation",
+    description: 'One per line: "JSON: jay-son".',
+  },
+  {
+    path: "abbreviations",
+    kind: "map",
+    label: "Abbreviations",
+    description:
+      'One per line: "e.g.: for example". End the spoken form with a dot to keep a sentence\'s full stop ("etc.: et cetera.").',
+  },
+  {
     path: "emphasis.italicRate",
     kind: "text",
     label: "Italic speed",
@@ -212,9 +245,27 @@ export const TOP_LEVEL_KEYS = [
   "language",
   "lexicon",
   "content",
+  "acronyms",
+  "abbreviations",
   "structure",
   "emphasis",
 ];
+
+/**
+ * A "list" value as words: a YAML list, or one string of comma-separated
+ * words ("IT, API, URL"). Empty entries are dropped.
+ */
+export function parseWordList(value: unknown): string[] {
+  const items = Array.isArray(value)
+    ? value
+    : typeof value === "string"
+      ? value.split(",")
+      : [];
+  return items
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
 
 /** Read a dotted path from a nested object. */
 export function getPath(obj: unknown, path: string): unknown {

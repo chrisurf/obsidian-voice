@@ -117,10 +117,15 @@ processors.
   the single source for validation, defaults, templates and the editor's
   generated controls (enum → dropdown, boolean → toggle, duration → slider…).
   Add a setting here first.
+- **Language data is never in code.** Acronyms (`acronyms.spell`, a
+  comma-separated list; `acronyms.say` pairs), abbreviations (pairs), ordinal
+  words and the code placeholder live in the shipped profiles
+  `src/profiles/defaults/*.yaml` (default = American English, en-GB, de, fr;
+  bundled as text, written to the profiles folder on first start).
 - `parse.ts` (JSON/YAML detection, version check + migrations, validation;
   unknown fields are kept with a warning), `resolve.ts` (layers: built-in →
-  `default` → `de` → `de-DE`; lexicon most specific first), `builtins.ts`
-  (base values + per-language data: ordinals, abbreviations, acronyms),
+  `default` → `de` → `de-DE`; spelled acronyms combined, pairs merged, lexicon
+  most specific first), `builtins.ts` (language-neutral base values only),
   `lexicon.ts` (whole-word replacement, no lookbehind for old iOS),
   `language.ts` (voice language, overridden by frontmatter `lang`/`language`),
   `edit.ts` (change one value, keeping YAML comments), `template.ts`.

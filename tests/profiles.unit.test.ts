@@ -4,8 +4,15 @@ import {
   normalizeLanguageKey,
   profileKeysFor,
   resolveProfile,
+  type ProfileLayers,
 } from "../src/profiles/resolve";
-import { applyLexicon } from "../src/profiles/lexicon";
+import {
+  applyLexicon,
+  pairEntries,
+  spellOut,
+  spelledAcronymEntries,
+} from "../src/profiles/lexicon";
+import { SHIPPED_PROFILES } from "../src/profiles/defaults";
 import { readingLanguage } from "../src/profiles/language";
 import { setProfileValue } from "../src/profiles/edit";
 import { profileTemplate } from "../src/profiles/template";
@@ -15,6 +22,15 @@ import { serializeToText } from "../src/processors/pipeline/TextSerializer";
 import type { Node } from "unist";
 
 const parse = (text: string) => parseProfile(text, parseYaml);
+
+/** The profiles Voice ships, as layers, plus extra ones on top. */
+function shipped(extra: ProfileLayers = {}): ProfileLayers {
+  const layers: ProfileLayers = {};
+  for (const [key, text] of Object.entries(SHIPPED_PROFILES)) {
+    layers[key] = parse(text).data!;
+  }
+  return { ...layers, ...extra };
+}
 
 describe("Speech profile parsing Unit", () => {
   it("detects JSON and YAML and reads both", () => {
@@ -74,8 +90,8 @@ describe("Speech profile parsing Unit", () => {
     ]);
   });
 
-  it("accepts a template whose settings are all commented out", () => {
-    for (const key of ["default", "de"]) {
+  it("ships valid profiles and a valid template for other languages", () => {
+    for (const key of ["default", "en-GB", "de", "fr", "es"]) {
       const result = parse(profileTemplate(key));
       expect({ key, errors: result.errors, warnings: result.warnings }).toEqual(
         {
@@ -112,30 +128,68 @@ describe("Speech profile resolution Unit", () => {
     expect(profile.content.urls).toBe("skip");
     expect(profile.content.acronyms).toBe("word");
     expect(profile.structure.paragraphs.pause).toBe(1000);
-    // Built-in German data fills what no file sets.
-    expect(profile.structure.lists.ordinals[0]).toBe("Erstens");
-    expect(profile.content.codePlaceholder).toBe("Codebeispiel.");
+    // Nothing language-specific is built in: it comes from the profiles.
+    expect(profile.structure.lists.ordinals).toEqual([]);
+    expect(profile.content.codePlaceholder).toBe("Code snippet.");
   });
 
   it("puts the most specific lexicon first and drops abbreviations on keep", () => {
-    const profile = resolveProfile("de-DE", {
-      default: { lexicon: [{ match: "KI", say: "Künstliche Intelligenz" }] },
-      "de-DE": { lexicon: [{ match: "KI", say: "Ka I" }] },
-    });
+    const profile = resolveProfile(
+      "de-DE",
+      shipped({ "de-DE": { lexicon: [{ match: "KI", say: "Ka I" }] } }),
+    );
     expect(profile.lexicon[0]).toEqual({ match: "KI", say: "Ka I" });
     expect(profile.lexicon.some((e) => e.match === "z. B.")).toBe(true);
 
-    const keep = resolveProfile("de", {
-      de: { content: { abbreviations: "keep" } },
-    });
+    const keep = resolveProfile(
+      "de-DE",
+      shipped({ "de-DE": { content: { abbreviations: "keep" } } }),
+    );
     expect(keep.lexicon.some((e) => e.match === "z. B.")).toBe(false);
   });
 
-  it("uses English data for English voices and none for unknown languages", () => {
-    expect(resolveProfile("en-US", {}).structure.lists.ordinals[0]).toBe(
-      "First",
+  it("reads word lists comma-separated, folded over lines, or as YAML lists", () => {
+    const folded = parse(
+      "voiceProfile: 1\nacronyms:\n  spell: >-\n    IT, API,\n    URL\n",
+    ).data!;
+    const sequence = parse(
+      "voiceProfile: 1\nacronyms:\n  spell:\n    - IT\n    - API\n    - URL\n",
+    ).data!;
+    for (const layer of [folded, sequence]) {
+      expect(resolveProfile("de", { de: layer }).acronyms.spell).toEqual([
+        "IT",
+        "API",
+        "URL",
+      ]);
+    }
+  });
+
+  it("combines the acronyms of every applicable profile", () => {
+    const profile = resolveProfile(
+      "de-DE",
+      shipped({ "de-DE": { acronyms: { spell: "XYZ", say: { AI: "A-I" } } } }),
     );
-    expect(resolveProfile("default", {}).structure.lists.ordinals).toEqual([]);
+    expect(profile.acronyms.spell).toEqual(
+      expect.arrayContaining(["IT", "KI", "XYZ"]),
+    );
+    // The more specific profile wins on a word.
+    expect(profile.acronyms.say.AI).toBe("A-I");
+  });
+
+  it("uses the shipped English, British, German and French profiles", () => {
+    const us = resolveProfile("en-US", shipped());
+    expect(us.structure.lists.ordinals[0]).toBe("First");
+    expect(us.acronyms.say.SQL).toBe("sequel");
+    const uk = resolveProfile("en-GB", shipped());
+    expect(uk.structure.lists.ordinals[0]).toBe("First"); // from the default
+    expect(uk.acronyms.say.SQL).toBe("S-Q-L");
+    expect(uk.abbreviations.Mr).toBe("Mister");
+    expect(resolveProfile("de-DE", shipped()).structure.lists.ordinals[0]).toBe(
+      "Erstens",
+    );
+    const fr = resolveProfile("fr-FR", shipped());
+    expect(fr.structure.lists.ordinals[0]).toBe("Premièrement");
+    expect(fr.content.codePlaceholder).toBe("Exemple de code.");
   });
 
   it("maps a profile onto the pipeline options", () => {
@@ -185,6 +239,23 @@ describe("Pronunciation lexicon Unit", () => {
     );
   });
 
+  it("spells acronyms, plurals included", () => {
+    expect(spellOut("API")).toBe("A-P-I");
+    expect(spellOut("IoT")).toBe("I-o-T");
+    expect(
+      applyLexicon("Two APIs and an API.", spelledAcronymEntries(["API"])),
+    ).toBe("Two A-P-Is and an A-P-I.");
+  });
+
+  it("keeps a sentence's full stop for pairs ending in a dot", () => {
+    expect(
+      pairEntries({ "etc.": "et cetera.", "e.g.": "for example" }),
+    ).toEqual([
+      { match: "etc.", say: "et cetera", keepStop: true },
+      { match: "e.g.", say: "for example" },
+    ]);
+  });
+
   it("does not let one rule rewrite another rule's output", () => {
     const entries = [
       { match: "A", say: "B" },
@@ -215,12 +286,26 @@ describe("Profile editing Unit", () => {
     );
   });
 
-  it("uncomments a commented-out setting of the template", () => {
-    const text = profileTemplate("default");
+  it("uncomments a commented-out setting of a template", () => {
+    const text = profileTemplate("es");
     const changed = set(text, "content.acronyms", "spell");
     expect(changed).toContain("  acronyms: spell  # word | spell");
     expect(changed).toContain("# Voice speech profile");
     expect(parse(changed).data?.content).toEqual({ acronyms: "spell" });
+  });
+
+  it("replaces a folded word list and a map of pairs, keeping other comments", () => {
+    const text = profileTemplate("default");
+    let changed = set(text, "acronyms.spell", "IT, API, XYZ");
+    changed = set(changed, "abbreviations", { "e.g.": "for example" });
+    const data = parse(changed).data!;
+    expect(data.acronyms).toEqual({
+      spell: "IT, API, XYZ",
+      say: (parse(text).data!.acronyms as { say: unknown }).say,
+    });
+    expect(data.abbreviations).toEqual({ "e.g.": "for example" });
+    expect(changed).toContain("# Acronyms.");
+    expect(changed).toContain("# Pronunciation for special cases");
   });
 
   it("rewrites the file when the key does not exist yet", () => {
@@ -239,15 +324,16 @@ describe("Profile editing Unit", () => {
     });
   });
 
-  it("writes the given values into a new default template", () => {
+  it("writes the given values into the shipped default profile", () => {
     const text = profileTemplate("default", {
       "content.codeBlocks": "read",
       "content.urls": "skip",
     });
-    expect(parse(text).data?.content).toEqual({
+    expect(parse(text).data?.content).toMatchObject({
       codeBlocks: "read",
       urls: "skip",
     });
+    expect(text).toContain("# Acronyms."); // comments kept
   });
 });
 
@@ -272,7 +358,9 @@ describe("German reading output Unit", () => {
   const root = (...children: unknown[]) => ({ type: "root", children }) as Node;
 
   const read = (tree: Node, layers = {}) => {
-    const config = processorConfigFromProfile(resolveProfile("de-DE", layers));
+    const config = processorConfigFromProfile(
+      resolveProfile("de-DE", shipped(layers)),
+    );
     return serializeToText(tree, {
       joinLineBreaks: config.joinLineBreaks,
       listItemEnd: config.listItemEnd,
@@ -298,23 +386,27 @@ describe("German reading output Unit", () => {
     const tree = root(list(true, "Eins", "Zwei"));
     expect(
       read(tree, {
-        de: { structure: { lists: { numbering: "none", itemEnd: "none" } } },
+        "de-DE": {
+          structure: { lists: { numbering: "none", itemEnd: "none" } },
+        },
       }),
     ).toBe("Eins\nZwei");
     expect(
-      read(tree, { de: { structure: { lists: { numbering: "number" } } } }),
+      read(tree, {
+        "de-DE": { structure: { lists: { numbering: "number" } } },
+      }),
     ).toBe("1, Eins.\n2, Zwei.");
   });
 
   it("says German abbreviations and acronyms the German way", () => {
-    const { lexicon } = resolveProfile("de-DE", {});
+    const { lexicon } = resolveProfile("de-DE", shipped());
     expect(
       applyLexicon(
-        "Die KI, z. B. bei Dr. Weber, lernt usw. Danach Pause.",
+        "Die KI, z. B. bei Dr. Weber, lernt usw. Danach die IT-APIs.",
         lexicon,
       ),
     ).toBe(
-      "Die Ka-I, zum Beispiel bei Doktor Weber, lernt und so weiter. Danach Pause.",
+      "Die K-I, zum Beispiel bei Doktor Weber, lernt und so weiter. Danach die I-T-A-P-Is.",
     );
   });
 });

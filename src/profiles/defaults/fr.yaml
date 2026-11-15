@@ -1,0 +1,50 @@
+# Profil de lecture Voice : comment Voice lit les textes en français.
+# S'applique aux voix françaises et aux notes avec « lang: fr ». Ajoutez
+# librement des acronymes, des abréviations ou des mots.
+# Les lignes commençant par # sont des commentaires. Le JSON fonctionne aussi.
+voiceProfile: 1
+language: fr
+
+content:
+  codePlaceholder: Exemple de code.
+
+# Acronymes. « spell » : épelés lettre par lettre, séparés par des virgules ;
+# les pluriels comme « APIs » sont couverts. « say » : prononciation propre.
+acronyms:
+  spell: >-
+    IA, UE, API, URL, PDF, HTML, CSS, USB, PC, SDK, VPN, DNS, IP, CPU, GPU,
+    SQL, AWS, LLM, GPT, CRM, ERP, PME, RH, PDG, DRH, TVA, SNCF, RATP, ONU,
+    USA, HT, TTC, SMS, BD, QCM, CV, RGPD
+  say:
+    JSON: jézone
+    OTAN: otane
+    UNESCO: unesco
+
+# Abréviations : forme écrite : forme lue. Un point final dans la forme lue
+# conserve le point de la phrase quand l'abréviation la termine (« etc. »).
+abbreviations:
+  p. ex.: par exemple
+  c.-à-d.: c'est-à-dire
+  etc.: et cetera.
+  env.: environ
+  cf.: confer
+  M.: Monsieur
+  Mme: Madame
+  Mlle: Mademoiselle
+  MM.: Messieurs
+  Dr: Docteur
+  Pr: Professeur
+  n°: numéro
+  av. J.-C.: avant Jésus-Christ
+  apr. J.-C.: après Jésus-Christ
+
+structure:
+  lists:
+    ordinals: Premièrement, Deuxièmement, Troisièmement, Quatrièmement, Cinquièmement, Sixièmement, Septièmement, Huitièmement, Neuvièmement, Dixièmement
+
+# Prononciation pour les cas particuliers : sans tenir compte de la casse,
+# écriture phonétique.
+lexicon:
+  # - match: Obsidian
+  #   say: Obsidienne
+  #   caseSensitive: false

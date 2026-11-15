@@ -38,6 +38,8 @@ const context = await esbuild.context({
 	sourcemap: prod ? false : "inline",
 	treeShaking: true,
 	outfile: "main.js",
+	// Speech profiles shipped with the plugin (src/profiles/defaults/).
+	loader: { ".yaml": "text" },
 });
 
 if (prod) {

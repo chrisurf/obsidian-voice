@@ -1,8 +1,9 @@
 /**
  * Change one setting in a profile's text, keeping the rest of the file as the
- * user wrote it. For YAML the value is replaced in place on its line, so
- * comments and layout survive; only when the key does not exist yet is the
- * file rewritten from its parsed data.
+ * user wrote it. For YAML the value is replaced in place — a single line, or
+ * the whole block of a multi-line value (a folded word list, a map of pairs) —
+ * so comments and layout elsewhere survive; only when the key does not exist
+ * yet is the file rewritten from its parsed data.
  */
 
 import { detectFormat, type YamlParser } from "./parse";
@@ -21,11 +22,66 @@ function yamlScalar(value: unknown): string {
   return String(value);
 }
 
+/** Free text as YAML writes it, e.g. "for example" or "z. B.". */
+function yamlText(value: string): string {
+  const plain =
+    /^[^\s#:'"{}[\],&*!|>%@`-][^#]*$/.test(value) &&
+    !/:(\s|$)/.test(value) &&
+    !/\s$/.test(value) &&
+    !/^(true|false|null|yes|no|on|off|~|[-+]?\d[\d.]*)$/i.test(value);
+  return plain ? value : JSON.stringify(value);
+}
+
+/** True for a map of pairs (as opposed to a scalar or a list). */
+function isPairs(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value);
+}
+
+/**
+ * The lines replacing a key's line (and its block): `head` is the key with
+ * its indentation, `comment` a trailing comment to keep.
+ */
+function valueLines(
+  head: string,
+  indent: string,
+  value: unknown,
+  comment: string,
+): string[] {
+  if (isPairs(value)) {
+    const pairs = Object.entries(value);
+    if (pairs.length === 0) {
+      return [`${head}: {}${comment}`];
+    }
+    return [
+      `${head}:${comment}`,
+      ...pairs.map(
+        ([k, v]) => `${indent}  ${yamlText(k)}: ${yamlText(String(v))}`,
+      ),
+    ];
+  }
+  return [`${head}: ${yamlScalar(value)}${comment}`];
+}
+
+/** Index after the last line of the block that belongs to the key at `line`. */
+function keyBlockEnd(lines: string[], line: number, keyIndent: number): number {
+  let end = line + 1;
+  for (let i = line + 1; i < lines.length; i++) {
+    if (!lines[i].trim()) {
+      continue; // blank lines belong to the block only if it goes on
+    }
+    if ((/^(\s*)/.exec(lines[i])?.[1].length ?? 0) <= keyIndent) {
+      break;
+    }
+    end = i + 1;
+  }
+  return end;
+}
+
 /**
  * Replace the value of `path` ("content.acronyms") in place when the key is
  * already on a line of its own; null when it isn't found that way.
  */
-function replaceYamlInPlace(
+export function replaceYamlInPlace(
   text: string,
   path: string,
   value: unknown,
@@ -71,6 +127,9 @@ function replaceYamlInPlace(
       if (!match) {
         return null;
       }
+      if (isPairs(value)) {
+        return null; // a commented-out example block; rewrite the file instead
+      }
       lines[commented] =
         `${match[1]}${match[2]}: ${yamlScalar(value)}${match[4] ?? ""}`;
       return lines.join("\n");
@@ -79,11 +138,21 @@ function replaceYamlInPlace(
       return null;
     }
     if (isLast) {
-      const match = /^(\s*[^:]+:\s*)([^#]*?)(\s*#.*)?$/.exec(lines[found]);
-      if (!match || !match[2].trim()) {
-        return null; // a block value (map or list), not a scalar
+      // Key, its value on the line (if any), and a trailing comment. A value
+      // of ">-" or "|" (or none) means the value continues on the lines below.
+      const match = /^(\s*)([^:]+?)\s*:\s*([^#]*?)(\s*#.*)?$/.exec(
+        lines[found],
+      );
+      if (!match) {
+        return null;
       }
-      lines[found] = `${match[1]}${yamlScalar(value)}${match[3] ?? ""}`;
+      const [, keyIndent, name, , comment = ""] = match;
+      const end = keyBlockEnd(lines, found, keyIndent.length);
+      lines.splice(
+        found,
+        end - found,
+        ...valueLines(`${keyIndent}${name}`, keyIndent, value, comment),
+      );
       return lines.join("\n");
     }
     // Narrow the search to this key's block.

@@ -1,0 +1,78 @@
+# Voice speech profile: how Voice reads text aloud.
+# This default profile is American English and applies to every language that
+# has no profile of its own (British English adds en-GB on top of it). Edit it
+# freely: add acronyms, abbreviations or words.
+# Lines starting with # are comments. JSON works too: Voice detects the format.
+voiceProfile: 1
+
+content:
+  acronyms: word # word | spell  (acronyms not listed below)
+  codeBlocks: placeholder # placeholder | read
+  codePlaceholder: Code snippet.
+  urls: read # read | skip
+  abbreviations: expand # expand | keep
+
+# Acronyms. "spell": read letter by letter, comma-separated; plurals such as
+# "APIs" are covered too. "say": acronyms with a pronunciation of their own.
+acronyms:
+  spell: >-
+    AI, IT, API, UI, UX, ID, OS, PC, USB, PDF, URL, HTTP, HTTPS, HTML, CSS,
+    XML, CSV, SDK, CLI, IDE, VM, VPN, DNS, IP, TCP, SSH, SSL, TLS, SSO, MFA,
+    CPU, GPU, AWS, GCP, LLM, GPT, NLP, OCR, CRM, ERP, SAP, KPI, MVP, POC,
+    FAQ, SLA, CEO, CTO, CIO, CFO, COO, HR, PR, QA, CI, CD, IoT, NPM, BBC,
+    FBI, CIA, UN, EU, UK, US, USA, ETA, DIY, TBD, ASAP, FYI
+  say:
+    JSON: jay-son
+    SQL: sequel
+    GUI: gooey
+    SaaS: sass
+    YAML: yammel
+    CI/CD: C-I C-D
+    macOS: mac O-S
+    iOS: eye O-S
+    npm: N-P-M
+
+# Abbreviations: written form: spoken form. End the spoken form with a dot to
+# keep the full stop when the abbreviation ends a sentence ("etc.").
+abbreviations:
+  e.g.: for example
+  i.e.: that is
+  etc.: et cetera.
+  vs.: versus
+  approx.: approximately
+  Dr.: Doctor
+  Mr.: Mister
+  Mrs.: Missus
+  Ms.: Miss
+  Prof.: Professor
+  Sr.: Senior
+  Jr.: Junior
+  Inc.: Incorporated.
+  Ltd.: Limited.
+  Corp.: Corporation.
+  Dept.: Department
+  Jan.: January
+  Feb.: February
+  Aug.: August
+  Sept.: September
+  Oct.: October
+  Nov.: November
+  Dec.: December
+
+structure:
+  headings:
+    pause: 800ms # silence after a top-level heading; lower levels are shorter
+  paragraphs:
+    pause: 400ms
+    lineBreaks: join # join | pause  (join: no pause where a line wraps)
+  lists:
+    numbering: ordinal # ordinal | number | none
+    ordinals: First, Second, Third, Fourth, Fifth, Sixth, Seventh, Eighth, Ninth, Tenth
+    pause: 200ms
+    itemEnd: stop # stop | comma | none
+
+# Pronunciation for special cases: case-insensitive matches, phonetic spelling.
+lexicon:
+  # - match: Obsidian
+  #   say: Obsidian
+  #   caseSensitive: false

@@ -28,9 +28,10 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * changes (speech profiles, the refreshed player and its Cache toggle), then the
- * providers added most recently, then the Voice player and everything added
- * since 1.8.0, so both new and long-time users catch up at a glance.
+ * changes (speech profiles, the refreshed player with its Cache toggle and
+ * progress ring), then the providers added most recently, then saving audio,
+ * the Voice player and everything added since 1.8.0, so both new and
+ * long-time users catch up at a glance.
  */
 export const WHATS_NEW = `## 🗣️ New: speech profiles — reading that sounds natural
 
@@ -40,6 +41,7 @@ Voice now reads the way the language is spoken. A **speech profile** per languag
 - ⏸️ **No more pauses mid-sentence:** lines wrapped inside a paragraph are read as one sentence; list items and table rows end with a natural stop.
 - 📖 **Your own words:** add a lexicon entry to say a name, brand or abbreviation your way — per language, plus a default for all.
 - ⚙️ Edit profiles in **Settings → Voice → Speech profiles** with quick controls, as YAML/JSON text, or import a file. A note can pick its language with \`lang:\` in its frontmatter.
+- 🔁 **Your toggles moved in:** the player's **Spell**, **Code** and **No URLs** now live in the profile of the language you're listening in — your previous choices were carried over.
 
 ## 🆕 A cleaner player — and a Cache switch
 
@@ -47,6 +49,7 @@ The Voice player has a **refreshed look**: round controls with Voice's own icons
 
 - 🛢️ **Cache** — a new toggle at the start of the reading options. **On** (the default), ▶️ plays the audio you already have for a note, so changing the voice or a setting never makes you **pay twice by accident**. Turn it **off** and the next ▶️ generates fresh audio with your current voice and settings; Cache then switches itself back on.
 - ▶️ **Play is just a tap** now — play, pause, or cancel. There's no hidden press-and-hold anymore: to regenerate a note, switch Cache off.
+- ⏳ **See the progress:** while a note is generated, ▶️ turns into ⏹ and a ring around it fills up — tap to cancel.
 - 🎚️ The reading toggles have short **labels** (Cache · Spell · Code · No URLs · Embed) and the speed control is one tidy **− 1.0× +** pill.
 
 ## 🔌 Bring any OpenAI-compatible server
@@ -68,15 +71,6 @@ Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-
 
 Everything else — chapters, speed, downloads, the content toggles — works exactly like the other providers.
 
-## ▶️ One play button, less clutter
-
-Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
-
-- **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
-- To regenerate the current note with your current voice and settings, switch **Cache** off and tap ▶️.
-
-And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) with one click. The settings tab is leaner now, because the things you change while listening live in the player.
-
 ## 📁 Save audio where you want
 
 The save button (the download arrow) now has two simple gestures, and you can pick a **default folder** so every save lands in the same place.
@@ -96,17 +90,17 @@ Voice has a full **audiobook-style player** in the right sidebar (next to Backli
 - **Browse audio across your vault** with the folder picker.
 - **Switch provider & voice** right in the player.
 
-Every control is one button; a few do double duty — **tap** vs. **press & hold** (a ring fills while you hold). Toggles that light up when on: \`</>\` **code** · \`Aa\` **acronyms** · 🔗 **skip URLs** · 📎 **embed**.
+Every control is one button; the save button does double duty — **tap** vs. **press & hold** (a ring fills while you hold). Toggles that light up when on: **Cache** · **Spell** · **Code** · **No URLs** · **Embed**.
 
 ## ✨ Everything at a glance
 
-**Six providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · **MiniMax**.
+**Seven providers, your pick** — bring the engine you already use; every feature works identically on all of them: AWS Polly · ElevenLabs · OpenAI · Google Cloud · Azure Speech · MiniMax · **any OpenAI-compatible server**.
 
 **Player & playback** — chapters, scrubber, speed (0.5×–2.0×), and repeat modes (off / one / all), plus configurable rewind & fast-forward (1–60 s). Switch provider, voice, and the content toggles without leaving the player — with live feedback while a note synthesizes.
 
 **Your audio** — save MP3s next to the note or in a **default folder**, optionally **auto-save** and **embed** them, and **move / rename / delete** saved chapters from the player.
 
-**Reads it your way** — toggle **read code blocks**, **spell out acronyms**, and **skip website URLs**, all from the player.
+**Reads it your way** — a **speech profile** per language for pronunciation and pacing (German built in), plus one-tap **Spell**, **Code** and **No URLs** in the player — and **Cache**, so you never pay twice for the same note.
 
 Open the player from the **audio-waveform ribbon icon**, the **"Open the player."** command, or the button below.`;
 

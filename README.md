@@ -54,6 +54,10 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 | **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
 | ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
 
+While a note is being generated, the play button shows ⏹ and a ring around it fills with the progress — tap it to cancel:
+
+![The play button while a note is generated: a stop icon inside a progress ring](./assets/voice-player-generating.png)
+
 Below them sits a row of **toggles** that light up when on:
 
 | Toggle      | On                                                                                      | Default |

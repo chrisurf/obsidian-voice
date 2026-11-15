@@ -62,6 +62,8 @@ Below them sits a row of **toggles** that light up when on:
 | **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept | off     |
 | **Embed**   | Add an audio player to the note whenever you save its MP3                               | off     |
 
+**Spell**, **Code** and **No URLs** are stored in your [speech profile](#speech-profiles-how-voice-reads), so they follow the language you're listening in.
+
 #### Cache: never pay twice by accident
 
 - **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a toggle does **not** generate new audio on its own.
@@ -156,10 +158,37 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
   ![mobile settings](./assets/mobile-settings.png)
 
-### Smart Content Handling
+### Speech Profiles: How Voice Reads
 
-- Markdown pre-processing cleans, enhances, and chunks content for reliable delivery.
-- Headings, bold text, and pauses are emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
+A **speech profile** decides how Voice reads in one language: how words are pronounced, what is read at all, and how a note's structure sounds. Voice ships sensible defaults (with German and English built in), and you change only what you want.
+
+- **Per language.** A profile per language (`de`, `en-US`, …) plus an optional **default** for every language without its own. The voice's language picks the profile; a note can override it with `lang:` or `language:` in its frontmatter.
+- **Pronunciation.** A lexicon says what to say instead of a word — `KI` → "Ka-I", a name, a brand. German abbreviations (`z. B.`, `d. h.`, `usw.`, `Dr.`) and acronyms (`KI`, `EU`, `API`) are built in.
+- **Structure.** Pauses after headings and between paragraphs and list items; numbered lists read as "Erstens, …", as numbers, or not at all; wrapped lines inside a paragraph are joined, so Voice never stops mid-sentence.
+- **YAML or JSON.** Voice detects the format. Edit a profile in **Settings → Voice → Speech profiles** — with quick controls for every setting, or as text — paste one in, or import a file.
+- **Where they live.** In the plugin's folder by default; turn on **Store profiles in the vault** to keep them in a vault folder, where they sync and can be edited like notes.
+- **Versioned.** Each file starts with `voiceProfile: 1`. A newer format is refused with a clear message instead of being misread, and settings a version doesn't know are kept but not applied.
+
+```yaml
+voiceProfile: 1
+language: de
+lexicon:
+  - match: KI
+    say: Ka-I
+  - match: Obsidian
+    say: Obsidjen
+content:
+  acronyms: word # word | spell
+  codeBlocks: placeholder # placeholder | read
+  urls: skip # read | skip
+structure:
+  headings:
+    pause: 800ms
+  lists:
+    numbering: ordinal # ordinal | number | none
+```
+
+The full list of settings, with what each does, is in the template Voice creates when you add a profile. Headings, bold text, and pauses are additionally emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
 
 ## Settings
 
@@ -174,6 +203,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 | **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
 | **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
 | **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
+| **Speech profiles**          | How Voice reads, per language — see [Speech Profiles](#speech-profiles-how-voice-reads). Edit, paste, import, or delete profiles; optionally store them in a vault folder.                                   |
 | **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |
 | **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                            |
 

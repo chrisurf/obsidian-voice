@@ -12,7 +12,7 @@
  */
 
 import { visit, SKIP } from "unist-util-visit";
-import type { Root, Text } from "mdast";
+import type { Paragraph, Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
 
@@ -35,9 +35,19 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         if (options.skipUrls) {
           codeValue = removeUrls(codeValue);
         }
-        const replacement: Text = options.removeCodeBlocks
-          ? { type: "text", value: "Code snippet." }
-          : { type: "text", value: codeValue };
+        // Wrapped in a paragraph so it stays its own block: a bare text node
+        // ran into the next paragraph ("Code snippet.The next sentence").
+        const replacement: Paragraph = {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value: options.removeCodeBlocks
+                ? (options.codePlaceholder ?? "Code snippet.")
+                : codeValue,
+            },
+          ],
+        };
         (parent as Parent).children[index] = replacement;
         return SKIP;
       }

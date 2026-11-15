@@ -28,11 +28,20 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * change (the refreshed player controls and the Cache toggle), then the
+ * changes (speech profiles, the refreshed player and its Cache toggle), then the
  * providers added most recently, then the Voice player and everything added
  * since 1.8.0, so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: a cleaner player — and a Cache switch
+export const WHATS_NEW = `## 🗣️ New: speech profiles — reading that sounds natural
+
+Voice now reads the way the language is spoken. A **speech profile** per language decides pronunciation and pacing — and German comes built in.
+
+- 🇩🇪 **German, properly:** "z. B." becomes "zum Beispiel", "KI" is "Ka-I" (not "key"), and numbered lists start with "Erstens, Zweitens".
+- ⏸️ **No more pauses mid-sentence:** lines wrapped inside a paragraph are read as one sentence; list items and table rows end with a natural stop.
+- 📖 **Your own words:** add a lexicon entry to say a name, brand or abbreviation your way — per language, plus a default for all.
+- ⚙️ Edit profiles in **Settings → Voice → Speech profiles** with quick controls, as YAML/JSON text, or import a file. A note can pick its language with \`lang:\` in its frontmatter.
+
+## 🆕 A cleaner player — and a Cache switch
 
 The Voice player has a **refreshed look**: round controls with Voice's own icons that look **the same on every device** — desktop, iPhone, and iPad, on any Obsidian version.
 

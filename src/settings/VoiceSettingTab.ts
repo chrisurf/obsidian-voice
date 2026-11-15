@@ -20,6 +20,9 @@ import {
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
 import type { CredentialValidationResult } from "../service/SpeechProvider";
+import { ProfileEditorModal } from "../ui/ProfileEditorModal";
+import { profileTemplate } from "../profiles/template";
+import { profileKeysFor, normalizeLanguageKey } from "../profiles/resolve";
 import {
   mergeModelChoices,
   normalizeBaseUrl,
@@ -177,6 +180,18 @@ export class VoiceSettingTab extends PluginSettingTab {
         ],
       },
       {
+        // Speech profiles, mounted like the provider section below: the same
+        // imperative code as the display() fallback renders into the row.
+        name: "",
+        searchable: false,
+        render: (setting) => {
+          const el = setting.settingEl;
+          el.empty();
+          el.removeClass("setting-item");
+          this.renderProfilesSection(el);
+        },
+      },
+      {
         // Provider-specific credentials. This synthetic row only exists to give
         // us a mount point; we drop it and render the active provider's full
         // section (heading + fields) into a dedicated child of the tab
@@ -202,6 +217,140 @@ export class VoiceSettingTab extends PluginSettingTab {
         },
       },
     ];
+  }
+
+  /**
+   * The speech profiles section: where profiles are stored, which apply to
+   * the language being read, and one row per profile to edit or delete it.
+   * Re-renders itself in place after any change.
+   */
+  private renderProfilesSection(el: HTMLElement): void {
+    el.empty();
+    const rerender = () => this.renderProfilesSection(el);
+    const store = this.plugin.profileStore;
+
+    new Setting(el).setName("Speech profiles").setHeading();
+    const language = this.plugin.readingLanguage();
+    const active = profileKeysFor(language)
+      .filter((key) => store.get(key)?.parsed.data)
+      .join(" + ");
+    new Setting(el).setDesc(
+      `How Voice pronounces words and reads structure, per language (YAML or JSON). The voice's language picks the profile; a note can override it with "lang:" or "language:" in its frontmatter. Reading now in ${language}, using: ${active || "built-in defaults"}.`,
+    );
+
+    new Setting(el)
+      .setName("Store profiles in the vault")
+      .setDesc(
+        "Off keeps them in the plugin's own folder. On stores them in a vault folder, where they sync and can be edited like notes.",
+      )
+      .addToggle((toggle) =>
+        toggle
+          .setValue(this.plugin.settings.profilesInVault)
+          .onChange(async (value) => {
+            const from = this.plugin.profilesFolder();
+            this.plugin.settings.profilesInVault = value;
+            await this.plugin.saveSettings();
+            await store.moveFrom(from);
+            rerender();
+          }),
+      );
+    if (this.plugin.settings.profilesInVault) {
+      new Setting(el)
+        .setName("Profiles folder")
+        .setDesc("Vault folder for the profile files.")
+        .addText((text) => {
+          text.setValue(this.plugin.settings.profilesFolder);
+          text.inputEl.addEventListener("blur", () => {
+            const next = text.getValue().trim();
+            if (!next || next === this.plugin.settings.profilesFolder) {
+              return;
+            }
+            const from = this.plugin.profilesFolder();
+            this.plugin.settings.profilesFolder = next;
+            void this.plugin
+              .saveSettings()
+              .then(() => store.moveFrom(from))
+              .then(rerender);
+          });
+        });
+    }
+
+    const openEditor = (
+      key: string | null,
+      text: string,
+      importOnOpen = false,
+    ) =>
+      new ProfileEditorModal(this.app, {
+        key,
+        text,
+        importOnOpen,
+        onSave: async (saveKey, saveText) => {
+          const result = await store.save(saveKey, saveText);
+          if (result.data) {
+            this.plugin.refreshVoicePlayerControls();
+            rerender();
+          }
+          return result;
+        },
+      }).open();
+
+    for (const profile of store.list()) {
+      const { errors, warnings, format } = profile.parsed;
+      const status =
+        errors.length > 0
+          ? `Not applied: ${errors[0]}`
+          : warnings.length > 0
+            ? `${format.toUpperCase()} · ${warnings.length} setting(s) not supported by this version`
+            : `${format.toUpperCase()} · valid`;
+      new Setting(el)
+        .setName(
+          profile.key === "default" ? "default (all languages)" : profile.key,
+        )
+        .setDesc(status)
+        .addButton((button) =>
+          button
+            .setButtonText("Edit")
+            .onClick(() => openEditor(profile.key, profile.text)),
+        )
+        .addButton((button) => {
+          let armed = false;
+          button.setButtonText("Delete").onClick(async () => {
+            if (!armed) {
+              armed = true;
+              // A class, not setWarning()/setDestructive(): the former is
+              // deprecated, the latter newer than our minAppVersion.
+              button.setButtonText("Confirm delete");
+              button.buttonEl.addClass("mod-warning");
+              return;
+            }
+            await store.remove(profile.key);
+            this.plugin.refreshVoicePlayerControls();
+            rerender();
+          });
+        });
+    }
+
+    let newKey = "";
+    new Setting(el)
+      .setName("Add a profile")
+      .setDesc('A language code such as de or en-US (or "default").')
+      .addText((text) =>
+        text.setPlaceholder("de").onChange((value) => (newKey = value.trim())),
+      )
+      .addButton((button) =>
+        button.setButtonText("Create").onClick(() => {
+          const key = normalizeLanguageKey(newKey || language);
+          const existing = store.get(key);
+          openEditor(key, existing ? existing.text : profileTemplate(key));
+        }),
+      )
+      .addButton((button) =>
+        button
+          .setButtonText("Import file…")
+          .onClick(() =>
+            openEditor(newKey ? normalizeLanguageKey(newKey) : null, "", true),
+          ),
+      );
   }
 
   /** Read a declarative control's value from the plugin settings. */
@@ -395,6 +544,7 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     // Provider-specific credentials
+    this.renderProfilesSection(containerEl.createDiv());
     this.renderActiveProviderSettings(containerEl);
   }
 

@@ -114,6 +114,14 @@ export interface VoiceSettings {
   // can read pre-existing values). Removed from the settings UI.
   audioSaveMode?: AudioSaveMode;
   lastAudioFolder?: string;
+  // Speech profiles (src/profiles): stored in the plugin's own folder unless
+  // profilesInVault is on, then in profilesFolder (vault-relative).
+  profilesInVault: boolean;
+  profilesFolder: string;
+  // Internal: tracks the one-time move of the content toggles (spellOutAcronyms,
+  // readCodeBlocks, skipUrls) into the default speech profile, which is their
+  // source of truth since; the three settings above are legacy after it.
+  profilesMigrated: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
@@ -495,6 +503,9 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,
+  profilesInVault: false,
+  profilesFolder: "Voice/Profiles",
+  profilesMigrated: false,
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",

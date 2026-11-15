@@ -18,6 +18,7 @@ import remarkFrontmatter from "remark-frontmatter";
 import type { ProcessorConfig, PauseStyle } from "../types/ProcessorTypes";
 import { DEFAULT_CONFIG } from "./config/DefaultConfig";
 import { cleanProcessor } from "./pipeline/CleanProcessor";
+import { lexiconProcessor } from "./pipeline/LexiconProcessor";
 import { serializeToText } from "./pipeline/TextSerializer";
 import { titleCaseAcronyms } from "./pipeline/acronyms";
 
@@ -60,13 +61,24 @@ export class MarkdownToTextProcessor {
       removeFrontmatter: this.config.removeFrontmatter,
       removeHTML: this.config.removeHTML,
       skipUrls: this.config.skipUrls,
+      codePlaceholder: this.config.codePlaceholder,
     };
     cleanProcessor(cleanOptions)(ast);
 
-    // Stage 3: Serialize to spoken text (with the provider's pause style)
-    const text = serializeToText(ast, { pauseStyle: this.pauseStyle });
+    // Stage 3: Apply the speech profile's pronunciation lexicon
+    lexiconProcessor(this.config.lexicon)(ast);
 
-    // Stage 4: When acronyms should not be spelled out, title-case them so the
+    // Stage 4: Serialize to spoken text (with the provider's pause style)
+    const text = serializeToText(ast, {
+      pauseStyle: this.pauseStyle,
+      joinLineBreaks: this.config.joinLineBreaks,
+      listItemEnd: this.config.listItemEnd,
+      listNumbering: this.config.listNumbering,
+      ordinals: this.config.ordinals,
+      pauses: this.config.textPauses,
+    });
+
+    // Stage 5: When acronyms should not be spelled out, title-case them so the
     // engine reads them as a word (consistent with the SSML pipeline). Engines
     // like Google otherwise spell uppercase tokens by default.
     return this.config.spellOutAcronyms ? text : titleCaseAcronyms(text);

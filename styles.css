@@ -1168,3 +1168,51 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   text-transform: uppercase;
   letter-spacing: 0.04em;
 }
+
+/* --- Speech profile editor (src/ui/ProfileEditorModal.ts) --- */
+.modal:has(.voice-profile-editor) {
+  width: min(760px, 95vw);
+}
+
+.voice-profile-form {
+  max-height: 40vh;
+  overflow-y: auto;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.voice-profile-form-note {
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  padding: 8px 0;
+}
+
+.voice-profile-text {
+  width: 100%;
+  min-height: 220px;
+  font-family: var(--font-monospace);
+  font-size: var(--font-ui-small);
+  resize: vertical;
+}
+
+.voice-profile-status {
+  margin-top: 8px;
+  font-size: var(--font-ui-small);
+}
+
+.voice-profile-status ul {
+  margin: 4px 0 0;
+  padding-left: 18px;
+}
+
+.voice-profile-ok {
+  color: var(--text-success);
+}
+
+.voice-profile-error {
+  color: var(--text-error);
+}
+
+.voice-profile-warning {
+  color: var(--text-warning);
+}

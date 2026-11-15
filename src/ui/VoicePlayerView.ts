@@ -587,29 +587,31 @@ export class VoicePlayerView extends ItemView {
     void this.plugin.persistActiveVoice(voiceId);
   }
 
+  // The content toggles read and write the speech profile of the language
+  // being read (see Voice.setProfileSetting); it is their source of truth.
+
   /** Toggle whether code blocks are read aloud. */
   private toggleCodeBlocks(): void {
-    this.plugin.settings.readCodeBlocks = !this.plugin.settings.readCodeBlocks;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateCodeButton();
+    const read = this.plugin.getActiveProfile().content.codeBlocks === "read";
+    void this.plugin
+      .setProfileSetting("content.codeBlocks", read ? "placeholder" : "read")
+      .then(() => this.updateCodeButton());
   }
 
   /** Toggle whether acronyms (NASA, API) are spelled out letter by letter. */
   private toggleAcronyms(): void {
-    this.plugin.settings.spellOutAcronyms =
-      !this.plugin.settings.spellOutAcronyms;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateAcronymButton();
+    const spell = this.plugin.getActiveProfile().content.acronyms === "spell";
+    void this.plugin
+      .setProfileSetting("content.acronyms", spell ? "word" : "spell")
+      .then(() => this.updateAcronymButton());
   }
 
   /** Toggle whether website URLs are skipped (link labels are kept). */
   private toggleSkipUrls(): void {
-    this.plugin.settings.skipUrls = !this.plugin.settings.skipUrls;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateUrlButton();
+    const skip = this.plugin.getActiveProfile().content.urls === "skip";
+    void this.plugin
+      .setProfileSetting("content.urls", skip ? "read" : "skip")
+      .then(() => this.updateUrlButton());
   }
 
   /** Toggle the Cache: reuse a note's existing audio, or render it again. */
@@ -679,7 +681,7 @@ export class VoicePlayerView extends ItemView {
     if (!this.codeBtn) {
       return;
     }
-    const on = this.plugin.settings.readCodeBlocks;
+    const on = this.plugin.getActiveProfile().content.codeBlocks === "read";
     this.codeBtn.toggleClass("is-active", on);
     this.codeBtn.setAttribute("aria-pressed", String(on));
     this.codeBtn.setAttribute(
@@ -692,7 +694,7 @@ export class VoicePlayerView extends ItemView {
     if (!this.acronymBtn) {
       return;
     }
-    const on = this.plugin.settings.spellOutAcronyms;
+    const on = this.plugin.getActiveProfile().content.acronyms === "spell";
     this.acronymBtn.toggleClass("is-active", on);
     this.acronymBtn.setAttribute("aria-pressed", String(on));
     this.acronymBtn.setAttribute(
@@ -705,7 +707,7 @@ export class VoicePlayerView extends ItemView {
     if (!this.urlBtn) {
       return;
     }
-    const on = this.plugin.settings.skipUrls;
+    const on = this.plugin.getActiveProfile().content.urls === "skip";
     this.urlBtn.toggleClass("is-active", on);
     this.urlBtn.setAttribute("aria-pressed", String(on));
     this.urlBtn.setAttribute(
@@ -1327,6 +1329,7 @@ export class VoicePlayerView extends ItemView {
       this.voiceSelect.value = provider.getVoice();
       this.updateCodeButton();
       this.updateAcronymButton();
+      this.updateUrlButton();
       this.updateEmbedButton();
       this.updateCacheButton();
     }

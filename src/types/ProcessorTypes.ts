@@ -4,6 +4,11 @@
 
 import type { Root } from "mdast";
 import type { VFile } from "vfile";
+import type {
+  LexiconEntry,
+  ListItemEnd,
+  ListNumbering,
+} from "../profiles/schema";
 
 /**
  * How structural pauses are emitted for text (non-SSML) providers:
@@ -42,6 +47,17 @@ export interface ProcessorConfig {
   expandAbbreviations: boolean;
   spellOutAcronyms: boolean;
   formatNumbers: boolean;
+
+  // Reading profile (src/profiles): language-specific wording and structure
+  codePlaceholder: string; // said in place of a code block
+  lexicon: LexiconEntry[]; // pronunciation replacements, first match wins
+  listNumbering: ListNumbering; // how numbered list items are announced
+  ordinals: string[]; // words for "ordinal" numbering, in order
+  joinLineBreaks: boolean; // read wrapped lines of a paragraph as one
+  listItemEnd: ListItemEnd; // punctuation closing list items / table rows
+  // Pause lengths (seconds) for text providers' pause markers; the serializer
+  // keeps its own conservative defaults when unset.
+  textPauses?: { heading?: number; paragraph?: number; listItem?: number };
 
   // Validation
   strictValidation: boolean;
@@ -96,6 +112,8 @@ export interface CleanProcessorOptions {
   removeFrontmatter: boolean;
   removeHTML: boolean;
   skipUrls: boolean;
+  /** Said in place of a code block (default "Code snippet."). */
+  codePlaceholder?: string;
 }
 
 /**
@@ -113,4 +131,8 @@ export interface EnhanceProcessorOptions {
   expandAbbreviations: boolean;
   spellOutAcronyms: boolean;
   formatNumbers: boolean;
+  /** How numbered list items are announced (default "ordinal"). */
+  listNumbering?: ListNumbering;
+  /** Ordinal words for list items (default English). */
+  ordinals?: string[];
 }

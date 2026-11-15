@@ -20,6 +20,7 @@ import type {
 } from "../types/ProcessorTypes";
 import { DEFAULT_CONFIG } from "./config/DefaultConfig";
 import { cleanProcessor } from "./pipeline/CleanProcessor";
+import { lexiconProcessor } from "./pipeline/LexiconProcessor";
 import { enhanceProcessor } from "./pipeline/EnhanceProcessor";
 import { xmlEscapeProcessor } from "./pipeline/XmlEscapeProcessor";
 import { serializeToSSML } from "./pipeline/SSMLSerializer";
@@ -61,8 +62,12 @@ export class MarkdownToSSMLProcessor {
         removeFrontmatter: this.config.removeFrontmatter,
         removeHTML: this.config.removeHTML,
         skipUrls: this.config.skipUrls,
+        codePlaceholder: this.config.codePlaceholder,
       };
       cleanProcessor(cleanOptions)(ast);
+
+      // Stage 2b: Apply the speech profile's pronunciation lexicon
+      lexiconProcessor(this.config.lexicon)(ast);
 
       // Stage 3: Enhance with SSML structure
       const enhanceOptions = {
@@ -77,6 +82,8 @@ export class MarkdownToSSMLProcessor {
         expandAbbreviations: this.config.expandAbbreviations,
         spellOutAcronyms: this.config.spellOutAcronyms,
         formatNumbers: this.config.formatNumbers,
+        listNumbering: this.config.listNumbering,
+        ordinals: this.config.ordinals,
       };
       enhanceProcessor(enhanceOptions)(ast);
 

@@ -27,12 +27,23 @@
  */
 
 import type { Node, Parent } from "unist";
-import type { Text, Code, InlineCode } from "mdast";
+import type { Text, Code, InlineCode, List } from "mdast";
 import type { PauseStyle } from "../../types/ProcessorTypes";
+import type { ListItemEnd, ListNumbering } from "../../profiles/schema";
 
 export interface TextSerializerOptions {
   /** Which pause markup (if any) to emit at block boundaries. Default "none". */
   pauseStyle?: PauseStyle;
+  /** Read the wrapped lines of a paragraph as one (no pause at a line break). */
+  joinLineBreaks?: boolean;
+  /** Close list items / table rows lacking punctuation (default "none"). */
+  listItemEnd?: ListItemEnd;
+  /** Announce numbered list items (default "none"). */
+  listNumbering?: ListNumbering;
+  /** Words for "ordinal" numbering, in order. */
+  ordinals?: string[];
+  /** Pause lengths in seconds for the pause markers (markup styles only). */
+  pauses?: { heading?: number; paragraph?: number; listItem?: number };
 }
 
 // Pause lengths (seconds) per block type, kept modest to preserve stability.
@@ -40,6 +51,29 @@ const BREAK_HEADING = 0.5;
 const BREAK_PARAGRAPH = 0.35;
 const BREAK_LIST_ITEM = 0.2;
 const BREAK_RULE = 0.8;
+
+/** Everything serializeNode needs, resolved from the options once. */
+interface Context {
+  style: PauseStyle;
+  joinLineBreaks: boolean;
+  itemEnd: ListItemEnd;
+  numbering: ListNumbering;
+  ordinals: string[];
+  heading: number;
+  paragraph: number;
+  listItem: number;
+}
+
+/** Punctuation that already closes a list item or table row. */
+const CLOSED = /[.!?:;,]$/;
+
+/** Close text with the configured punctuation unless it already has some. */
+function closeItem(text: string, end: ListItemEnd): string {
+  if (end === "none" || !text || CLOSED.test(text)) {
+    return text;
+  }
+  return `${text}${end === "stop" ? "." : ","}`;
+}
 
 /**
  * Serialize an AST to spoken text.
@@ -49,7 +83,17 @@ export function serializeToText(
   options: TextSerializerOptions = {},
 ): string {
   const style = options.pauseStyle ?? "none";
-  const raw = serializeNode(tree, style);
+  const ctx: Context = {
+    style,
+    joinLineBreaks: options.joinLineBreaks ?? false,
+    itemEnd: options.listItemEnd ?? "none",
+    numbering: options.listNumbering ?? "none",
+    ordinals: options.ordinals ?? [],
+    heading: options.pauses?.heading ?? BREAK_HEADING,
+    paragraph: options.pauses?.paragraph ?? BREAK_PARAGRAPH,
+    listItem: options.pauses?.listItem ?? BREAK_LIST_ITEM,
+  };
+  const raw = serializeNode(tree, ctx);
 
   if (style === "break-tags") {
     // Break tags carry the pauses; flatten whitespace to single spaces and
@@ -102,12 +146,17 @@ function pauseMarker(style: PauseStyle, seconds: number): string {
 /**
  * Serialize a single node to text.
  */
-function serializeNode(node: Node, style: PauseStyle): string {
+function serializeNode(node: Node, ctx: Context): string {
+  const { style } = ctx;
   const marked = usesMarkers(style);
 
   switch (node.type) {
-    case "text":
-      return (node as Text).value;
+    case "text": {
+      const value = (node as Text).value;
+      // A line wrapped inside a paragraph is not a pause: joining it keeps the
+      // engine from stopping mid-sentence where there is no punctuation.
+      return ctx.joinLineBreaks ? value.replace(/[ \t]*\n[ \t]*/g, " ") : value;
+    }
 
     case "inlineCode":
       return (node as InlineCode).value;
@@ -118,44 +167,61 @@ function serializeNode(node: Node, style: PauseStyle): string {
     case "heading": {
       // End headings with a sentence stop so the engine pauses, then a
       // structural pause before the following block.
-      const text = serializeChildren(node, style).trim();
+      const text = serializeChildren(node, ctx).trim();
       if (!text) {
         return "";
       }
       const stop = /[.!?:]$/.test(text) ? "" : ".";
       return `${text}${stop}${
-        marked ? pauseMarker(style, BREAK_HEADING) : "\n\n"
+        marked ? pauseMarker(style, ctx.heading) : "\n\n"
       }`;
     }
 
     case "paragraph":
-      return `${serializeChildren(node, style)}${
-        marked ? pauseMarker(style, BREAK_PARAGRAPH) : "\n\n"
+      return `${serializeChildren(node, ctx)}${
+        marked ? pauseMarker(style, ctx.paragraph) : "\n\n"
       }`;
 
     case "blockquote":
-      return `${serializeChildren(node, style)}${
-        marked ? pauseMarker(style, BREAK_PARAGRAPH) : "\n\n"
+      return `${serializeChildren(node, ctx)}${
+        marked ? pauseMarker(style, ctx.paragraph) : "\n\n"
       }`;
 
     case "listItem":
-      return `${serializeChildren(node, style).trim()}${
-        marked ? pauseMarker(style, BREAK_LIST_ITEM) : "\n"
+      return `${closeItem(serializeChildren(node, ctx).trim(), ctx.itemEnd)}${
+        marked ? pauseMarker(style, ctx.listItem) : "\n"
       }`;
 
-    case "list":
-      return `${serializeChildren(node, style)}${marked ? "" : "\n"}`;
+    case "list": {
+      const list = node as List;
+      const items = list.children.map((item, i) => {
+        const text = serializeNode(item, ctx);
+        if (!list.ordered || ctx.numbering === "none") {
+          return text;
+        }
+        const n = (list.start ?? 1) + i;
+        const label =
+          ctx.numbering === "ordinal" && ctx.ordinals[n - 1]
+            ? ctx.ordinals[n - 1]
+            : `${n}`;
+        return `${label}, ${text}`;
+      });
+      return `${items.join("")}${marked ? "" : "\n"}`;
+    }
 
     case "tableCell":
-      return `${serializeChildren(node, style)}, `;
+      return `${serializeChildren(node, ctx).trim()}, `;
 
-    case "tableRow":
-      return `${serializeChildren(node, style).trim()}${
-        marked ? pauseMarker(style, BREAK_LIST_ITEM) : "\n"
+    case "tableRow": {
+      // Cells are separated by commas; the row closes like a list item.
+      const row = serializeChildren(node, ctx).trim().replace(/,$/, "");
+      return `${ctx.itemEnd === "none" ? `${row},` : closeItem(row, ctx.itemEnd)}${
+        marked ? pauseMarker(style, ctx.listItem) : "\n"
       }`;
+    }
 
     case "table":
-      return `${serializeChildren(node, style)}${marked ? "" : "\n"}`;
+      return `${serializeChildren(node, ctx)}${marked ? "" : "\n"}`;
 
     case "break":
       return " ";
@@ -167,17 +233,17 @@ function serializeNode(node: Node, style: PauseStyle): string {
 
     default:
       // strong, emphasis, delete, link, root and any other parent: keep text
-      return serializeChildren(node, style);
+      return serializeChildren(node, ctx);
   }
 }
 
 /**
  * Serialize the children of a parent node, if any.
  */
-function serializeChildren(node: Node, style: PauseStyle): string {
+function serializeChildren(node: Node, ctx: Context): string {
   if ("children" in node && Array.isArray((node as Parent).children)) {
     return (node as Parent).children
-      .map((child) => serializeNode(child, style))
+      .map((child) => serializeNode(child, ctx))
       .join("");
   }
   return "";

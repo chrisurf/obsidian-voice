@@ -5,6 +5,13 @@ import { env } from "process";
 // wdio-obsidian-service downloads the sandboxed Obsidian builds here.
 const cacheDir = path.resolve(".obsidian-cache");
 
+// On macOS the launcher clears the downloaded app's extended attributes with
+// `xattr -cr`. A Python `xattr` (pip, pyenv shims) earlier on the PATH lacks
+// -r and makes the download fail, so Apple's /usr/bin/xattr must win.
+if (process.platform === "darwin") {
+  env.PATH = `/usr/bin:${env.PATH ?? ""}`;
+}
+
 // Which Obsidian versions to test. Two hard constraints shape this list, and
 // both are the reason every pair below uses the SAME value for app and
 // installer (e.g. "1.12.7/1.12.7"):

@@ -1,0 +1,119 @@
+/**
+ * Apply a pronunciation lexicon to text: replace each matching word with what
+ * should be said. Entries are tried in order and the first match wins; text an
+ * entry has already replaced is never matched again, so rules don't cascade.
+ */
+
+import type { LexiconEntry } from "./schema";
+
+interface Segment {
+  text: string;
+  /** Already replaced by an entry; not matched again. */
+  done: boolean;
+}
+
+const WORD_CHAR = "[\\p{L}\\p{N}_]";
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+/**
+ * The entry as a pattern. Group 1 is the character before the match (kept),
+ * group 2 the match itself. No lookbehind, which older iOS Safari lacks.
+ */
+function entryPattern(entry: LexiconEntry): RegExp {
+  const body = escapeRegExp(entry.match);
+  const wholeWord = entry.wholeWord !== false;
+  // Only guard a side that starts/ends with a word character: "z. B." must
+  // match before "Äpfel", but "KI" must not match inside "KIOSK".
+  const before =
+    wholeWord && /^[\p{L}\p{N}_]/u.test(entry.match)
+      ? `(^|[^\\p{L}\\p{N}_])`
+      : "()";
+  const after =
+    wholeWord && /[\p{L}\p{N}_]$/u.test(entry.match) ? `(?!${WORD_CHAR})` : "";
+  const flags = entry.caseSensitive === false ? "giu" : "gu";
+  return new RegExp(`${before}(${body})${after}`, flags);
+}
+
+/** True when a sentence ends after `rest` begins (end of text or a new sentence). */
+function endsSentence(rest: string): boolean {
+  return (
+    /^\s*$/.test(rest) || /^\s*\n/.test(rest) || /^\s+[\p{Lu}]/u.test(rest)
+  );
+}
+
+export function applyLexicon(text: string, entries: LexiconEntry[]): string {
+  if (!text || entries.length === 0) {
+    return text;
+  }
+  let segments: Segment[] = [{ text, done: false }];
+  for (const entry of entries) {
+    if (!entry.match) {
+      continue;
+    }
+    const pattern = entryPattern(entry);
+    const next: Segment[] = [];
+    segments.forEach((segment, index) => {
+      if (segment.done) {
+        next.push(segment);
+        return;
+      }
+      let last = 0;
+      for (const match of segment.text.matchAll(pattern)) {
+        const start = (match.index ?? 0) + match[1].length;
+        if (start > last) {
+          next.push({ text: segment.text.slice(last, start), done: false });
+        }
+        const end = start + match[2].length;
+        const rest =
+          segment.text.slice(end) +
+          segments
+            .slice(index + 1)
+            .map((s) => s.text)
+            .join("");
+        const stop =
+          entry.keepStop && entry.match.endsWith(".") && endsSentence(rest);
+        next.push({ text: stop ? `${entry.say}.` : entry.say, done: true });
+        last = end;
+      }
+      if (last < segment.text.length) {
+        next.push({ text: segment.text.slice(last), done: false });
+      }
+    });
+    segments = next;
+  }
+  return segments.map((s) => s.text).join("");
+}
+
+/**
+ * Letters of an acronym joined by hyphens, which every engine reads as
+ * letter names: "API" → "A-P-I", "IoT" → "I-o-T".
+ */
+export function spellOut(acronym: string): string {
+  return acronym.replace(/([\p{L}\p{N}])(?=[\p{L}\p{N}])/gu, "$1-");
+}
+
+/** Lexicon entries that spell acronyms, the plural ("APIs") before the word. */
+export function spelledAcronymEntries(acronyms: string[]): LexiconEntry[] {
+  return acronyms.flatMap((acronym) => {
+    const spelled = spellOut(acronym);
+    const plural: LexiconEntry[] = /[a-z]$/i.test(acronym)
+      ? [{ match: `${acronym}s`, say: `${spelled}s` }]
+      : [];
+    return [...plural, { match: acronym, say: spelled }];
+  });
+}
+
+/** Lexicon entries for "written: spoken" pairs, longest written form first. */
+export function pairEntries(pairs: Record<string, string>): LexiconEntry[] {
+  return Object.entries(pairs)
+    .sort(([a], [b]) => b.length - a.length)
+    .map(([match, say]) =>
+      // A spoken form ending in "." keeps the sentence's full stop ("etc.").
+      say.endsWith(".") && match.endsWith(".")
+        ? { match, say: say.slice(0, -1), keepStop: true }
+        : { match, say },
+    );
+}

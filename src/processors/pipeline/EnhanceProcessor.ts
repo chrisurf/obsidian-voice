@@ -186,9 +186,13 @@ export function enhanceProcessor(options: EnhanceProcessorOptions) {
           node: breakNode,
         });
 
-        // If ordered list, prepend ordinal
-        if (currentList && currentList.ordered) {
-          const ordinal = getOrdinalText(listItemIndex);
+        // If ordered list, prepend its ordinal (or number) when announced
+        const numbering = options.listNumbering ?? "ordinal";
+        if (currentList && currentList.ordered && numbering !== "none") {
+          const ordinal =
+            numbering === "number"
+              ? `${(currentList.start ?? 1) + listItemIndex - 1}`
+              : getOrdinalText(listItemIndex, options.ordinals);
           const listItem = node;
           if (
             listItem.children.length > 0 &&
@@ -356,7 +360,10 @@ function enhanceText(textNode: Text, options: EnhanceProcessorOptions): Node[] {
 /**
  * Get ordinal text for list items
  */
-function getOrdinalText(index: number): string {
+function getOrdinalText(index: number, custom?: string[]): string {
+  if (custom && custom.length > 0) {
+    return index <= custom.length ? custom[index - 1] : `${index}`;
+  }
   const ordinals = [
     "First",
     "Second",

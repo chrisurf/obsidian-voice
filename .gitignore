@@ -47,3 +47,8 @@ obsidian-versions-lock.txt
 data.json
 
 .devbox/
+# Player layout screenshots / snapshots (test/specs/player-layout.e2e.ts)
+test/artifacts/
+
+# Python bytecode (scripts/local-tts)
+__pycache__/

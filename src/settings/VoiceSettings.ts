@@ -93,11 +93,11 @@ export interface VoiceSettings {
   // Player: when true, the player's folder picker follows the active note's
   // folder; when false the chosen folder stays put across note switches.
   folderSelectorFollowsNote: boolean;
-  // Player: when true (default), a tap on the play button plays the note you
-  // are viewing — its already-saved MP3 if one exists (matched by name in the
-  // save folder), otherwise a fresh render — even when another chapter is
-  // loaded, so jumping between notes picks up each note's saved audio. When
-  // false, a loaded chapter keeps playing and notes are always synthesized.
+  // Player "Cache" toggle (the stored key predates the toggle). When true
+  // (default), a play tap reuses the note's existing audio — its saved MP3
+  // (matched by name in the save folder) or the audio rendered this session —
+  // and only synthesizes when there is none. When false, the next play renders
+  // the note again with the current voice and settings, then switches back on.
   playNoteSavedAudio: boolean;
   // Audio files: the default folder for saved MP3s. When set, a tap on the save
   // button always saves here (and auto-save writes here silently); when empty,
@@ -114,6 +114,17 @@ export interface VoiceSettings {
   // can read pre-existing values). Removed from the settings UI.
   audioSaveMode?: AudioSaveMode;
   lastAudioFolder?: string;
+  // Speech profiles (src/profiles): stored in the plugin's own folder unless
+  // profilesInVault is on, then in profilesFolder (vault-relative).
+  profilesInVault: boolean;
+  profilesFolder: string;
+  // Internal: tracks the one-time move of the content toggles (spellOutAcronyms,
+  // readCodeBlocks, skipUrls) into the default speech profile, which is their
+  // source of truth since; the three settings above are legacy after it.
+  profilesMigrated: boolean;
+  // Internal: tracks the one-time creation of the shipped profiles (American
+  // English default, en-GB, de, fr) with their word lists.
+  profilesSeeded: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
@@ -392,8 +403,22 @@ export const OPENAI_COMPAT_FORMATS: {
  */
 export const MINIMAX_REGIONS: ModelOption[] = [
   { id: "api.minimax.io", label: "Global (api.minimax.io)" },
-  { id: "api.minimaxi.chat", label: "Mainland China (api.minimaxi.chat)" },
+  { id: "api.minimaxi.com", label: "Mainland China (api.minimaxi.com)" },
+  {
+    id: "api.minimax.cn",
+    label: "Mainland China, platform.minimax.cn (api.minimax.cn)",
+  },
 ];
+
+/**
+ * The MiniMax host to use for a stored one. Up to 1.19 the "Mainland China"
+ * region pointed at api.minimaxi.chat — MiniMax's old international host,
+ * which mainland accounts are refused on (issues #98, #87) — so that value
+ * becomes the mainland host it was meant to be.
+ */
+export function migrateMiniMaxHost(host: string): string {
+  return host === "api.minimaxi.chat" ? "api.minimaxi.com" : host;
+}
 
 /**
  * MiniMax T2A models. HD favours quality; Turbo favours latency/cost. Both the
@@ -495,6 +520,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,
+  profilesInVault: false,
+  profilesFolder: "Voice/Profiles",
+  profilesMigrated: false,
+  profilesSeeded: false,
   acronymDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",

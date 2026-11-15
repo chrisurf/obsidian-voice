@@ -8,7 +8,9 @@ module.exports = {
   ],
   transform: {
     "^.+\\.(ts|tsx)$": "ts-jest",
+    "^.+\\.yaml$": "<rootDir>/tests/textTransform.js",
   },
+  moduleFileExtensions: ["ts", "tsx", "js", "json", "yaml"],
   // Transform ES modules from unified/remark ecosystem
   transformIgnorePatterns: [
     "node_modules/(?!(unified|remark-parse|remark-gfm|remark-frontmatter|remark-stringify|mdast-util-.*|micromark.*|unist-.*|vfile|bail|is-plain-obj|trough|extend|character-entities|decode-named-character-reference|ccount|escape-string-regexp|markdown-table)/)",

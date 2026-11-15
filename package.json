@@ -13,6 +13,10 @@
     "test:integration": "jest --testNamePattern=\"Integration\"",
     "test:watch": "jest --watch",
     "test:e2e": "wdio run ./wdio.conf.mts",
+    "test:e2e:mobile": "wdio run ./wdio.mobile.conf.mts",
+    "docs:screenshots": "OBSIDIAN_VERSIONS=latest/latest wdio run ./wdio.docs.conf.mts",
+    "test:layout:fixture": "tsx scripts/player-fixture.ts",
+    "test:layout:ios": "node scripts/ios-layout-check.mjs",
     "format": "prettier --write \"**/*.{ts,js,json,md}\"",
     "format:check": "prettier --check \"**/*.{ts,js,json,md}\"",
     "lint": "eslint src --ext .ts --fix",
@@ -97,7 +101,8 @@
     "typescript": "5.9.3",
     "typescript-eslint": "8.64.0",
     "wdio-obsidian-reporter": "^2.4.0",
-    "wdio-obsidian-service": "^2.4.0"
+    "wdio-obsidian-service": "^2.4.0",
+    "yaml": "^2.9.0"
   },
   "dependencies": {
     "remark-frontmatter": "^5.0.0",

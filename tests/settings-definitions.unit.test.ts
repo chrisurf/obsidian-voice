@@ -30,7 +30,6 @@ const EXPECTED_CONTROL_KEYS = [
   "rewindSeconds",
   "forwardSeconds",
   "autoDownloadAudio",
-  "playNoteSavedAudio",
   "folderSelectorFollowsNote",
 ] as const satisfies readonly (keyof VoiceSettings)[];
 
@@ -184,8 +183,8 @@ describe("Unit: VoiceSettingTab control value binding", () => {
   it("a toggle change persists without provider/skip side effects", async () => {
     const plugin = makePlugin();
     const tab = makeTab(plugin);
-    await tab.setControlValue("playNoteSavedAudio", false);
-    expect(plugin.settings.playNoteSavedAudio).toBe(false);
+    await tab.setControlValue("folderSelectorFollowsNote", false);
+    expect(plugin.settings.folderSelectorFollowsNote).toBe(false);
     expect(plugin.saveSettings).toHaveBeenCalledTimes(1);
     expect(plugin.updateSkipIntervals).not.toHaveBeenCalled();
     expect(plugin.reinitializeProvider).not.toHaveBeenCalled();

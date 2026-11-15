@@ -1,4 +1,8 @@
-import { DEFAULT_SETTINGS, VoiceSettings } from "../settings/VoiceSettings";
+import {
+  DEFAULT_SETTINGS,
+  VoiceSettings,
+  migrateMiniMaxHost,
+} from "../settings/VoiceSettings";
 import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
@@ -10,6 +14,13 @@ import { TextSpeaker } from "./TextSpeaker";
 import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 import { WhatsNewModal } from "../ui/WhatsNewModal";
 import { shouldShowWhatsNew } from "./whatsNew";
+import { ProfileStore } from "../profiles/ProfileStore";
+import { readingLanguage } from "../profiles/language";
+import { profileKeysFor, resolveProfile } from "../profiles/resolve";
+import { profileTemplate } from "../profiles/template";
+import { SHIPPED_PROFILES } from "../profiles/defaults";
+import { getPath as getPathValue } from "../profiles/schema";
+import type { ResolvedProfile } from "../profiles/schema";
 
 export class Voice extends Plugin {
   settings: VoiceSettings;
@@ -18,9 +29,15 @@ export class Voice extends Plugin {
   private hotkeySettings: HotkeySettings;
   public iconEventHandler: IconEventHandler;
   private textSpeaker: TextSpeaker;
+  public profileStore: ProfileStore;
+  // Last resolved profile, reused while neither the language nor any profile
+  // changed (the player asks several times a second).
+  private profileCache: { key: string; profile: ResolvedProfile } | null = null;
 
   async onload() {
     await this.loadSettings();
+    this.profileStore = new ProfileStore(this.app, () => this.profilesFolder());
+    await this.loadProfiles();
     this.addSettingTab(new VoiceSettingTab(this.app, this));
     this.markdownHelper = new MarkdownHelper(this.app);
 
@@ -35,9 +52,7 @@ export class Voice extends Plugin {
       this.speechProvider,
       this.markdownHelper,
       this.iconEventHandler,
-      this.settings.spellOutAcronyms,
-      this.settings.readCodeBlocks,
-      this.settings.skipUrls,
+      () => this.getActiveProfile(),
     );
 
     this.hotkeySettings = new HotkeySettings(this);
@@ -160,10 +175,124 @@ export class Voice extends Plugin {
       this.settings.audioFolderMigrated = true;
       await this.saveSettings();
     }
+
+    // The old "Mainland China" MiniMax host never worked for mainland
+    // accounts; move it to the real one (idempotent, so no flag needed).
+    const minimaxHost = migrateMiniMaxHost(this.settings.MINIMAX_HOST);
+    if (minimaxHost !== this.settings.MINIMAX_HOST) {
+      this.settings.MINIMAX_HOST = minimaxHost;
+      await this.saveSettings();
+    }
   }
 
   async saveSettings() {
     await this.saveData(this.settings);
+  }
+
+  /** Where speech profiles are stored: the plugin folder, or a vault folder. */
+  public profilesFolder(): string {
+    if (this.settings.profilesInVault && this.settings.profilesFolder.trim()) {
+      return this.settings.profilesFolder.trim();
+    }
+    return `${this.app.vault.configDir}/plugins/${this.manifest.id}/profiles`;
+  }
+
+  /**
+   * Load the speech profiles. The first time, the content toggles' settings
+   * (acronyms, code blocks, URLs) move into a new default profile, which is
+   * their source of truth from then on.
+   */
+  private async loadProfiles(): Promise<void> {
+    const store = this.profileStore;
+    await store.load();
+    if (this.settings.profilesSeeded) {
+      return;
+    }
+    // The content toggles' values: from the settings the first time, from the
+    // default profile of an earlier version (without word lists) after that.
+    const content = this.settings.profilesMigrated
+      ? (store.get("default")?.parsed.data?.content as
+          | Record<string, unknown>
+          | undefined)
+      : {
+          acronyms: this.settings.spellOutAcronyms ? "spell" : "word",
+          codeBlocks: this.settings.readCodeBlocks ? "read" : "placeholder",
+          urls: this.settings.skipUrls ? "skip" : "read",
+        };
+    const current = store.get("default");
+    if (!current || current.parsed.data?.acronyms === undefined) {
+      const carried: Record<string, unknown> = {};
+      for (const key of ["acronyms", "codeBlocks", "urls"]) {
+        // Acronyms are spelled and URLs skipped by default now; carry only a
+        // deliberate choice, not the old defaults ("word", "read").
+        const oldDefault = { acronyms: "word", urls: "read" }[key];
+        if (typeof content?.[key] === "string" && content[key] !== oldDefault) {
+          carried[`content.${key}`] = content[key];
+        }
+      }
+      await store.save("default", profileTemplate("default", carried));
+    }
+    // The shipped language profiles, unless the user already has their own.
+    for (const key of Object.keys(SHIPPED_PROFILES)) {
+      if (!store.get(key)) {
+        await store.save(key, profileTemplate(key));
+      }
+    }
+    this.settings.profilesMigrated = true;
+    this.settings.profilesSeeded = true;
+    await this.saveSettings();
+  }
+
+  /**
+   * The language the active note is read in: the voice's language, unless
+   * the note's frontmatter sets `lang:` or `language:`.
+   */
+  public readingLanguage(): string {
+    const voiceId = this.speechProvider.getVoice();
+    const voice = this.speechProvider
+      .getVoiceOptions()
+      .find((v) => v.id === voiceId);
+    const file = this.app.workspace.getActiveFile();
+    const frontmatter = file
+      ? this.app.metadataCache.getFileCache(file)?.frontmatter
+      : undefined;
+    return readingLanguage(voice?.lang, frontmatter);
+  }
+
+  /** The speech profile that applies to the active note. */
+  public getActiveProfile(): ResolvedProfile {
+    const language = this.readingLanguage();
+    const key = `${language}|${this.profileStore.version}`;
+    if (this.profileCache?.key !== key) {
+      this.profileCache = {
+        key,
+        profile: resolveProfile(language, this.profileStore.layers()),
+      };
+    }
+    return this.profileCache.profile;
+  }
+
+  /**
+   * Change a profile setting from a quick control (the player toggles). It is
+   * written to the most specific profile of the active language that already
+   * sets it, otherwise to the default profile (created if needed).
+   */
+  public async setProfileSetting(path: string, value: unknown): Promise<void> {
+    const store = this.profileStore;
+    const keys = profileKeysFor(this.readingLanguage()).reverse();
+    const target =
+      keys.find((key) => {
+        const data = store.get(key)?.parsed.data;
+        return (
+          data !== null &&
+          data !== undefined &&
+          getPathValue(data, path) !== undefined
+        );
+      }) ?? "default";
+    if (!store.get(target)) {
+      await store.save(target, profileTemplate(target));
+    }
+    await store.setValue(target, path, value);
   }
 
   /**
@@ -214,9 +343,7 @@ export class Voice extends Plugin {
       this.speechProvider,
       this.markdownHelper,
       this.iconEventHandler,
-      this.settings.spellOutAcronyms,
-      this.settings.readCodeBlocks,
-      this.settings.skipUrls,
+      () => this.getActiveProfile(),
     );
   }
 

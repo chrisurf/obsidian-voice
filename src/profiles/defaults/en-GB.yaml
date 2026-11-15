@@ -1,0 +1,22 @@
+# Voice speech profile: British English.
+# Applies to British voices and notes with "lang: en-GB", on top of the default
+# (American English) profile: only what differs in British usage is set here.
+# Lines starting with # are comments. JSON works too: Voice detects the format.
+voiceProfile: 1
+language: en-GB
+
+acronyms:
+  say:
+    SQL: S-Q-L # British usage spells it out
+    NHS: N-H-S
+    BBC: B-B-C
+
+# British style writes these without a full stop.
+abbreviations:
+  Mr: Mister
+  Mrs: Missus
+  Ms: Miss
+  Dr: Doctor
+  St: Saint
+  Ltd: Limited.
+  plc: P-L-C

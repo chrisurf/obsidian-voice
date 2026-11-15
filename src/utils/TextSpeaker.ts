@@ -10,6 +10,8 @@ import {
   friendlySpeechError,
 } from "./speechFeedback";
 import { Notice } from "obsidian";
+import type { ResolvedProfile } from "../profiles/schema";
+import { processorConfigFromProfile } from "../profiles/processorConfig";
 
 /**
  * TextSpeaker - Orchestrates text-to-speech conversion
@@ -23,55 +25,23 @@ export class TextSpeaker {
   private provider: SpeechProvider;
   private markdownHelper: MarkdownHelper;
   private iconEventHandler: IconEventHandler;
-  private ssmlProcessor: MarkdownToSSMLProcessor;
-  private textProcessor: MarkdownToTextProcessor;
-  private spellOutAcronyms: boolean;
-  private readCodeBlocks: boolean;
-  private skipUrls: boolean;
+  private getProfile: () => ResolvedProfile;
 
+  /**
+   * @param getProfile - the speech profile for the note about to be read
+   *   (its language decides which profile applies); asked on every read so
+   *   profile edits and a note's `lang:` take effect right away.
+   */
   constructor(
     provider: SpeechProvider,
     markdownHelper: MarkdownHelper,
     iconEventHandler: IconEventHandler,
-    spellOutAcronyms: boolean = false,
-    readCodeBlocks: boolean = false,
-    skipUrls: boolean = false,
+    getProfile: () => ResolvedProfile,
   ) {
     this.provider = provider;
     this.markdownHelper = markdownHelper;
     this.iconEventHandler = iconEventHandler;
-    this.spellOutAcronyms = spellOutAcronyms;
-    this.readCodeBlocks = readCodeBlocks;
-    this.skipUrls = skipUrls;
-
-    // Shared content options for both pipelines. When code blocks should be
-    // read, keep them in the spoken output; otherwise the cleaner replaces
-    // them with a short placeholder. URLs are stripped when skipUrls is on.
-    const contentOptions = {
-      removeCodeBlocks: !this.readCodeBlocks,
-      skipUrls: this.skipUrls,
-    };
-
-    // SSML pipeline (AWS Polly)
-    this.ssmlProcessor = new MarkdownToSSMLProcessor({
-      voiceType: "neural", // TODO: Make this configurable from settings
-      spellOutAcronyms: this.spellOutAcronyms,
-      ...contentOptions,
-    });
-
-    // Plain-text pipeline (ElevenLabs and other non-SSML providers). It also
-    // needs the acronym setting so it can title-case acronyms when spell-out is
-    // off, keeping pronunciation consistent with the SSML providers. The pause
-    // style follows the active provider so each engine gets pause markup it
-    // understands (ElevenLabs `<break>`, MiniMax `<#x#>`, others newline-only) —
-    // TextSpeaker is rebuilt on provider change, so this stays in sync.
-    this.textProcessor = new MarkdownToTextProcessor(
-      {
-        ...contentOptions,
-        spellOutAcronyms: this.spellOutAcronyms,
-      },
-      { pauseStyle: this.provider.textPauseStyle },
-    );
+    this.getProfile = getProfile;
   }
 
   async speakText(speed?: number): Promise<void> {
@@ -173,11 +143,20 @@ export class TextSpeaker {
    * processing failed (a user notice is shown in that case).
    */
   private async processContent(rawText: string): Promise<string | null> {
+    // Both pipelines are configured from the speech profile; the text one
+    // also gets the pause markup its engine understands (ElevenLabs
+    // `<break>`, MiniMax `<#x#>`, others newline-only).
+    const config = processorConfigFromProfile(this.getProfile());
     if (this.provider.inputFormat === "text") {
-      return this.textProcessor.process(rawText);
+      return new MarkdownToTextProcessor(config, {
+        pauseStyle: this.provider.textPauseStyle,
+      }).process(rawText);
     }
 
-    const result = await this.ssmlProcessor.process(rawText);
+    const result = await new MarkdownToSSMLProcessor({
+      ...config,
+      voiceType: "neural", // TODO: Make this configurable from settings
+    }).process(rawText);
 
     if (!result.isValid) {
       console.error("SSML validation errors:", result.errors);

@@ -71,6 +71,15 @@ npm run build && npm run lint:check && npm test && npm run format:check
   the `describe` so the name filters work.
 - **Format** — Prettier. Run `npm run format` to auto-fix.
 
+### Hearing a change (Apple Silicon Macs)
+
+Changes to how notes are read — the content pipeline or speech profiles — can
+be heard and measured with a free local German voice: `scripts/local-tts/`
+runs Qwen3-TTS behind an OpenAI-compatible API, serves a test page at
+`http://127.0.0.1:8880/` that reads a note before and after your change side by
+side, and measures pauses and misread words with Whisper. See its
+[README](./scripts/local-tts/README.md).
+
 ## Guidelines to keep in mind
 
 - **Stay provider-agnostic.** Shared behaviour belongs in `BaseSpeechService` or

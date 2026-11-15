@@ -12,9 +12,11 @@
  */
 
 import { visit, SKIP } from "unist-util-visit";
-import type { Root, Text } from "mdast";
+import type { Paragraph, Root, Text } from "mdast";
 import type { Parent } from "unist";
 import type { CleanProcessorOptions } from "../../types/ProcessorTypes";
+import { removeBlockIds } from "./blockIds";
+import { mergeTextRuns, removeUrls } from "./urls";
 
 /**
  * Create a clean processor plugin
@@ -35,9 +37,19 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         if (options.skipUrls) {
           codeValue = removeUrls(codeValue);
         }
-        const replacement: Text = options.removeCodeBlocks
-          ? { type: "text", value: "Code snippet." }
-          : { type: "text", value: codeValue };
+        // Wrapped in a paragraph so it stays its own block: a bare text node
+        // ran into the next paragraph ("Code snippet.The next sentence").
+        const replacement: Paragraph = {
+          type: "paragraph",
+          children: [
+            {
+              type: "text",
+              value: options.removeCodeBlocks
+                ? (options.codePlaceholder ?? "Code snippet.")
+                : codeValue,
+            },
+          ],
+        };
         (parent as Parent).children[index] = replacement;
         return SKIP;
       }
@@ -115,9 +127,10 @@ export function cleanProcessor(options: CleanProcessorOptions) {
       }
 
       // Handle Obsidian-specific wikilinks [[page]] or [[page|alias]]
-      // Also remove audio embeds and emojis from text
+      // Also remove block IDs (^id), audio embeds and emojis from text
       if (node.type === "text") {
         const textNode = node as { type: "text"; value: string };
+        textNode.value = removeBlockIds(textNode.value);
         textNode.value = removeAudioEmbeds(textNode.value);
         textNode.value = cleanWikiLinks(textNode.value);
         textNode.value = removeEmojis(textNode.value);
@@ -126,6 +139,16 @@ export function cleanProcessor(options: CleanProcessorOptions) {
         }
       }
     });
+
+    // Dropped addresses (often autolink nodes of their own) leave texts such
+    // as "see " and "." side by side; join and tidy them ("see.").
+    if (options.skipUrls) {
+      visit(tree, (node) => {
+        if ("children" in node && Array.isArray(node.children)) {
+          (node as Parent).children = mergeTextRuns((node as Parent).children);
+        }
+      });
+    }
   };
 }
 
@@ -173,23 +196,6 @@ function removeAudioEmbeds(text: string): string {
     /!\[\[([^\]]+)\.(mp3|wav|ogg|m4a|flac|aac|wma)\]\]/gi,
     "",
   );
-}
-
-/**
- * Remove website URLs from text so they are not read aloud
- * Strips http(s):// links as well as bare "www." links up to the next
- * whitespace. Collapses any double spaces left behind by the removal.
- * Examples:
- *   "Visit https://example.com today" -> "Visit today"
- *   "See www.example.com/path for more" -> "See for more"
- */
-function removeUrls(text: string): string {
-  // Strip the URL, then collapse any double spaces it leaves behind. Leading
-  // and trailing spaces are kept so words stay separated from adjacent inline
-  // nodes (e.g. "A normal " + link + " link").
-  return text
-    .replace(/(?:https?:\/\/|www\.)[^\s]+/gi, "")
-    .replace(/[ \t]{2,}/g, " ");
 }
 
 /**

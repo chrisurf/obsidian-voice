@@ -15,6 +15,7 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - [Highlights](#highlights)
 - [The Voice Player](#the-voice-player)
 - [Feature Tour](#feature-tour)
+- [Speech Profiles: How Voice Reads](#speech-profiles-how-voice-reads)
 - [Settings](#settings)
 - [Keyboard Shortcuts](#keyboard-shortcuts)
 - [Bring Your Own Provider](#bring-your-own-provider)
@@ -28,9 +29,10 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
 - **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
-- **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
+- **Designed for every device** — the same look and controls on desktop, iPhone, iPad, and Android, on any Obsidian version, with a touch-friendly mobile player and control bar.
+- **Reads the way the language is spoken** — per-language speech profiles handle acronyms, abbreviations and pauses, so Voice never stops mid-sentence. English (US and UK), German and French ship as editable YAML files.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
-- **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and watch synthesis progress in real time.
+- **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and with **Cache** never pay twice for the same note by accident.
 - **Stay private** — your credentials live in your own provider account; nothing is routed through a third party.
 
 ## The Voice Player
@@ -41,26 +43,39 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 #### Controls at a glance
 
-Every control is a single button. Some do **two things**: a quick **tap** and a **press & hold** (~1.5 s; right-click works too on desktop). A ring fills around a button while you hold it.
+| Control                                       | What it does                                                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ▶️ **Play**                                   | Play or pause. While a note is generated it shows ⏹ inside a ring that fills with the progress — tap to cancel          |
+| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
+| ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
+| ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
+| 📂 **Folder**                                 | Save into a folder you pick, in one click                                                                               |
+| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                                                                                   |
+| **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
+| ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
 
-| Button                                        | Tap                                                              | Press & hold                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                | **Regenerate** the note from scratch with your current voice & settings |
-| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                                       |
-| ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                                       |
-| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                                       |
-| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                                       |
-| ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default           |
-| 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                                       |
-| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                                       |
-| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                                       |
-| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                                       |
-| 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                                       |
-| ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                                       |
+While a note is being generated, the play button shows ⏹ and a ring around it fills with the progress — tap it to cancel:
 
-Each toggle (`</>` `Aa` 🔗 📎) **highlights when it's on**, so you can see your reading options at a glance — no trip to settings.
+![The play button while a note is generated: a stop icon inside a progress ring](./assets/voice-player-generating.png)
 
-> **Jumping between notes?** By default a tap on ▶️ plays the note you're viewing — its already-saved MP3 if one exists, otherwise a fresh render — so you don't re-generate audio you already saved. Turn this off with **Play the note's saved audio** in settings.
+Below them sits a row of **toggles** that light up when on:
+
+| Toggle      | On                                                                                                              | Default |
+| ----------- | --------------------------------------------------------------------------------------------------------------- | ------- |
+| **Cache**   | ▶️ reuses the note's existing audio instead of generating it again (see below)                                  | on      |
+| **Spell**   | Spell out acronyms — read `API`, `CEO` letter by letter (word-like ones such as NASA are listed in the profile) | on      |
+| **Code**    | Read fenced code blocks (Mermaid, YAML, …) aloud instead of a short placeholder                                 | off     |
+| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept                         | on      |
+| **Embed**   | Add an audio player to the note whenever you save its MP3                                                       | off     |
+
+**Spell**, **Code** and **No URLs** are stored in your [speech profile](#speech-profiles-how-voice-reads), so they follow the language you're listening in.
+
+#### Cache: never pay twice by accident
+
+- **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a toggle does **not** generate new audio on its own.
+- **Cache off**: the next ▶️ **generates the note again** with your current voice and settings (a new, paid request to your provider). Afterwards Cache switches itself **back on**.
+
+So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️ — even if the old recording is paused mid-way, it is generated anew. With Cache on, pausing and resuming never generates anything.
 
 Above the chapter list sit the **provider** and **voice** dropdowns (switch engine or voice instantly) and a **folder dropdown** that points the chapter list at any folder in your vault that contains audio.
 
@@ -112,7 +127,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 > **Tip:** When a default folder is set, the save button shows a **floppy-disk** icon (💾) — in the player, the status bar, and the mobile bar — so you can tell at a glance that a tap saves into your default folder rather than next to the note.
 
 - Prefer a hands-off workflow? Turn on **Save automatically** in settings to save and embed after every playback (it uses your default folder too).
-- Cached audio prevents repeat synthesis costs until your note content changes.
+- With **Cache** on (the default), audio you already generated or saved is reused instead of paying for it again — see [Cache](#cache-never-pay-twice-by-accident).
 
 ### Precision Playback Controls
 
@@ -128,23 +143,10 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Personalize the Voice
 
-- **Pick your voice in the player** — choose from dozens of natural voices across many languages: American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
-
-  ![voice picker](./assets/voices.png)
+- **Pick your voice in the player** (the voice dropdown under the controls) — choose from dozens of natural voices across many languages: American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
 
 - Switch voices instantly from the player's voice dropdown or the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
 - **Azure: every voice, grouped by language.** Press **Test Credentials** in settings and Voice loads your account's full Azure neural catalog (hundreds of voices), organized by language in the picker — no more being limited to a handful.
-
-### Fine-Tune What Gets Spoken
-
-Flip these as **one-click icon toggles in the Voice player** — they light up when on. All are **off by default** and apply to every provider:
-
-- `</>` **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally.
-- 🔗 **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
-- 📎 **Embed MP3 in note** — add an audio player to the note whenever you save its MP3. Off saves the file without embedding.
-
-> **Tip:** prefer a hands-off archive? Turn on **Save automatically** in settings to save and embed after every playback — see [Save & Play Audio Offline](#save--play-audio-offline).
 
 ### Built for Mobile
 
@@ -152,7 +154,7 @@ Flip these as **one-click icon toggles in the Voice player** — they light up w
 
   ![mobile menu](./assets/mobile.png)
 
-- Control playback with the touch-friendly mobile control bar — play / pause, rewind, fast-forward, voice switching, tempo, and a progress indicator. (It stays out of the way while the full player is open.)
+- Control playback with the touch-friendly mobile control bar — open the player, switch voice, rewind, stop, tempo, play / pause, fast-forward, save, and a progress indicator. (It stays out of the way while the full player is open.)
 
   ![mobile control bar](./assets/mobile-control.png)
 
@@ -160,27 +162,67 @@ Flip these as **one-click icon toggles in the Voice player** — they light up w
 
   ![mobile settings](./assets/mobile-settings.png)
 
-### Smart Content Handling
+### Speech Profiles: How Voice Reads
 
-- Markdown pre-processing cleans, enhances, and chunks content for reliable delivery.
-- Headings, bold text, and pauses are emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
+A **speech profile** decides how Voice reads in one language: how words are pronounced, which acronyms are spelled, how abbreviations are said, and how a note's structure sounds. Profiles are plain **YAML (or JSON) files you can read and extend** — nothing language-specific is hidden in the code.
+
+- **Four profiles ship with Voice** and are created on the first start: **default** (American English — it applies to every language without its own profile), **en-GB** (only what British usage changes, on top of the default), **de** (German) and **fr** (French). Add a profile for any other language in settings.
+- **Per language.** The voice's language picks the profile (`de-DE` uses default + `de` + `de-DE`); a note can override it with `lang:` or `language:` in its frontmatter.
+- **Acronyms** as a simple, comma-separated list: `spell` reads them letter by letter (plurals like "APIs" included), `say` gives one its own pronunciation (`JSON: jay-son`). Upper and lower case matter — `IT` is spelled, `it` and `Item` stay as they are.
+- **Abbreviations** as `written: spoken` pairs (`e.g.: for example`, `z. B.: zum Beispiel`); end the spoken form with a dot to keep a sentence's full stop (`etc.: et cetera.`).
+- **Structure.** Pauses after headings and between paragraphs and list items; numbered lists read with the profile's ordinal words ("First, …", "Erstens, …"), as numbers, or not at all; wrapped lines inside a paragraph are joined, so Voice never stops mid-sentence.
+- **Edit, paste or import** in **Settings → Voice → Speech profiles** — with quick controls for every setting, or as text. Voice detects YAML or JSON.
+- **Where they live.** In the plugin's folder by default (`.obsidian/plugins/voice/profiles/`); turn on **Store profiles in the vault** to keep them in a vault folder (default `Voice/Profiles`), where they sync and can be edited like notes.
+- **Your toggles live here too.** The player's **Spell**, **Code** and **No URLs** read and write the profile of the language you're listening in; your previous choices are carried over.
+- **Versioned.** Each file starts with `voiceProfile: 1`. A newer format is refused with a clear message instead of being misread, and settings a version doesn't know are kept but not applied.
+
+![Speech profile editor: quick controls for every setting above the profile's text](./assets/profile-editor.png)
+
+A shortened example — long lists can span several lines with YAML's standard folded style (`>-`):
+
+```yaml
+voiceProfile: 1
+language: de
+
+acronyms:
+  spell: >-
+    KI, IT, EU, API, URL, HTTP, PDF,
+    DSGVO, GmbH
+  say:
+    JSON: Dschäisen
+
+abbreviations:
+  z. B.: zum Beispiel
+  usw.: und so weiter.
+
+structure:
+  lists:
+    ordinals: Erstens, Zweitens, Drittens
+
+lexicon: # special cases: case-insensitive, phonetic spelling
+  - match: Obsidian
+    say: Obsidjen
+    caseSensitive: false
+```
+
+Every setting is documented in the shipped profiles and in the template Voice creates when you add a profile for another language. Headings, bold text, and pauses are additionally emphasized natively on providers that support SSML (AWS Polly, Google Cloud, Azure Speech).
 
 ## Settings
 
-Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **content toggles** (read code blocks, spell out acronyms, skip website URLs, embed MP3) — live as one-click controls in the Voice player.
+Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **toggles** (Cache, Spell, Code, No URLs, Embed) — live as one-click controls in the Voice player.
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                         | What it does                                                                                                                                                                                                                                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                |
-| **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
-| **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
-| **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
-| **Save location**               | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access.                                                                              |
-| **Folder list follows note**    | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                                                                                                        |
-| **Play the note's saved audio** | On play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — so jumping between notes picks up each note's audio, even with another chapter loaded. On by default; turn off to keep the loaded chapter playing and always re-generate. |
-| **Test Credentials**            | Validate your provider keys; on success it reports how many voices are available.                                                                                                                                                                                                         |
+| Setting                      | What it does                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                   |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                          |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
+| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
+| **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
+| **Speech profiles**          | How Voice reads, per language — see [Speech Profiles](#speech-profiles-how-voice-reads). Edit, paste, import, or delete profiles; optionally store them in a vault folder.                                   |
+| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |
+| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                            |
 
 ## Keyboard Shortcuts
 
@@ -207,16 +249,16 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 ## Bring Your Own Provider
 
-Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the player toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
-The newest addition, **MiniMax**, adds a selectable **mainland-China region** and strong Chinese-language voices — so Voice now works even where the other engines are hard to reach.
+**OpenAI-compatible** connects any server that speaks OpenAI's speech API — hosted routers like OpenRouter or a voice running on your own machine (see [below](#openai-compatible-servers)). **MiniMax** adds a selectable **mainland-China region** and strong Chinese-language voices, so Voice works even where the other engines are hard to reach.
 
-|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    |
-| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- |
-| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    |
-| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) |
-| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      |
-| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        |
+|                 | **AWS Polly**                       | **ElevenLabs**                                      | **Google Cloud**                                  | **Azure Speech**                    | **OpenAI**                                    | **MiniMax**                                    | **OpenAI-compatible**                                       |
+| --------------- | ----------------------------------- | --------------------------------------------------- | ------------------------------------------------- | ----------------------------------- | --------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------- |
+| **Voices**      | Neural voices across many languages | Premade & multilingual voices speaking 29 languages | Neural2 & WaveNet voices across many languages    | Neural voices across many languages | Built-in multilingual voices (Alloy, Nova, …) | Multilingual voices, strong Chinese support    | Whatever the server offers (read from it, or added by hand) |
+| **Credentials** | AWS region + Access Key ID & Secret | ElevenLabs API key                                  | Google Cloud API key (Text-to-Speech API enabled) | Azure Speech key + region           | OpenAI API key                                | MiniMax API key + Group ID (region-selectable) | Server URL + optional API key                               |
+| **Emphasis**    | Native SSML pauses & emphasis       | Expressive models with natural `<break>` pauses     | Native SSML pauses & emphasis                     | Native SSML pauses & emphasis       | Natural prosody (no SSML)                     | Natural prosody (no SSML)                      | Natural prosody (no SSML)                                   |
+| **Models**      | Neural engine                       | Multilingual v2 / Flash v2.5 / Turbo v2.5           | Neural2 / WaveNet                                 | Neural                              | GPT-4o mini TTS / TTS-1 / TTS-1 HD            | Speech 02 HD/Turbo · Speech 01 HD/Turbo        | Read from the server (MP3 or WAV)                           |
 
 ## Getting Started
 
@@ -242,7 +284,7 @@ Start with the provider you already have — you can switch anytime.
 
 **OpenAI-compatible** — Any server that speaks OpenAI's speech API. See [OpenAI-compatible servers](#openai-compatible-servers) below.
 
-**MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**.
+**MiniMax** — Sign in at [platform.minimax.io](https://platform.minimax.io/) (or [platform.minimaxi.com](https://platform.minimaxi.com/) / [platform.minimax.cn](https://platform.minimax.cn/) for mainland China) and copy your **API key** and **Group ID**. In **Settings → Voice**, choose **MiniMax**, select the matching **region**, pick a model and voice, paste the key and Group ID, and press **Test Credentials**.
 
 ### OpenAI-compatible servers
 

@@ -33,6 +33,14 @@ export const DEFAULT_CONFIG: ProcessorConfig = {
   spellOutAcronyms: false, // Pronounce "NASA", "FBI" naturally instead of letter by letter
   formatNumbers: true, // Format numbers for proper pronunciation
 
+  // Reading profile defaults (a speech profile overrides these per language)
+  codePlaceholder: "Code snippet.",
+  lexicon: [],
+  listNumbering: "ordinal",
+  ordinals: [],
+  joinLineBreaks: false,
+  listItemEnd: "none",
+
   // Validation
   strictValidation: true, // Validate SSML before sending to Polly
   maxSSMLLength: 6000, // AWS Polly limit for SSML input

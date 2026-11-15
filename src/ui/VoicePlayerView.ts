@@ -2,7 +2,6 @@ import {
   ItemView,
   WorkspaceLeaf,
   TFile,
-  setIcon,
   Notice,
   normalizePath,
 } from "obsidian";
@@ -24,7 +23,9 @@ import {
 } from "../utils/chapters";
 import { attachPressGesture } from "../utils/pressGesture";
 import { noteAudioPath } from "../utils/audioFolders";
+import { resolvePlayTap } from "../utils/playTap";
 import { groupVoicesByLanguage } from "../service/voiceCatalog";
+import { setVoiceIcon } from "./icons";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
 
@@ -80,7 +81,10 @@ export class VoicePlayerView extends ItemView {
   private acronymBtn: HTMLElement;
   private urlBtn: HTMLElement;
   private embedBtn: HTMLElement;
+  private cacheBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
+  private playRingEl: HTMLElement;
+  private playRingValueEl: SVGCircleElement;
   private loadingFillEl: HTMLElement;
 
   private isScrubbing = false;
@@ -186,19 +190,19 @@ export class VoicePlayerView extends ItemView {
     const transport = root.createDiv({ cls: "voice-player-transport" });
 
     this.prevTrackBtn = transport.createEl("button", {
-      cls: "voice-player-btn voice-player-track",
+      cls: "voice-ctl voice-player-btn voice-player-track",
       attr: { "aria-label": "Previous track" },
     });
-    setIcon(this.prevTrackBtn, "skip-back");
+    setVoiceIcon(this.prevTrackBtn, "skip-back");
     this.registerDomEvent(this.prevTrackBtn, "click", () =>
       this.playPrevTrack(),
     );
 
     const rewindBtn = transport.createEl("button", {
-      cls: "voice-player-btn voice-player-skip",
+      cls: "voice-ctl voice-player-btn voice-player-skip",
       attr: { "aria-label": "Rewind" },
     });
-    setIcon(rewindBtn, "rewind");
+    setVoiceIcon(rewindBtn, "seek-back");
     rewindBtn
       .createSpan({ cls: "voice-player-skip-label" })
       .setText(`${this.plugin.settings.rewindSeconds}`);
@@ -207,27 +211,21 @@ export class VoicePlayerView extends ItemView {
     );
 
     this.playPauseBtn = transport.createEl("button", {
-      cls: "voice-player-btn voice-player-play",
-      attr: {
-        "aria-label":
-          "Tap: play, pause or cancel · Hold: regenerate from scratch",
-      },
+      cls: "voice-ctl voice-player-btn voice-player-play",
+      attr: { "aria-label": "Play, pause or cancel" },
     });
-    setIcon(this.playPauseBtn, "play");
-    // One button does it all: a tap plays / pauses (and cancels an in-progress
-    // synthesis); a short hold regenerates the note from scratch with the
-    // current voice and settings (this replaces the separate Regenerate button).
-    // Uses the same hold duration as the save button so the two feel alike.
-    attachPressGesture(this.playPauseBtn, {
-      onTap: () => this.togglePlay(),
-      onHold: () => this.regenerate(),
-    });
+    setVoiceIcon(this.playPauseBtn, "play");
+    this.buildPlayRing();
+    // A tap plays / pauses (and cancels an in-progress synthesis). Whether a
+    // fresh start reuses existing audio or renders anew is the Cache toggle's
+    // job (see resolvePlayTap), so the button has no hidden hold gesture.
+    this.registerDomEvent(this.playPauseBtn, "click", () => this.togglePlay());
 
     const forwardBtn = transport.createEl("button", {
-      cls: "voice-player-btn voice-player-skip",
+      cls: "voice-ctl voice-player-btn voice-player-skip",
       attr: { "aria-label": "Fast-forward" },
     });
-    setIcon(forwardBtn, "fast-forward");
+    setVoiceIcon(forwardBtn, "seek-forward");
     forwardBtn
       .createSpan({ cls: "voice-player-skip-label" })
       .setText(`${this.plugin.settings.forwardSeconds}`);
@@ -236,16 +234,16 @@ export class VoicePlayerView extends ItemView {
     );
 
     this.nextTrackBtn = transport.createEl("button", {
-      cls: "voice-player-btn voice-player-track",
+      cls: "voice-ctl voice-player-btn voice-player-track",
       attr: { "aria-label": "Next track" },
     });
-    setIcon(this.nextTrackBtn, "skip-forward");
+    setVoiceIcon(this.nextTrackBtn, "skip-forward");
     this.registerDomEvent(this.nextTrackBtn, "click", () =>
       this.playNextTrack(),
     );
 
-    // Controls row: download + folder + repeat + speed, then the on/off
-    // toggles (code / acronyms / embed), spread evenly across the row.
+    // Actions row: save + folder on the left, repeat + the speed stepper on
+    // the right.
     const secondary = root.createDiv({ cls: "voice-player-secondary" });
 
     // Save the generated audio as an MP3 so it shows up as a chapter. Tap saves
@@ -253,10 +251,10 @@ export class VoicePlayerView extends ItemView {
     // right-clicking — opens the folder picker. Same gesture as the status bar /
     // mobile download button.
     this.downloadBtn = secondary.createEl("button", {
-      cls: "voice-player-download",
+      cls: "voice-ctl voice-player-download",
       attr: { "aria-label": "Download as MP3" },
     });
-    setIcon(this.downloadBtn, "download");
+    setVoiceIcon(this.downloadBtn, "download");
     attachPressGesture(this.downloadBtn, {
       onTap: () => void this.downloadAudio(),
       onHold: () => void this.downloadAudio({ forcePicker: true }),
@@ -266,64 +264,73 @@ export class VoicePlayerView extends ItemView {
     // audio to the folder you choose (you can also pin a default there). A
     // discoverable alternative to holding the download button.
     this.folderBtn = secondary.createEl("button", {
-      cls: "voice-player-folder-btn",
+      cls: "voice-ctl voice-player-folder-btn",
       attr: {
         "aria-label":
           "Save or move audio to a folder you choose (optionally pin it as your default)",
       },
     });
-    setIcon(this.folderBtn, "folder-open");
+    setVoiceIcon(this.folderBtn, "folder-open");
     this.registerDomEvent(this.folderBtn, "click", () =>
       this.saveToCustomFolder(),
     );
 
     // Repeat: cycle off → repeat one → repeat all → off.
     this.repeatBtn = secondary.createEl("button", {
-      cls: "voice-player-repeat",
+      cls: "voice-ctl voice-player-repeat",
     });
     this.registerDomEvent(this.repeatBtn, "click", () => this.cycleRepeat());
     this.updateRepeatButton();
 
     const speedGroup = secondary.createDiv({ cls: "voice-player-speed" });
     const slower = speedGroup.createEl("button", {
-      cls: "voice-player-speed-btn",
+      cls: "voice-ctl voice-player-speed-btn",
       attr: { "aria-label": "Slower" },
     });
-    setIcon(slower, "minus");
+    setVoiceIcon(slower, "minus");
     this.registerDomEvent(slower, "click", () => this.changeSpeed(-0.1));
     this.speedEl = speedGroup.createSpan({ cls: "voice-player-speed-value" });
     const faster = speedGroup.createEl("button", {
-      cls: "voice-player-speed-btn",
+      cls: "voice-ctl voice-player-speed-btn",
       attr: { "aria-label": "Faster" },
     });
-    setIcon(faster, "plus");
+    setVoiceIcon(faster, "plus");
     this.registerDomEvent(faster, "click", () => this.changeSpeed(0.1));
 
-    // On/off toggles: read code blocks, spell out acronyms, skip URLs, embed
-    // MP3. They sit in the same row as the action controls, spread evenly
-    // across its width.
-    this.codeBtn = secondary.createEl("button", { cls: "voice-player-toggle" });
-    setIcon(this.codeBtn, "code");
-    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
+    // On/off toggles, left to right: Cache, spell out acronyms, read code
+    // blocks, skip URLs, embed MP3. Their own row of equal-width segments, each with an icon and a short
+    // caption, so the action row above never overflows a narrow sidebar.
+    const toggles = root.createDiv({ cls: "voice-player-toggles" });
+    const addToggle = (caption: string): HTMLButtonElement => {
+      const btn = toggles.createEl("button", {
+        cls: "voice-ctl voice-player-toggle",
+      });
+      btn.createSpan({ cls: "voice-player-toggle-caption", text: caption });
+      return btn;
+    };
 
-    this.acronymBtn = secondary.createEl("button", {
-      cls: "voice-player-toggle",
-    });
-    setIcon(this.acronymBtn, "case-sensitive");
+    // Cache: on plays a note's existing audio, off renders it again (and pays
+    // the provider again) on the next play. See resolvePlayTap.
+    this.cacheBtn = addToggle("Cache");
+    setVoiceIcon(this.cacheBtn, "cache");
+    this.registerDomEvent(this.cacheBtn, "click", () => this.toggleCache());
+
+    this.acronymBtn = addToggle("Spell");
+    setVoiceIcon(this.acronymBtn, "acronym");
     this.registerDomEvent(this.acronymBtn, "click", () =>
       this.toggleAcronyms(),
     );
 
-    this.urlBtn = secondary.createEl("button", {
-      cls: "voice-player-toggle",
-    });
-    setIcon(this.urlBtn, "unlink");
+    this.codeBtn = addToggle("Code");
+    setVoiceIcon(this.codeBtn, "code");
+    this.registerDomEvent(this.codeBtn, "click", () => this.toggleCodeBlocks());
+
+    this.urlBtn = addToggle("No URLs");
+    setVoiceIcon(this.urlBtn, "link-off");
     this.registerDomEvent(this.urlBtn, "click", () => this.toggleSkipUrls());
 
-    this.embedBtn = secondary.createEl("button", {
-      cls: "voice-player-toggle",
-    });
-    setIcon(this.embedBtn, "paperclip");
+    this.embedBtn = addToggle("Embed");
+    setVoiceIcon(this.embedBtn, "embed");
     this.registerDomEvent(this.embedBtn, "click", () => this.toggleEmbed());
 
     // Options row: provider + voice selectors.
@@ -377,43 +384,76 @@ export class VoicePlayerView extends ItemView {
     this.refreshControls();
   }
 
+  /**
+   * The progress ring around the play button: a faint track and an arc whose
+   * length is the synthesis progress (pathLength 100 = percent). Wrapped in a
+   * span so the button's icon stays its only direct <svg> child.
+   */
+  private buildPlayRing(): void {
+    const ns = "http://www.w3.org/2000/svg";
+    const doc = this.playPauseBtn.ownerDocument;
+    this.playRingEl = this.playPauseBtn.createSpan({ cls: "voice-play-ring" });
+    const svg = doc.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("aria-hidden", "true");
+    const circle = (cls: string): SVGCircleElement => {
+      const c = doc.createElementNS(ns, "circle");
+      c.setAttribute("class", cls);
+      c.setAttribute("cx", "50");
+      c.setAttribute("cy", "50");
+      c.setAttribute("r", "47");
+      c.setAttribute("pathLength", "100");
+      svg.appendChild(c);
+      return c;
+    };
+    circle("voice-play-ring-track");
+    this.playRingValueEl = circle("voice-play-ring-value");
+    this.playRingValueEl.setAttribute("stroke-dasharray", "0 100");
+    this.playRingEl.appendChild(svg);
+  }
+
   private togglePlay(): void {
     const provider = this.provider();
-    // A tap while a synthesis is running cancels it.
-    if (provider.isOperationInProgress()) {
-      provider.cancelOperation();
-      return;
-    }
-    if (provider.isPlaying()) {
-      provider.pauseAudio();
-      return;
-    }
-
+    const audio = this.audio();
     const active = this.app.workspace.getActiveFile();
     const activeNote = active && active.extension === "md" ? active : null;
+    // audio.src resolves an empty value to the page URL, so check currentSrc,
+    // which is "" until a real media resource is selected.
+    const hasLoadedAudio = audio.currentSrc !== "";
 
-    // "Play the note's saved audio" (default on): a tap always plays the note
-    // you're viewing — its already-saved MP3 if one exists, otherwise a fresh
-    // render — even when a different chapter is currently loaded. This is what
-    // makes jumping between notes pick up each note's saved audio. Holding the
-    // play button (regenerate) still forces a fresh render.
-    if (this.plugin.settings.playNoteSavedAudio && activeNote) {
-      this.playActiveNote(activeNote);
-      return;
+    const action = resolvePlayTap({
+      synthesizing: provider.isOperationInProgress(),
+      playing: provider.isPlaying(),
+      pausedMidTrack: hasLoadedAudio && !audio.ended && audio.currentTime > 0,
+      loadedAudioIsStale: this.loadedAudioIsStale(),
+      hasLoadedAudio,
+      hasActiveNote: activeNote !== null,
+      cacheOn: this.plugin.settings.playNoteSavedAudio,
+    });
+
+    switch (action) {
+      case "cancel":
+        provider.cancelOperation();
+        return;
+      case "pause":
+        provider.pauseAudio();
+        return;
+      case "resume":
+        void provider.playAudio();
+        return;
+      case "regenerate":
+        this.regenerate();
+        // Back to the safe default, so the next tap doesn't pay again.
+        this.setCache(true);
+        return;
+      case "play-cached":
+        if (activeNote) {
+          this.playActiveNote(activeNote);
+        } else {
+          this.readActiveNoteFresh();
+        }
+        return;
     }
-
-    // Toggle off: resume the loaded audio while it still matches what the
-    // player is showing. (audio.src resolves an empty value to the page URL, so
-    // we check currentSrc, which is "" until a real media resource is selected.)
-    if (this.audio().currentSrc && !this.loadedAudioIsStale()) {
-      void provider.playAudio();
-      return;
-    }
-
-    // Nothing loaded, or the loaded audio was generated for a different note
-    // than the one now open → read the active note instead of replaying the
-    // previous one (issue #59).
-    this.readActiveNoteFresh();
   }
 
   /**
@@ -540,7 +580,7 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Regenerate the current note from scratch (the play button's hold). Always
+   * Regenerate the current note from scratch (a play tap with Cache off). Always
    * uses the currently selected voice and settings. Cancels any in-progress
    * synthesis and stops playback first, so speakText performs a fresh render
    * instead of just pausing the audio that is already playing.
@@ -578,29 +618,44 @@ export class VoicePlayerView extends ItemView {
     void this.plugin.persistActiveVoice(voiceId);
   }
 
+  // The content toggles read and write the speech profile of the language
+  // being read (see Voice.setProfileSetting); it is their source of truth.
+
   /** Toggle whether code blocks are read aloud. */
   private toggleCodeBlocks(): void {
-    this.plugin.settings.readCodeBlocks = !this.plugin.settings.readCodeBlocks;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateCodeButton();
+    const read = this.plugin.getActiveProfile().content.codeBlocks === "read";
+    void this.plugin
+      .setProfileSetting("content.codeBlocks", read ? "placeholder" : "read")
+      .then(() => this.updateCodeButton());
   }
 
   /** Toggle whether acronyms (NASA, API) are spelled out letter by letter. */
   private toggleAcronyms(): void {
-    this.plugin.settings.spellOutAcronyms =
-      !this.plugin.settings.spellOutAcronyms;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateAcronymButton();
+    const spell = this.plugin.getActiveProfile().content.acronyms === "spell";
+    void this.plugin
+      .setProfileSetting("content.acronyms", spell ? "word" : "spell")
+      .then(() => this.updateAcronymButton());
   }
 
   /** Toggle whether website URLs are skipped (link labels are kept). */
   private toggleSkipUrls(): void {
-    this.plugin.settings.skipUrls = !this.plugin.settings.skipUrls;
-    void this.plugin.saveSettings();
-    this.plugin.reinitializeTextSpeaker();
-    this.updateUrlButton();
+    const skip = this.plugin.getActiveProfile().content.urls === "skip";
+    void this.plugin
+      .setProfileSetting("content.urls", skip ? "read" : "skip")
+      .then(() => this.updateUrlButton());
+  }
+
+  /** Toggle the Cache: reuse a note's existing audio, or render it again. */
+  private toggleCache(): void {
+    this.setCache(!this.plugin.settings.playNoteSavedAudio);
+  }
+
+  private setCache(on: boolean): void {
+    if (this.plugin.settings.playNoteSavedAudio !== on) {
+      this.plugin.settings.playNoteSavedAudio = on;
+      void this.plugin.saveSettings();
+    }
+    this.updateCacheButton();
   }
 
   /** Toggle whether saving an MP3 also embeds an audio player in the note. */
@@ -621,6 +676,7 @@ export class VoicePlayerView extends ItemView {
     this.updateAcronymButton();
     this.updateUrlButton();
     this.updateEmbedButton();
+    this.updateCacheButton();
     this.updateDownloadButton();
   }
 
@@ -656,8 +712,9 @@ export class VoicePlayerView extends ItemView {
     if (!this.codeBtn) {
       return;
     }
-    const on = this.plugin.settings.readCodeBlocks;
+    const on = this.plugin.getActiveProfile().content.codeBlocks === "read";
     this.codeBtn.toggleClass("is-active", on);
+    this.codeBtn.setAttribute("aria-pressed", String(on));
     this.codeBtn.setAttribute(
       "aria-label",
       on ? "Read code blocks: on" : "Read code blocks: off",
@@ -668,8 +725,9 @@ export class VoicePlayerView extends ItemView {
     if (!this.acronymBtn) {
       return;
     }
-    const on = this.plugin.settings.spellOutAcronyms;
+    const on = this.plugin.getActiveProfile().content.acronyms === "spell";
     this.acronymBtn.toggleClass("is-active", on);
+    this.acronymBtn.setAttribute("aria-pressed", String(on));
     this.acronymBtn.setAttribute(
       "aria-label",
       on ? "Spell out acronyms: on" : "Spell out acronyms: off",
@@ -680,8 +738,9 @@ export class VoicePlayerView extends ItemView {
     if (!this.urlBtn) {
       return;
     }
-    const on = this.plugin.settings.skipUrls;
+    const on = this.plugin.getActiveProfile().content.urls === "skip";
     this.urlBtn.toggleClass("is-active", on);
+    this.urlBtn.setAttribute("aria-pressed", String(on));
     this.urlBtn.setAttribute(
       "aria-label",
       on ? "Skip website URLs: on" : "Skip website URLs: off",
@@ -694,9 +753,25 @@ export class VoicePlayerView extends ItemView {
     }
     const on = this.plugin.settings.autoEmbedAudio;
     this.embedBtn.toggleClass("is-active", on);
+    this.embedBtn.setAttribute("aria-pressed", String(on));
     this.embedBtn.setAttribute(
       "aria-label",
       on ? "Embed MP3 in note: on" : "Embed MP3 in note: off",
+    );
+  }
+
+  private updateCacheButton(): void {
+    if (!this.cacheBtn) {
+      return;
+    }
+    const on = this.plugin.settings.playNoteSavedAudio;
+    this.cacheBtn.toggleClass("is-active", on);
+    this.cacheBtn.setAttribute("aria-pressed", String(on));
+    this.cacheBtn.setAttribute(
+      "aria-label",
+      on
+        ? "Cache: on — play reuses this note's audio"
+        : "Cache: off — the next play generates new audio",
     );
   }
 
@@ -733,7 +808,7 @@ export class VoicePlayerView extends ItemView {
     // the download arrow signals "save next to the note". Only swap on change.
     if (hasDefault !== this.downloadShowsSave) {
       this.downloadShowsSave = hasDefault;
-      setIcon(this.downloadBtn, hasDefault ? "save" : "download");
+      setVoiceIcon(this.downloadBtn, hasDefault ? "save" : "download");
     }
     this.downloadBtn.setAttribute(
       "aria-label",
@@ -894,7 +969,7 @@ export class VoicePlayerView extends ItemView {
         cls: "voice-player-chapter-edit",
         attr: { "aria-label": "Track actions" },
       });
-      setIcon(actionsBtn, "more-vertical");
+      setVoiceIcon(actionsBtn, "more");
       this.registerDomEvent(actionsBtn, "click", (evt) => {
         evt.stopPropagation();
         this.openChapterActions(item, chapter);
@@ -1203,8 +1278,10 @@ export class VoicePlayerView extends ItemView {
     if (!this.repeatBtn) {
       return;
     }
-    const icon = this.repeatMode === "one" ? "repeat-1" : "repeat";
-    setIcon(this.repeatBtn, icon);
+    setVoiceIcon(
+      this.repeatBtn,
+      this.repeatMode === "one" ? "repeat-one" : "repeat",
+    );
     this.repeatBtn.toggleClass("is-active", this.repeatMode !== "none");
     const label =
       this.repeatMode === "one"
@@ -1264,16 +1341,21 @@ export class VoicePlayerView extends ItemView {
     // the real synthesis progress and spin the play button (a tap cancels it).
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
+    // The play button itself never moves: it shows a stop icon (a tap
+    // cancels) inside a ring that fills with the synthesis progress, or spins
+    // a short arc while no progress is known yet.
+    this.playPauseBtn.toggleClass("voice-generating", loading);
     if (loading) {
       const pct = Math.round(provider.getProgress() * 100);
       this.loadingFillEl.setCssProps({ "--voice-progress": `${pct}%` });
-      if (!this.playPauseBtn.hasClass("rotating-icon")) {
-        this.playPauseBtn.addClass("rotating-icon");
-        setIcon(this.playPauseBtn, "refresh-ccw");
-      }
+      this.playRingEl.toggleClass("is-indeterminate", pct <= 0);
+      this.playRingValueEl.setAttribute(
+        "stroke-dasharray",
+        `${pct <= 0 ? 22 : pct} 100`,
+      );
+      setVoiceIcon(this.playPauseBtn, "stop");
     } else {
-      this.playPauseBtn.removeClass("rotating-icon");
-      setIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
+      setVoiceIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }
 
     // Keep the selectors/toggles in sync if settings changed elsewhere.
@@ -1283,7 +1365,9 @@ export class VoicePlayerView extends ItemView {
       this.voiceSelect.value = provider.getVoice();
       this.updateCodeButton();
       this.updateAcronymButton();
+      this.updateUrlButton();
       this.updateEmbedButton();
+      this.updateCacheButton();
     }
     this.updateDownloadButton();
 

@@ -71,3 +71,6 @@ export class Menu {
 export function normalizePath(path: string): string {
   return path;
 }
+
+// Obsidian ships a YAML parser; the tests use the same "yaml" package.
+export { parse as parseYaml, stringify as stringifyYaml } from "yaml";

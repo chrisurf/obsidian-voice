@@ -1,4 +1,5 @@
-import { App, setIcon, Menu } from "obsidian";
+import { App, Menu } from "obsidian";
+import { setVoiceIcon, type VoiceIconName } from "../ui/icons";
 import { Voice } from "./VoicePlugin";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
@@ -59,7 +60,7 @@ export class MobileControlBar {
     // Open the full player UI (switch from this compact bar to the player view)
     this.createControlButton(
       controlsWrapper,
-      "audio-lines",
+      "player",
       "Open player",
       () => void this.plugin.activatePlayerView(),
     );
@@ -106,13 +107,13 @@ export class MobileControlBar {
     // Rewind button
     this.createControlButton(
       controlsWrapper,
-      "rewind",
+      "seek-back",
       `Rewind ${this.plugin.settings.rewindSeconds} seconds`,
       () => this.pollyService.rewindAudio(),
     );
 
     // Stop button
-    this.createControlButton(controlsWrapper, "square", "Stop", () => {
+    this.createControlButton(controlsWrapper, "stop", "Stop", () => {
       if (this.pollyService.isOperationInProgress()) {
         this.pollyService.cancelOperation();
         this.resetToPlayState();
@@ -171,7 +172,7 @@ export class MobileControlBar {
     // Fast-forward button
     this.createControlButton(
       controlsWrapper,
-      "fast-forward",
+      "seek-forward",
       `Fast-forward ${this.plugin.settings.forwardSeconds} seconds`,
       () => this.pollyService.fastForwardAudio(),
     );
@@ -183,7 +184,7 @@ export class MobileControlBar {
 
   private createControlButton(
     parent: HTMLElement,
-    icon: string,
+    icon: VoiceIconName,
     title: string,
     onClick: (e: MouseEvent) => void,
   ): HTMLElement {
@@ -192,7 +193,7 @@ export class MobileControlBar {
       attr: { title },
     });
 
-    setIcon(button, icon);
+    setVoiceIcon(button, icon);
     button.addEventListener("click", onClick);
 
     return button;
@@ -247,7 +248,7 @@ export class MobileControlBar {
   private showLoadingState(): void {
     if (this.playPauseIconEl) {
       this.playPauseIconEl.addClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "refresh-ccw");
+      setVoiceIcon(this.playPauseIconEl, "loading");
     }
     this.showProgressBar();
     this.updateProgressBar(0);
@@ -256,7 +257,7 @@ export class MobileControlBar {
   private resetToPlayState(): void {
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "play");
+      setVoiceIcon(this.playPauseIconEl, "play");
     }
   }
 
@@ -305,7 +306,7 @@ export class MobileControlBar {
   private onPlay(): void {
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "pause");
+      setVoiceIcon(this.playPauseIconEl, "pause");
     }
     this.hideProgressBar();
     this.show(); // Keep overlay visible during playback
@@ -316,7 +317,7 @@ export class MobileControlBar {
   private onPause(): void {
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "play");
+      setVoiceIcon(this.playPauseIconEl, "play");
     }
     this.hideProgressBar();
 
@@ -335,7 +336,7 @@ export class MobileControlBar {
   private onEnded(): void {
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "play");
+      setVoiceIcon(this.playPauseIconEl, "play");
     }
     this.hideProgressBar();
     // Hide overlay when audio ends
@@ -446,7 +447,7 @@ export class MobileControlBar {
       return;
     }
     this.downloadShowsSave = hasDefault;
-    setIcon(this.downloadIconEl, hasDefault ? "save" : "download");
+    setVoiceIcon(this.downloadIconEl, hasDefault ? "save" : "download");
   }
 
   destroy(): void {

@@ -135,6 +135,48 @@
         font-size: 13px;
         min-height: 1.5em;
       }
+      .progress {
+        margin-top: 12px;
+      }
+      .progress[hidden] {
+        display: none;
+      }
+      .progress-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 13px;
+        margin-bottom: 6px;
+      }
+      .progress-time {
+        color: var(--muted);
+        font-variant-numeric: tabular-nums;
+      }
+      .bar {
+        height: 10px;
+        border-radius: 999px;
+        background: var(--line);
+        overflow: hidden;
+      }
+      .bar-fill {
+        height: 100%;
+        width: 0%;
+        border-radius: 999px;
+        background: var(--accent);
+        transition: width 0.4s ease;
+      }
+      .bar.indeterminate .bar-fill {
+        width: 30%;
+        animation: slide 1.2s ease-in-out infinite;
+      }
+      @keyframes slide {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(340%);
+        }
+      }
       table {
         border-collapse: collapse;
         width: 100%;
@@ -181,6 +223,15 @@
           <button class="primary" id="compare">Vergleichen</button>
           <button id="after">Nur nachher</button>
           <button id="before">Nur vorher</button>
+        </div>
+        <div class="progress" id="progress" hidden>
+          <div class="progress-head">
+            <span id="progress-label"></span>
+            <span class="progress-time" id="progress-time"></span>
+          </div>
+          <div class="bar" id="bar">
+            <div class="bar-fill" id="bar-fill"></div>
+          </div>
         </div>
         <div class="status" id="status"></div>
       </div>
@@ -229,7 +280,7 @@
       // server measures its most recent recording.
       const lastSide = { side: null };
 
-      async function json(url, body) {
+      async function json(url, body, signal) {
         const response = await fetch(
           url,
           body
@@ -237,6 +288,7 @@
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(body),
+                signal,
               }
             : undefined,
         );
@@ -246,48 +298,121 @@
         return data;
       }
 
-      async function speak(side) {
+      // Characters per second the voice usually manages, until a real rate is known.
+      const DEFAULT_RATE = 25;
+      const fmt = (seconds) => `${Math.max(0, Math.round(seconds))} s`;
+
+      function showProgress(label, fraction, timeText) {
+        $("progress").hidden = false;
+        $("progress-label").textContent = label;
+        $("progress-time").textContent = timeText || "";
+        $("bar").classList.toggle("indeterminate", fraction === null);
+        if (fraction !== null) {
+          $("bar-fill").style.width = `${Math.round(fraction * 100)}%`;
+        }
+      }
+
+      /** Poll the server's progress while the voice speaks; returns a stop function. */
+      function trackSpeech(label) {
+        let stopped = false;
+        const tick = async () => {
+          if (stopped) return;
+          try {
+            const p = await json("/progress");
+            if (p.active && p.total > 0) {
+              const rate = p.done > 0 ? p.done / p.elapsed : DEFAULT_RATE;
+              // Between segments, advance by the rate so the bar keeps moving.
+              const estimate = Math.min(
+                p.total * 0.97,
+                Math.max(p.done, p.elapsed * rate),
+              );
+              showProgress(
+                `${label}: Stimme spricht … ${Math.round((estimate / p.total) * 100)} %`,
+                estimate / p.total,
+                `${fmt(p.elapsed)} · noch ca. ${fmt((p.total - estimate) / rate)}`,
+              );
+            }
+          } catch {
+            // A missed poll is fine; the next one catches up.
+          }
+          if (!stopped) setTimeout(tick, 500);
+        };
+        tick();
+        return () => (stopped = true);
+      }
+
+      async function speak(side, step) {
         const legacy = side === "before";
-        status(`${legacy ? "Vorher" : "Nachher"}: Text wird aufbereitet …`);
-        const { text } = await json("/render", {
-          markdown: $("markdown").value,
-          legacy,
-        });
-        status(
-          `${legacy ? "Vorher" : "Nachher"}: Stimme spricht … (ca. halbe Echtzeit)`,
+        const label = `${legacy ? "Vorher" : "Nachher"}${step}`;
+        status("");
+        showProgress(`${label}: Text wird aufbereitet …`, null);
+        const { text } = await json(
+          "/render",
+          { markdown: $("markdown").value, legacy },
+          current.controller.signal,
         );
+        showProgress(`${label}: Stimme startet …`, 0, `${text.length} Zeichen`);
         const started = performance.now();
-        const response = await fetch("/v1/audio/speech", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            input: text,
-            voice: $("voice").value,
-            response_format: "mp3",
-          }),
-        });
+        const stop = trackSpeech(label);
+        let response;
+        try {
+          response = await fetch("/v1/audio/speech", {
+            signal: current.controller.signal,
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              input: text,
+              voice: $("voice").value,
+              response_format: "mp3",
+            }),
+          });
+        } finally {
+          stop();
+        }
         if (!response.ok)
           throw new Error(`Sprachausgabe fehlgeschlagen (${response.status})`);
+        const seconds = (performance.now() - started) / 1000;
+        showProgress(`${label}: fertig`, 1, fmt(seconds));
         const blob = await response.blob();
         $(`card-${side}`).hidden = false;
         $(`audio-${side}`).src = URL.createObjectURL(blob);
         $(`text-${side}`).textContent = text;
         $(`report-${side}`).innerHTML = "";
         lastSide.side = side;
-        status(
-          `Fertig in ${((performance.now() - started) / 1000).toFixed(1)} s.`,
-        );
+        status(`${label} fertig in ${seconds.toFixed(1)} s – Player unten.`);
       }
 
+      // The reading in progress, if any: while it runs, "Vergleichen" becomes
+      // "Abbrechen" so the page is never stuck waiting.
+      const current = { controller: null };
+      const generateButtons = ["compare", "after", "before"].map($);
+
       async function run(sides) {
-        const buttons = document.querySelectorAll("button");
-        buttons.forEach((b) => (b.disabled = true));
+        if (current.controller) {
+          current.controller.abort();
+          return;
+        }
+        current.controller = new AbortController();
+        generateButtons.forEach((b) => (b.disabled = b.id !== "compare"));
+        $("compare").textContent = "Abbrechen";
         try {
-          for (const side of sides) await speak(side);
+          for (const [i, side] of sides.entries()) {
+            await speak(
+              side,
+              sides.length > 1 ? ` (${i + 1}/${sides.length})` : "",
+            );
+          }
         } catch (error) {
-          status(`Fehler: ${error.message}`);
+          $("progress").hidden = true;
+          status(
+            error.name === "AbortError"
+              ? "Abgebrochen. Die Stimme rechnet den laufenden Abschnitt noch zu Ende; ein neuer Start wartet kurz darauf."
+              : `Fehler: ${error.message}`,
+          );
         } finally {
-          buttons.forEach((b) => (b.disabled = false));
+          current.controller = null;
+          generateButtons.forEach((b) => (b.disabled = false));
+          $("compare").textContent = "Vergleichen";
         }
       }
 
@@ -298,7 +423,8 @@
           );
           return;
         }
-        status("Messe mit Whisper …");
+        status("");
+        showProgress("Messe mit Whisper …", null);
         try {
           const r = await json("/measure", { markdown: $("markdown").value });
           const rows = Object.entries(r.pauses_by_boundary)
@@ -316,8 +442,9 @@
             <p class="${r.missing_sentence_pauses.length ? "bad" : "ok"}">Fehlende Pausen an Satzenden: ${r.missing_sentence_pauses.length}</p>
             <p>Wort-Treffer: ${(r.word_accuracy * 100).toFixed(0)} %</p>
             ${list(r.misread, (m) => `<li>erwartet „${m.expected}“, gehört „${m.heard}“</li>`)}`;
-          status("Gemessen.");
+          showProgress("Messung fertig", 1);
         } catch (error) {
+          $("progress").hidden = true;
           status(`Fehler beim Messen: ${error.message}`);
         }
       }

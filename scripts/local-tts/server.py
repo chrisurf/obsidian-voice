@@ -39,6 +39,8 @@ REQUESTS_DIR = HOME / "requests"
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parent.parent
 last_request: dict = {}
+# Progress of the synthesis in flight, polled by the test page (GET /progress).
+progress = {"active": False, "done": 0, "total": 0, "started": 0.0}
 # Qwen3-TTS stays most stable on moderate inputs; longer texts are split at
 # sentence ends (never inside a sentence) and the audio is concatenated.
 MAX_SEGMENT_CHARS = 400
@@ -70,7 +72,9 @@ def split_segments(text: str) -> list[str]:
 def synthesize(text: str, voice: str) -> tuple[np.ndarray, int]:
     ref = VOICES_DIR / f"{voice}.wav"
     parts = []
-    for segment in split_segments(text):
+    segments = split_segments(text)
+    progress.update(active=True, done=0, total=sum(len(s) for s in segments), started=time.time())
+    for segment in segments:
         # A fixed seed makes the same text give the same audio, so before/after
         # measurements compare the pipeline, not sampling noise.
         mx.random.seed(SEED)
@@ -81,6 +85,8 @@ def synthesize(text: str, voice: str) -> tuple[np.ndarray, int]:
             lang_code="german",
         )
         parts.append(np.concatenate([np.array(r.audio) for r in results]))
+        progress["done"] += len(segment)
+    progress["active"] = False
     return np.concatenate(parts), model.sample_rate
 
 
@@ -144,6 +150,9 @@ class Handler(BaseHTTPRequestHandler):
             self.send_header("Content-Length", str(len(body)))
             self.end_headers()
             self.wfile.write(body)
+        elif path == "/progress":
+            elapsed = time.time() - progress["started"] if progress["started"] else 0
+            self._json(200, {**progress, "elapsed": round(elapsed, 1)})
         elif path == "/corpus":
             self._json(
                 200,

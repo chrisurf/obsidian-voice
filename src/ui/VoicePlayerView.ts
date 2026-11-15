@@ -1344,7 +1344,7 @@ export class VoicePlayerView extends ItemView {
     // The play button itself never moves: it shows a stop icon (a tap
     // cancels) inside a ring that fills with the synthesis progress, or spins
     // a short arc while no progress is known yet.
-    this.playPauseBtn.toggleClass("is-loading", loading);
+    this.playPauseBtn.toggleClass("voice-generating", loading);
     if (loading) {
       const pct = Math.round(provider.getProgress() * 100);
       this.loadingFillEl.setCssProps({ "--voice-progress": `${pct}%` });

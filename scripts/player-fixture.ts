@@ -92,7 +92,7 @@ function player(): string {
     ${
       loading !== undefined
         ? button(
-            "voice-player-btn voice-player-play is-loading",
+            "voice-player-btn voice-player-play voice-generating",
             "stop",
             `<span class="voice-play-ring${Number(loading) <= 0 ? " is-indeterminate" : ""}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="voice-play-ring-track" cx="50" cy="50" r="47" pathLength="100"/><circle class="voice-play-ring-value" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="${Number(loading) <= 0 ? 22 : loading} 100"/></svg></span>`,
           )

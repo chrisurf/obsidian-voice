@@ -722,7 +722,9 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   pointer-events: none;
 }
 
-.voice-player button.voice-ctl.voice-player-play.is-loading .voice-play-ring {
+.voice-player
+  button.voice-ctl.voice-player-play.voice-generating
+  .voice-play-ring {
   display: block;
 }
 

@@ -145,9 +145,7 @@ export function cleanProcessor(options: CleanProcessorOptions) {
     if (options.skipUrls) {
       visit(tree, (node) => {
         if ("children" in node && Array.isArray(node.children)) {
-          (node as Parent).children = mergeTextRuns(
-            (node as Parent).children as { type: string; value?: string }[],
-          ) as Parent["children"];
+          (node as Parent).children = mergeTextRuns((node as Parent).children);
         }
       });
     }

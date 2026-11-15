@@ -63,6 +63,7 @@ const PROBE = `<script>
           return { label: btn.getAttribute("aria-label") || "", cls: btn.className,
             width: r(b.width), height: r(b.height),
             radius: getComputedStyle(btn).borderTopLeftRadius,
+            corner: getComputedStyle(btn).getPropertyValue("corner-shape") || "",
             iconWidth: r(s.width), iconHeight: r(s.height) };
         });
       return { paneWidth: Math.round(root.getBoundingClientRect().width), overflow: overflow, controls: controls };
@@ -149,6 +150,12 @@ function check(report) {
         Math.abs(c.width - c.height) <= 1 &&
         (c.radius.endsWith("%") ||
           parseFloat(c.radius) >= Math.min(c.width, c.height) / 2 - 0.5);
+      // corner-shape: squircle (computed "superellipse(2)") turns a 50% radius
+      // into a rounded square; "round" computes to "superellipse(1)". Browsers
+      // without corner-shape report "".
+      if (c.corner && !/^(round|superellipse\(1\))$/.test(c.corner)) {
+        problems.push(`${name}: corner-shape ${c.corner}`);
+      }
       if (!c.cls.includes("voice-player-toggle") && !round) {
         problems.push(`${name}: ${c.width}×${c.height}, radius ${c.radius}`);
       }

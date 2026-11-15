@@ -413,6 +413,7 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
   border-radius: 50%;
+  corner-shape: round; /* not Obsidian's squircle, see .voice-ctl */
   min-width: 36px;
   min-height: 36px;
   opacity: 1;
@@ -609,6 +610,10 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   padding: 0;
   border: none;
   border-radius: 50%;
+  /* Obsidian 1.15 gives buttons squircle corners (corner-shape: squircle),
+     which turns a 50% radius into a rounded square. Round corners keep every
+     control a true circle; browsers without corner-shape ignore this. */
+  corner-shape: round;
   background: transparent;
   box-shadow: none;
   color: var(--text-muted);

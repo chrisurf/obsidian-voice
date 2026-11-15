@@ -174,6 +174,9 @@ button:not(.clickable-icon) {
   padding: 0 20px; height: 40px; border-radius: 8px; min-width: 0;
 }
 .is-mobile.is-tablet button:not(.clickable-icon) { padding: 0 18px; }
+/* Obsidian 1.15 draws buttons as squircles: with this, border-radius: 50%
+   gives a rounded square, not a circle (Chromium's corner-shape). */
+button { corner-shape: squircle; }
 .is-mobile svg { width: 16px; height: 16px; }`;
 
 /** The mobile control bar, as MobileControlBar builds it (playing state). */

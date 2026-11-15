@@ -32,6 +32,8 @@ interface ControlMetrics {
   width: number;
   height: number;
   radius: string;
+  /** Computed "corner-shape" (Chromium): only "superellipse(1)" is round. */
+  corner: string;
   iconWidth: number;
   iconHeight: number;
 }
@@ -94,6 +96,7 @@ async function measurePlayer(): Promise<PlayerMetrics> {
         width: Math.round(rect.width * 10) / 10,
         height: Math.round(rect.height * 10) / 10,
         radius: getComputedStyle(btn).borderRadius,
+        corner: getComputedStyle(btn).getPropertyValue("corner-shape"),
         iconWidth: svgRect ? Math.round(svgRect.width * 10) / 10 : 0,
         iconHeight: svgRect ? Math.round(svgRect.height * 10) / 10 : 0,
       };
@@ -192,7 +195,10 @@ describe("Voice player layout (Integration)", function () {
       // Every control except the reading-toggle segments is a circle.
       if (!c.cls.includes("voice-player-toggle")) {
         const round =
-          Math.abs(c.width - c.height) <= 1 && c.radius.startsWith("50%");
+          Math.abs(c.width - c.height) <= 1 &&
+          c.radius.startsWith("50%") &&
+          // "round" computes to superellipse(1); squircle is superellipse(2).
+          (c.corner === "" || /^(round|superellipse\(1\))$/.test(c.corner));
         expect({ name, round }).toEqual({ name, round: true });
       }
     }

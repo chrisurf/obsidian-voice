@@ -47,6 +47,9 @@ const legacy = process.env.VOICE_FIXTURE_LEGACY === "1";
 const demo = process.argv.includes("--demo");
 const readme = process.argv.includes("--readme");
 const mobileBar = process.argv.includes("--mobile-bar");
+// VOICE_FIXTURE_LOADING=40 shows the play button generating at 40 % (0 = the
+// spinning arc used before any progress is known).
+const loading = process.env.VOICE_FIXTURE_LOADING;
 
 function button(cls: string, name: VoiceIconName, extra = ""): string {
   return `<button class="${legacy ? "" : "voice-ctl "}${cls}" aria-label="${name}">${icon(name)}${extra}</button>`;
@@ -86,7 +89,18 @@ function player(): string {
   <div class="voice-player-transport">
     ${button("voice-player-btn voice-player-track", "skip-back")}
     ${button("voice-player-btn voice-player-skip", "seek-back", '<span class="voice-player-skip-label">15</span>')}
-    ${button("voice-player-btn voice-player-play", readme ? "pause" : "play")}
+    ${
+      loading !== undefined
+        ? button(
+            "voice-player-btn voice-player-play is-loading",
+            "stop",
+            `<span class="voice-play-ring${Number(loading) <= 0 ? " is-indeterminate" : ""}"><svg viewBox="0 0 100 100" aria-hidden="true"><circle class="voice-play-ring-track" cx="50" cy="50" r="47" pathLength="100"/><circle class="voice-play-ring-value" cx="50" cy="50" r="47" pathLength="100" stroke-dasharray="${Number(loading) <= 0 ? 22 : loading} 100"/></svg></span>`,
+          )
+        : button(
+            "voice-player-btn voice-player-play",
+            readme ? "pause" : "play",
+          )
+    }
     ${button("voice-player-btn voice-player-skip", "seek-forward", '<span class="voice-player-skip-label">30</span>')}
     ${button("voice-player-btn voice-player-track", "skip-forward")}
   </div>

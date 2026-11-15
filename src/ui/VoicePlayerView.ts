@@ -83,6 +83,8 @@ export class VoicePlayerView extends ItemView {
   private embedBtn: HTMLElement;
   private cacheBtn: HTMLElement;
   private loadingBarEl: HTMLElement;
+  private playRingEl: HTMLElement;
+  private playRingValueEl: SVGCircleElement;
   private loadingFillEl: HTMLElement;
 
   private isScrubbing = false;
@@ -213,6 +215,7 @@ export class VoicePlayerView extends ItemView {
       attr: { "aria-label": "Play, pause or cancel" },
     });
     setVoiceIcon(this.playPauseBtn, "play");
+    this.buildPlayRing();
     // A tap plays / pauses (and cancels an in-progress synthesis). Whether a
     // fresh start reuses existing audio or renders anew is the Cache toggle's
     // job (see resolvePlayTap), so the button has no hidden hold gesture.
@@ -379,6 +382,34 @@ export class VoicePlayerView extends ItemView {
     });
 
     this.refreshControls();
+  }
+
+  /**
+   * The progress ring around the play button: a faint track and an arc whose
+   * length is the synthesis progress (pathLength 100 = percent). Wrapped in a
+   * span so the button's icon stays its only direct <svg> child.
+   */
+  private buildPlayRing(): void {
+    const ns = "http://www.w3.org/2000/svg";
+    const doc = this.playPauseBtn.ownerDocument;
+    this.playRingEl = this.playPauseBtn.createSpan({ cls: "voice-play-ring" });
+    const svg = doc.createElementNS(ns, "svg");
+    svg.setAttribute("viewBox", "0 0 100 100");
+    svg.setAttribute("aria-hidden", "true");
+    const circle = (cls: string): SVGCircleElement => {
+      const c = doc.createElementNS(ns, "circle");
+      c.setAttribute("class", cls);
+      c.setAttribute("cx", "50");
+      c.setAttribute("cy", "50");
+      c.setAttribute("r", "47");
+      c.setAttribute("pathLength", "100");
+      svg.appendChild(c);
+      return c;
+    };
+    circle("voice-play-ring-track");
+    this.playRingValueEl = circle("voice-play-ring-value");
+    this.playRingValueEl.setAttribute("stroke-dasharray", "0 100");
+    this.playRingEl.appendChild(svg);
   }
 
   private togglePlay(): void {
@@ -1310,15 +1341,20 @@ export class VoicePlayerView extends ItemView {
     // the real synthesis progress and spin the play button (a tap cancels it).
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
+    // The play button itself never moves: it shows a stop icon (a tap
+    // cancels) inside a ring that fills with the synthesis progress, or spins
+    // a short arc while no progress is known yet.
+    this.playPauseBtn.toggleClass("is-loading", loading);
     if (loading) {
       const pct = Math.round(provider.getProgress() * 100);
       this.loadingFillEl.setCssProps({ "--voice-progress": `${pct}%` });
-      if (!this.playPauseBtn.hasClass("rotating-icon")) {
-        this.playPauseBtn.addClass("rotating-icon");
-        setVoiceIcon(this.playPauseBtn, "loading");
-      }
+      this.playRingEl.toggleClass("is-indeterminate", pct <= 0);
+      this.playRingValueEl.setAttribute(
+        "stroke-dasharray",
+        `${pct <= 0 ? 22 : pct} 100`,
+      );
+      setVoiceIcon(this.playPauseBtn, "stop");
     } else {
-      this.playPauseBtn.removeClass("rotating-icon");
       setVoiceIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }
 

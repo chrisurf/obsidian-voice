@@ -706,6 +706,67 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   }
 }
 
+/* While a note is generated the play button stays still (a stop icon; a tap
+   cancels) and a ring around it shows the progress. Before any progress is
+   known, a short arc circles instead. Only the ring rotates, and it is a
+   circle, so it looks the same at every angle and on every device. */
+.voice-play-ring {
+  position: absolute;
+  inset: -7px;
+  display: none;
+  pointer-events: none;
+}
+
+.voice-player button.voice-ctl.voice-player-play.is-loading .voice-play-ring {
+  display: block;
+}
+
+.voice-player .voice-play-ring svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  transform: rotate(-90deg); /* start at 12 o'clock */
+}
+
+.voice-play-ring-track,
+.voice-play-ring-value {
+  fill: none;
+  stroke-width: 4;
+}
+
+.voice-play-ring-track {
+  stroke: var(--background-modifier-border);
+}
+
+.voice-play-ring-value {
+  stroke: var(--interactive-accent);
+  stroke-linecap: round;
+  transition: stroke-dasharray 0.3s ease;
+}
+
+.voice-play-ring.is-indeterminate {
+  animation: voice-ring-spin 1s linear infinite;
+}
+
+@keyframes voice-ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Mobile control bar: spin only the icon, never the (rectangular) button. */
+.voice-mobile-control-btn.rotating-icon {
+  animation: none;
+}
+
+.voice-mobile-control-btn.rotating-icon svg {
+  animation: rotateCounterClockwise 2s linear infinite;
+}
+
 /* Actions row: save · folder on the left, repeat · speed on the right. */
 .voice-player-secondary {
   display: flex;

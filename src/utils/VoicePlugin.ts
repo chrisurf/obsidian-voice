@@ -1,4 +1,8 @@
-import { DEFAULT_SETTINGS, VoiceSettings } from "../settings/VoiceSettings";
+import {
+  DEFAULT_SETTINGS,
+  VoiceSettings,
+  migrateMiniMaxHost,
+} from "../settings/VoiceSettings";
 import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
@@ -168,6 +172,14 @@ export class Voice extends Plugin {
         this.settings.defaultAudioFolder = this.settings.lastAudioFolder;
       }
       this.settings.audioFolderMigrated = true;
+      await this.saveSettings();
+    }
+
+    // The old "Mainland China" MiniMax host never worked for mainland
+    // accounts; move it to the real one (idempotent, so no flag needed).
+    const minimaxHost = migrateMiniMaxHost(this.settings.MINIMAX_HOST);
+    if (minimaxHost !== this.settings.MINIMAX_HOST) {
+      this.settings.MINIMAX_HOST = minimaxHost;
       await this.saveSettings();
     }
   }

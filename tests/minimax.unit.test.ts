@@ -5,6 +5,10 @@ import {
   minimaxErrorMessage,
 } from "../src/service/minimaxAudio";
 import { MiniMaxSpeechService } from "../src/service/MiniMaxSpeechService";
+import {
+  MINIMAX_REGIONS,
+  migrateMiniMaxHost,
+} from "../src/settings/VoiceSettings";
 
 const mockRequestUrl = requestUrl as jest.Mock;
 
@@ -134,7 +138,7 @@ describe("Unit Tests - MiniMax Provider", () => {
       "my-group",
       "male-qn-qingse",
       "speech-02-turbo",
-      "api.minimaxi.chat",
+      "api.minimaxi.com",
       1.0,
     );
     await service.speak("Hello world.", 1.0, "note.md");
@@ -142,7 +146,7 @@ describe("Unit Tests - MiniMax Provider", () => {
     expect(mockRequestUrl).toHaveBeenCalledTimes(1);
     const call = mockRequestUrl.mock.calls[0][0];
     expect(call.url).toBe(
-      "https://api.minimaxi.chat/v1/t2a_v2?GroupId=my-group",
+      "https://api.minimaxi.com/v1/t2a_v2?GroupId=my-group",
     );
     expect(call.method).toBe("POST");
     expect(call.headers.Authorization).toBe("Bearer my-key");
@@ -227,5 +231,21 @@ describe("Unit Tests - MiniMax Provider", () => {
     });
     expect(provider).toBeInstanceOf(MiniMaxSpeechService);
     expect(provider.inputFormat).toBe("text");
+  });
+});
+
+describe("MiniMax region hosts Unit", () => {
+  it("moves the old mainland host to api.minimaxi.com (#98)", () => {
+    expect(migrateMiniMaxHost("api.minimaxi.chat")).toBe("api.minimaxi.com");
+    expect(migrateMiniMaxHost("api.minimax.io")).toBe("api.minimax.io");
+    expect(migrateMiniMaxHost("api.minimax.cn")).toBe("api.minimax.cn");
+  });
+
+  it("offers the global and both mainland hosts", () => {
+    expect(MINIMAX_REGIONS.map((r) => r.id)).toEqual([
+      "api.minimax.io",
+      "api.minimaxi.com",
+      "api.minimax.cn",
+    ]);
   });
 });

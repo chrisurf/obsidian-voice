@@ -554,12 +554,18 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Region")
       .setDesc(
-        "The MiniMax API host. Pick the region where your MiniMax account was created.",
+        "The MiniMax API host. Pick the region where your MiniMax account was created: platform.minimax.io (global), platform.minimaxi.com or platform.minimax.cn (mainland China).",
       )
       .addDropdown((dropdown) => {
         MINIMAX_REGIONS.forEach((region) => {
           dropdown.addOption(region.id, region.label);
         });
+        // Keep a host set by hand (not in the list) instead of resetting it
+        // to the first region whenever the settings are shown.
+        const host = this.plugin.settings.MINIMAX_HOST;
+        if (host && !MINIMAX_REGIONS.some((region) => region.id === host)) {
+          dropdown.addOption(host, `Custom (${host})`);
+        }
         dropdown
           .setValue(this.plugin.settings.MINIMAX_HOST)
           .onChange(async (value) => {

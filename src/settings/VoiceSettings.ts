@@ -400,8 +400,22 @@ export const OPENAI_COMPAT_FORMATS: {
  */
 export const MINIMAX_REGIONS: ModelOption[] = [
   { id: "api.minimax.io", label: "Global (api.minimax.io)" },
-  { id: "api.minimaxi.chat", label: "Mainland China (api.minimaxi.chat)" },
+  { id: "api.minimaxi.com", label: "Mainland China (api.minimaxi.com)" },
+  {
+    id: "api.minimax.cn",
+    label: "Mainland China, platform.minimax.cn (api.minimax.cn)",
+  },
 ];
+
+/**
+ * The MiniMax host to use for a stored one. Up to 1.19 the "Mainland China"
+ * region pointed at api.minimaxi.chat — MiniMax's old international host,
+ * which mainland accounts are refused on (issues #98, #87) — so that value
+ * becomes the mainland host it was meant to be.
+ */
+export function migrateMiniMaxHost(host: string): string {
+  return host === "api.minimaxi.chat" ? "api.minimaxi.com" : host;
+}
 
 /**
  * MiniMax T2A models. HD favours quality; Turbo favours latency/cost. Both the

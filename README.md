@@ -171,6 +171,8 @@ A **speech profile** decides how Voice reads in one language: how words are pron
 - **Upper and lower case matter.** Lexicon entries match whole words and are case-sensitive by default — `IT` can be read "I-T" while `it` and `Item` stay as they are.
 - **Versioned.** Each file starts with `voiceProfile: 1`. A newer format is refused with a clear message instead of being misread, and settings a version doesn't know are kept but not applied.
 
+![Speech profile editor: quick controls for every setting above the profile's text](./assets/profile-editor.png)
+
 ```yaml
 voiceProfile: 1
 language: de

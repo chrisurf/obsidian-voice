@@ -36,6 +36,15 @@ interface Internals {
 
 /** Configure a provider whose settings show no secrets, then open the tab. */
 async function openVoiceSettings(): Promise<void> {
+  // The "What's New" note opens shortly after start-up; wait for it and close
+  // it, so it isn't left behind the settings.
+  const whatsNew = browser.$(".voice-whats-new-modal");
+  if (await whatsNew.waitForExist({ timeout: 8000 }).catch(() => false)) {
+    for (let i = 0; i < 5 && (await whatsNew.isExisting()); i++) {
+      await browser.keys("Escape");
+      await browser.pause(300);
+    }
+  }
   await browser.executeObsidian(async ({ app }, id: string) => {
     const a = app as unknown as Internals;
     if (!a.plugins.enabledPlugins.has(id)) {
@@ -49,7 +58,29 @@ async function openVoiceSettings(): Promise<void> {
     a.setting.open();
     a.setting.openTabById(id);
   }, PLUGIN_ID);
-  await browser.pause(500);
+  await browser.pause(800);
+}
+
+/**
+ * Switch to the window that shows `selector`: Obsidian 1.15 opens the settings
+ * (and modals started from them) in a window of their own on desktop.
+ */
+async function switchToWindowWith(selector: string): Promise<void> {
+  for (let attempt = 0; attempt < 20; attempt++) {
+    for (const handle of await browser.getWindowHandles()) {
+      await browser.switchToWindow(handle);
+      if (
+        await browser.execute(
+          (sel: string) => !!document.querySelector(sel),
+          selector,
+        )
+      ) {
+        return;
+      }
+    }
+    await browser.pause(250);
+  }
+  throw new Error(`No window shows ${selector}`);
 }
 
 /** Scroll the settings so the "Speech profiles" heading is at the top. */
@@ -58,9 +89,22 @@ async function scrollToProfiles(): Promise<void> {
     const heading = Array.from(
       document.querySelectorAll(".setting-item-heading .setting-item-name"),
     ).find((el) => el.textContent === "Speech profiles");
-    heading?.closest(".setting-item")?.scrollIntoView({ block: "start" });
+    const item = heading?.closest(".setting-item") as HTMLElement | undefined;
+    item?.scrollIntoView({ block: "start" });
+    // Leave room below the settings header, so the heading isn't covered.
+    let scroller = item?.parentElement ?? null;
+    while (scroller && scroller.scrollHeight <= scroller.clientHeight) {
+      scroller = scroller.parentElement;
+    }
+    if (scroller) scroller.scrollTop -= 90;
   });
   await browser.pause(300);
+}
+
+/** No focus ring or text cursor in the picture. */
+async function blur(): Promise<void> {
+  await browser.execute(() => (document.activeElement as HTMLElement)?.blur());
+  await browser.pause(200);
 }
 
 async function kind(): Promise<string> {
@@ -76,15 +120,11 @@ describe("Docs screenshots (Integration)", function () {
   });
 
   it("captures the settings with the speech profiles section", async function () {
+    await switchToWindowWith(".vertical-tab-content");
     await scrollToProfiles();
     const name = (await kind()) === "mobile" ? "mobile-settings" : "settings";
-    if (name === "mobile-settings") {
-      await browser.saveScreenshot(path.join(OUT_DIR, `${name}.png`));
-    } else {
-      await browser
-        .$(".modal.mod-settings")
-        .saveScreenshot(path.join(OUT_DIR, `${name}.png`));
-    }
+    await blur();
+    await browser.saveScreenshot(path.join(OUT_DIR, `${name}.png`));
   });
 
   it("captures the profile editor", async function () {
@@ -102,8 +142,9 @@ describe("Docs screenshots (Integration)", function () {
       );
       (edit as HTMLButtonElement | undefined)?.click();
     });
-    await browser.$(".voice-profile-editor").waitForExist();
-    await browser.pause(300);
+    await switchToWindowWith(".voice-profile-editor");
+    await browser.pause(400);
+    await blur();
     await browser
       .$(".modal:has(.voice-profile-editor)")
       .saveScreenshot(path.join(OUT_DIR, "profile-editor.png"));

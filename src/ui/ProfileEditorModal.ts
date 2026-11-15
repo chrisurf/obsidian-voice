@@ -25,7 +25,7 @@ import {
 } from "../profiles/schema";
 import { ProfileStore } from "../profiles/ProfileStore";
 import { setProfileValue } from "../profiles/edit";
-import { normalizeLanguageKey } from "../profiles/resolve";
+import { normalizeLanguageKey, resolveProfile } from "../profiles/resolve";
 import type { ParsedProfile } from "../profiles/parse";
 
 export interface ProfileEditorOptions {
@@ -154,6 +154,12 @@ export class ProfileEditorModal extends Modal {
           : field.description,
       );
     const set = (next: unknown) => this.setValue(field.path, next);
+    // What applies while this profile doesn't set the field: the built-in
+    // value for its language, shown greyed in empty text fields.
+    const inherited = getPath(
+      resolveProfile(normalizeLanguageKey(this.key || "default"), {}),
+      field.path,
+    );
 
     switch (field.kind) {
       case "enum":
@@ -186,6 +192,7 @@ export class ProfileEditorModal extends Modal {
       case "text":
         setting.addText((text) =>
           text
+            .setPlaceholder(typeof inherited === "string" ? inherited : "")
             .setValue(typeof value === "string" ? value : "")
             .onChange((next) => set(next)),
         );
@@ -193,7 +200,11 @@ export class ProfileEditorModal extends Modal {
       case "textList":
         setting.addTextArea((area) =>
           area
-            .setPlaceholder("One per line")
+            .setPlaceholder(
+              Array.isArray(inherited) && inherited.length > 0
+                ? inherited.join("\n")
+                : "One per line",
+            )
             .setValue(Array.isArray(value) ? value.join("\n") : "")
             .onChange((next) =>
               set(

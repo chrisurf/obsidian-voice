@@ -9,10 +9,12 @@
  * The authoritative check is the snapshot the e2e spec exports from a real
  * Obsidian (test/specs/player-layout.e2e.ts); this fixture needs no Obsidian.
  *
- * Usage: npx tsx scripts/player-fixture.ts [out.html] [--demo]
+ * Usage: npx tsx scripts/player-fixture.ts [out.html] [--demo|--readme|--mobile-bar]
  *
  * --demo makes the controls interactive (scripts/player-demo.ts: the real
  * press gesture and icons), to try tap vs. hold in a browser.
+ * --readme renders one player filling the page (sample chapters, selectors),
+ * and --mobile-bar the mobile control bar, for the README screenshots.
  *
  * VOICE_FIXTURE_LEGACY=1 renders the controls the way 1.19.0 did (no .voice-ctl,
  * with styles from VOICE_FIXTURE_STYLES, e.g. `git show main:styles.css`), as a
@@ -43,9 +45,24 @@ function icon(name: VoiceIconName): string {
 
 const legacy = process.env.VOICE_FIXTURE_LEGACY === "1";
 const demo = process.argv.includes("--demo");
+const readme = process.argv.includes("--readme");
+const mobileBar = process.argv.includes("--mobile-bar");
 
 function button(cls: string, name: VoiceIconName, extra = ""): string {
   return `<button class="${legacy ? "" : "voice-ctl "}${cls}" aria-label="${name}">${icon(name)}${extra}</button>`;
+}
+
+const SAMPLE_CHAPTERS = [
+  "00 — Welcome to Voice",
+  "01 — The Case for Deep Focus",
+  "02 — Rituals and Routines",
+  "03 — Training Your Attention",
+  "04 — Deep Work — A Field Guide",
+  "05 — Feature Demo — Code, Links & Acronyms",
+];
+
+function select(label: string): string {
+  return `<select class="voice-player-select dropdown"><option>${label}</option></select>`;
 }
 
 function player(): string {
@@ -58,18 +75,18 @@ function player(): string {
   return `
 <div class="view-content voice-player">
   <div class="voice-player-header">
-    <div class="voice-player-title">Projektplan — Ziele &amp; Aufgaben</div>
-    <div class="voice-player-subtitle">1 chapter</div>
+    <div class="voice-player-title">${readme ? "00 — Welcome to Voice" : "Projektplan — Ziele &amp; Aufgaben"}</div>
+    <div class="voice-player-subtitle">${readme ? "6 chapters" : "1 chapter"}</div>
   </div>
   <div class="voice-player-seek">
-    <span class="voice-player-time">0:00</span>
-    <input class="voice-player-scrubber" type="range" min="0" max="100" value="0">
-    <span class="voice-player-time">0:00</span>
+    <span class="voice-player-time">${readme ? "0:21" : "0:00"}</span>
+    <input class="voice-player-scrubber" type="range" min="0" max="100" value="${readme ? 32 : 0}">
+    <span class="voice-player-time">${readme ? "1:05" : "0:00"}</span>
   </div>
   <div class="voice-player-transport">
     ${button("voice-player-btn voice-player-track", "skip-back")}
     ${button("voice-player-btn voice-player-skip", "seek-back", '<span class="voice-player-skip-label">15</span>')}
-    ${button("voice-player-btn voice-player-play", "play")}
+    ${button("voice-player-btn voice-player-play", readme ? "pause" : "play")}
     ${button("voice-player-btn voice-player-skip", "seek-forward", '<span class="voice-player-skip-label">30</span>')}
     ${button("voice-player-btn voice-player-track", "skip-forward")}
   </div>
@@ -79,7 +96,7 @@ function player(): string {
     ${button("voice-player-repeat", "repeat")}
     <div class="voice-player-speed">
       ${button("voice-player-speed-btn", "minus")}
-      <span class="voice-player-speed-value">1.0×</span>
+      <span class="voice-player-speed-value">${readme ? "1.1×" : "1.0×"}</span>
       ${button("voice-player-speed-btn", "plus")}
     </div>
   </div>
@@ -91,13 +108,26 @@ function player(): string {
     ${toggle("embed", "Embed")}
   </div>
   ${demo ? '<div class="voice-demo-log">Tap or hold a control …</div>' : ""}
+  ${
+    readme
+      ? `<div class="voice-player-options">${select("AWS Polly")}${select("Daniel (German)")}</div>
+  <div class="voice-player-folder">${select("Studies")}</div>`
+      : ""
+  }
   <div class="voice-player-chapters">
     <div class="voice-player-chapters-title">Chapters</div>
-    <div class="voice-player-chapter is-current">
-      <span class="voice-player-chapter-index">1</span>
-      <span class="voice-player-chapter-name">Kapitel 1</span>
+    ${(readme ? SAMPLE_CHAPTERS : ["Kapitel 1"])
+      .map(
+        (
+          name,
+          i,
+        ) => `<div class="voice-player-chapter${i === 0 ? " is-current" : ""}">
+      <span class="voice-player-chapter-index">${i + 1}</span>
+      <span class="voice-player-chapter-name">${name.replace("&", "&amp;")}</span>
       <div class="voice-player-chapter-edit" aria-label="Track actions">${icon("more")}</div>
-    </div>
+    </div>`,
+      )
+      .join("")}
   </div>
 </div>`;
 }
@@ -132,6 +162,38 @@ button:not(.clickable-icon) {
 .is-mobile.is-tablet button:not(.clickable-icon) { padding: 0 18px; }
 .is-mobile svg { width: 16px; height: 16px; }`;
 
+/** The mobile control bar, as MobileControlBar builds it (playing state). */
+function mobileControlBar(): string {
+  const btn = (name: VoiceIconName, extra = "") =>
+    `<button class="voice-mobile-control-btn${extra}">${icon(name)}</button>`;
+  return `
+<div class="voice-mobile-overlay is-visible">
+  <div class="voice-mobile-progress-container visible">
+    <div class="voice-mobile-progress-bar" style="--voice-progress:45%"></div>
+  </div>
+  <div class="voice-mobile-controls">
+    ${btn("player")}${btn("mic")}${btn("seek-back")}${btn("stop")}
+    <div class="voice-mobile-speed-group">
+      ${btn("minus")}<div class="voice-mobile-speed-display">1.1x</div>${btn("plus")}
+    </div>
+    ${btn("pause", " voice-mobile-primary-btn")}${btn("seek-forward")}${btn("download")}
+  </div>
+</div>`;
+}
+
+// Approximates Obsidian's dark dropdown for the README pages.
+const readmeCss = `
+body.theme-dark { --interactive-normal: #363636; --nav-item-background: transparent; padding: 0; }
+.dropdown { appearance: none; height: 34px; padding: 0 30px 0 12px; border: none;
+  border-radius: 6px; color: var(--text-normal); font: inherit; font-size: 14px;
+  background: var(--interactive-normal) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23aaa' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m7 15 5 5 5-5'/%3E%3Cpath d='m7 9 5-5 5 5'/%3E%3C/svg%3E") no-repeat right 10px center; }
+.voice-player { width: ${process.env.VOICE_FIXTURE_WIDTH ?? "100%"}; background: var(--background-secondary); min-height: 100vh; box-sizing: border-box; }
+.voice-mobile-overlay { width: ${process.env.VOICE_FIXTURE_WIDTH ?? "100%"}; box-sizing: border-box; }
+input[type=range] { appearance: none; height: 4px; border-radius: 2px; background: #4a4a4a; }
+input[type=range]::-webkit-slider-thumb { appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #e6e6e6; }
+.voice-mobile-overlay.is-visible { position: static; display: flex; transform: none; }
+`;
+
 /** Bundle scripts/player-demo.ts into one inline script. */
 function demoScript(): string {
   const result = buildSync({
@@ -156,21 +218,28 @@ const widths = [
 const html = `<!doctype html>
 <html><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<style>${hostile}</style>
+${readme || mobileBar ? "" : `<style>${hostile}</style>`}
 <style>${css}</style>
 <style>${theme}
 .voice-snapshot { margin: 0 auto 24px; background: var(--background-secondary); border-radius: 12px; }
 .voice-snapshot-label { margin: 0 auto 6px; font-size: 12px; color: #888; }
 .voice-demo-log { min-height: 1.4em; font-size: 12px; text-align: center; color: var(--text-accent); }
+${readme || mobileBar ? readmeCss : ""}
 </style></head>
 <body class="theme-dark is-mobile is-tablet is-ios">
-${widths
-  .map(
-    (w) =>
-      `<div class="voice-snapshot-label" style="${w.style}">${w.label}</div>` +
-      `<div class="voice-snapshot" style="${w.style}">${player()}</div>`,
-  )
-  .join("\n")}
+${
+  readme
+    ? player()
+    : mobileBar
+      ? mobileControlBar()
+      : widths
+          .map(
+            (w) =>
+              `<div class="voice-snapshot-label" style="${w.style}">${w.label}</div>` +
+              `<div class="voice-snapshot" style="${w.style}">${player()}</div>`,
+          )
+          .join("\n")
+}
 ${demo ? `<script>${demoScript()}</script>` : ""}
 </body></html>`;
 

@@ -28,9 +28,9 @@ Turn every note into a mobile-friendly, audiobook-like experience. The Obsidian 
 - **A real audiobook player** — open the Voice player, see your notes as chapters, and play, skip, and repeat just like a podcast app.
 - **Bring your own provider** — Voice supports all the major text-to-speech engines (**AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, and **MiniMax**) and any **OpenAI-compatible server**, so you can listen with whichever one you already use. Every feature works the same on all of them.
 - **Listen in seconds** — turn any note into lifelike speech straight from the ribbon, a command, or the player.
-- **Designed for every device** — the same experience on desktop, iOS, and Android, with a touch-friendly mobile player and control bar.
+- **Designed for every device** — the same look and controls on desktop, iPhone, iPad, and Android, on any Obsidian version, with a touch-friendly mobile player and control bar.
 - **Own your audio** — download MP3 files, auto-embed them into your note, and keep an offline archive.
-- **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and watch synthesis progress in real time.
+- **Stay in control** — adjust tempo on the fly, jump forward or back, repeat a chapter or the whole list, and with **Cache** never pay twice for the same note by accident.
 - **Stay private** — your credentials live in your own provider account; nothing is routed through a third party.
 
 ## The Voice Player
@@ -41,34 +41,33 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 #### Controls at a glance
 
-Every control is a single button. The save button does **two things**: a quick **tap** and a **press & hold** (~1.5 s; right-click works too on desktop). A ring fills around it while you hold.
+| Control                                       | What it does                                                                                                            |
+| --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                                                                       |
+| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
+| ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
+| ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
+| 📂 **Folder**                                 | Save into a folder you pick, in one click                                                                               |
+| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                                                                                   |
+| **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
+| ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
 
-| Button                                        | Tap                                                              | Press & hold                                                  |
-| --------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                | —                                                             |
-| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                             |
-| ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                             |
-| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                             |
-| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                             |
-| ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default |
-| 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                             |
-| 🛢️ **Cache**                                  | Toggle reusing the note's existing audio (see below)             | —                                                             |
-| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                             |
-| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                             |
-| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                             |
-| 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                             |
-| ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                             |
+Below them sits a row of **toggles** that light up when on:
 
-Each toggle (🛢️ `Aa` `</>` 🔗 📎) **highlights when it's on**, so you can see your options at a glance — no trip to settings.
+| Toggle      | On                                                                                      | Default |
+| ----------- | --------------------------------------------------------------------------------------- | ------- |
+| **Cache**   | ▶️ reuses the note's existing audio instead of generating it again (see below)          | on      |
+| **Spell**   | Spell out acronyms — read `NASA`, `API` letter by letter                                | off     |
+| **Code**    | Read fenced code blocks (Mermaid, YAML, …) aloud instead of a short placeholder         | off     |
+| **No URLs** | Skip website URLs (`https://…`, `www.…`); link labels and the surrounding text are kept | off     |
+| **Embed**   | Add an audio player to the note whenever you save its MP3                               | off     |
 
 #### Cache: never pay twice by accident
 
-The **Cache** toggle decides what ▶️ does when it starts a note:
+- **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a toggle does **not** generate new audio on its own.
+- **Cache off**: the next ▶️ **generates the note again** with your current voice and settings (a new, paid request to your provider). Afterwards Cache switches itself **back on**.
 
-- **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a reading toggle does **not** generate new audio on its own, so you never pay twice by accident.
-- **Cache off**: the next ▶️ **generates the note again** with your current voice and settings (that's a new request to your provider). Afterwards Cache switches itself **back on**, so the following taps don't pay again.
-
-So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️. Pausing and resuming never generates anything, in either mode.
+So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️. Pausing and resuming never generates anything.
 
 Above the chapter list sit the **provider** and **voice** dropdowns (switch engine or voice instantly) and a **folder dropdown** that points the chapter list at any folder in your vault that contains audio.
 
@@ -143,24 +142,13 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 - Switch voices instantly from the player's voice dropdown or the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
 - **Azure: every voice, grouped by language.** Press **Test Credentials** in settings and Voice loads your account's full Azure neural catalog (hundreds of voices), organized by language in the picker — no more being limited to a handful.
 
-### Fine-Tune What Gets Spoken
-
-Flip these as **one-click icon toggles in the Voice player** — they light up when on. All are **off by default** and apply to every provider:
-
-- `</>` **Read code blocks** — read fenced code blocks (Mermaid, YAML, and other code) aloud. Off announces them with a short placeholder instead.
-- `Aa` **Spell out acronyms** — read uppercase words like `NASA` or `API` letter by letter. Off pronounces them naturally.
-- 🔗 **Skip website URLs** — strip website URLs (`https://…` and `www.…`) from the spoken output while keeping the surrounding text and link labels intact. Off reads them as written.
-- 📎 **Embed MP3 in note** — add an audio player to the note whenever you save its MP3. Off saves the file without embedding.
-
-> **Tip:** prefer a hands-off archive? Turn on **Save automatically** in settings to save and embed after every playback — see [Save & Play Audio Offline](#save--play-audio-offline).
-
 ### Built for Mobile
 
 - On the Obsidian mobile app, start playback or open the player from the dedicated **Voice read text** and **Open Voice player** menu items.
 
   ![mobile menu](./assets/mobile.png)
 
-- Control playback with the touch-friendly mobile control bar — play / pause, rewind, fast-forward, voice switching, tempo, and a progress indicator. (It stays out of the way while the full player is open.)
+- Control playback with the touch-friendly mobile control bar — open the player, switch voice, rewind, stop, tempo, play / pause, fast-forward, save, and a progress indicator. (It stays out of the way while the full player is open.)
 
   ![mobile control bar](./assets/mobile-control.png)
 
@@ -175,7 +163,7 @@ Flip these as **one-click icon toggles in the Voice player** — they light up w
 
 ## Settings
 
-Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **content toggles** (read code blocks, spell out acronyms, skip website URLs, embed MP3) — live as one-click controls in the Voice player.
+Configure your provider and credentials in **Settings → Voice**. The settings tab stays lean: it covers setup and defaults, while the things you change while listening — **voice**, **tempo**, and the **toggles** (Cache, Spell, Code, No URLs, Embed) — live as one-click controls in the Voice player.
 
 ![Voice settings](./assets/settings.png)
 
@@ -214,7 +202,7 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 
 ## Bring Your Own Provider
 
-Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the content toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
+Voice is built to work with the provider you already use. For a long time it was AWS Polly only — the goal now is to support all the common text-to-speech engines, so you can bring your own. Pick **AWS Polly**, **ElevenLabs**, **OpenAI**, **Google Cloud**, **Azure Speech**, **MiniMax**, or **OpenAI-compatible** from the **Speech Provider** dropdown in settings. Each provider keeps its own credentials and voice list; everything else — tempo, rewind/fast-forward intervals, downloads, auto-save, and the player toggles — works identically. After entering your credentials, press **Test Credentials** to confirm everything is connected.
 
 The newest addition, **MiniMax**, adds a selectable **mainland-China region** and strong Chinese-language voices — so Voice now works even where the other engines are hard to reach.
 

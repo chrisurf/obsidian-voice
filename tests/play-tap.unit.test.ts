@@ -26,10 +26,21 @@ describe("Play button tap Unit", () => {
     );
   });
 
-  it("resumes a paused track instead of rendering again", () => {
+  it("with Cache on, resumes a paused track instead of rendering again", () => {
     const paused = { ...idle, hasLoadedAudio: true, pausedMidTrack: true };
     expect(resolvePlayTap(paused)).toBe("resume");
-    expect(resolvePlayTap({ ...paused, cacheOn: false })).toBe("resume");
+  });
+
+  it("with Cache off, renders anew even when old audio is paused mid-track", () => {
+    // The reported case: a saved MP3 was loaded and paused, then Cache was
+    // switched off - play must make new audio, not resume the old file.
+    const pausedOld = {
+      ...idle,
+      hasLoadedAudio: true,
+      pausedMidTrack: true,
+      cacheOn: false,
+    };
+    expect(resolvePlayTap(pausedOld)).toBe("regenerate");
   });
 
   it("with Cache on, a fresh start plays the note's existing audio", () => {

@@ -69,7 +69,7 @@ Below them sits a row of **toggles** that light up when on:
 - **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a toggle does **not** generate new audio on its own.
 - **Cache off**: the next ▶️ **generates the note again** with your current voice and settings (a new, paid request to your provider). Afterwards Cache switches itself **back on**.
 
-So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️. Pausing and resuming never generates anything.
+So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️ — even if the old recording is paused mid-way, it is generated anew. With Cache on, pausing and resuming never generates anything.
 
 Above the chapter list sit the **provider** and **voice** dropdowns (switch engine or voice instantly) and a **folder dropdown** that points the chapter list at any folder in your vault that contains audio.
 

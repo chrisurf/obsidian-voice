@@ -6,10 +6,10 @@
  * - Cache on (default): play the note's existing audio — its saved MP3 or the
  *   audio already rendered this session — and only synthesize when there is
  *   none. Changed voice/settings never trigger a new render on their own.
- * - Cache off: a fresh start renders the note again with the current voice and
- *   settings; the player then switches Cache back on, so the next tap doesn't
- *   pay again by accident.
- * Pause / resume is the same in both modes: a paused track resumes.
+ * - Cache off: the next tap renders the note again with the current voice and
+ *   settings — even when old audio is paused mid-track — and the player then
+ *   switches Cache back on, so the next tap doesn't pay again by accident.
+ * With Cache on, a paused track resumes.
  */
 
 export interface PlayTapState {
@@ -47,11 +47,13 @@ export function resolvePlayTap(state: PlayTapState): PlayTapAction {
   if (state.playing) {
     return "pause";
   }
-  if (state.pausedMidTrack && !state.loadedAudioIsStale) {
-    return "resume";
-  }
+  // Cache off means "make new audio": checked before resuming, because Cache
+  // only stays off until the next render, so paused audio is the old one.
   if (!state.cacheOn && state.hasActiveNote) {
     return "regenerate";
+  }
+  if (state.pausedMidTrack && !state.loadedAudioIsStale) {
+    return "resume";
   }
   if (state.hasActiveNote) {
     return "play-cached";

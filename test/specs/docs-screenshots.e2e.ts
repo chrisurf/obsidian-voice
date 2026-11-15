@@ -1,0 +1,111 @@
+/**
+ * Takes the README screenshots of the settings in a real, sandboxed Obsidian
+ * with an empty test vault (no personal notes), so they can be retaken for
+ * every release. Run with `npm run docs:screenshots`; the images land in
+ * test/artifacts/docs/, to be checked and copied to assets/.
+ *
+ * Not part of the regular e2e run (see wdio.docs.conf.mts).
+ */
+
+import * as fs from "fs";
+import * as path from "path";
+
+declare const browser: any;
+declare function describe(title: string, fn: () => void): void;
+declare function it(title: string, fn: () => void | Promise<void>): void;
+declare function before(fn: () => void | Promise<void>): void;
+
+const PLUGIN_ID = "voice";
+const OUT_DIR = path.resolve("test/artifacts/docs");
+
+interface Internals {
+  plugins: {
+    enabledPlugins: Set<string>;
+    enablePlugin(id: string): Promise<void>;
+    plugins: Record<
+      string,
+      {
+        settings: Record<string, unknown>;
+        saveSettings(): Promise<void>;
+        reinitializeProvider(): void;
+      }
+    >;
+  };
+  setting: { open(): void; openTabById(id: string): void; close(): void };
+}
+
+/** Configure a provider whose settings show no secrets, then open the tab. */
+async function openVoiceSettings(): Promise<void> {
+  await browser.executeObsidian(async ({ app }, id: string) => {
+    const a = app as unknown as Internals;
+    if (!a.plugins.enabledPlugins.has(id)) {
+      await a.plugins.enablePlugin(id);
+    }
+    const plugin = a.plugins.plugins[id];
+    plugin.settings.TTS_PROVIDER = "openai-compatible";
+    plugin.settings.OPENAI_COMPAT_BASE_URL = "http://localhost:8880/v1";
+    await plugin.saveSettings();
+    plugin.reinitializeProvider();
+    a.setting.open();
+    a.setting.openTabById(id);
+  }, PLUGIN_ID);
+  await browser.pause(500);
+}
+
+/** Scroll the settings so the "Speech profiles" heading is at the top. */
+async function scrollToProfiles(): Promise<void> {
+  await browser.execute(() => {
+    const heading = Array.from(
+      document.querySelectorAll(".setting-item-heading .setting-item-name"),
+    ).find((el) => el.textContent === "Speech profiles");
+    heading?.closest(".setting-item")?.scrollIntoView({ block: "start" });
+  });
+  await browser.pause(300);
+}
+
+async function kind(): Promise<string> {
+  return browser.execute(() =>
+    document.body.classList.contains("is-mobile") ? "mobile" : "desktop",
+  );
+}
+
+describe("Docs screenshots (Integration)", function () {
+  before(async function () {
+    fs.mkdirSync(OUT_DIR, { recursive: true });
+    await openVoiceSettings();
+  });
+
+  it("captures the settings with the speech profiles section", async function () {
+    await scrollToProfiles();
+    const name = (await kind()) === "mobile" ? "mobile-settings" : "settings";
+    if (name === "mobile-settings") {
+      await browser.saveScreenshot(path.join(OUT_DIR, `${name}.png`));
+    } else {
+      await browser
+        .$(".modal.mod-settings")
+        .saveScreenshot(path.join(OUT_DIR, `${name}.png`));
+    }
+  });
+
+  it("captures the profile editor", async function () {
+    if ((await kind()) === "mobile") {
+      return; // the desktop editor is the one shown in the README
+    }
+    await browser.execute(() => {
+      const row = Array.from(document.querySelectorAll(".setting-item")).find(
+        (el) =>
+          el.querySelector(".setting-item-name")?.textContent ===
+          "default (all languages)",
+      );
+      const edit = Array.from(row?.querySelectorAll("button") ?? []).find(
+        (b) => b.textContent === "Edit",
+      );
+      (edit as HTMLButtonElement | undefined)?.click();
+    });
+    await browser.$(".voice-profile-editor").waitForExist();
+    await browser.pause(300);
+    await browser
+      .$(".modal:has(.voice-profile-editor)")
+      .saveScreenshot(path.join(OUT_DIR, "profile-editor.png"));
+  });
+});

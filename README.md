@@ -139,9 +139,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Personalize the Voice
 
-- **Pick your voice in the player** — choose from dozens of natural voices across many languages: American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
-
-  ![voice picker](./assets/voices.png)
+- **Pick your voice in the player** (the voice dropdown under the controls) — choose from dozens of natural voices across many languages: American, British, German, French, Spanish, Italian, Polish, Dutch, Portuguese, Brazilian Portuguese, Catalan, Swedish, Danish, Norwegian, Finnish, Japanese, Korean, Hindi, Mandarin, and more.
 
 - Switch voices instantly from the player's voice dropdown or the status bar, or use the **Switch to the next speaker.** command to cycle through them hands-free.
 - **Azure: every voice, grouped by language.** Press **Test Credentials** in settings and Voice loads your account's full Azure neural catalog (hundreds of voices), organized by language in the picker — no more being limited to a handful.

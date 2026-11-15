@@ -28,10 +28,19 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * provider (OpenAI-compatible servers), then MiniMax, then the Voice player and everything added since 1.8.0,
- * so both new and long-time users catch up at a glance.
+ * change (the refreshed player controls and the Cache toggle), then the
+ * providers added most recently, then the Voice player and everything added
+ * since 1.8.0, so both new and long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🆕 New: bring any OpenAI-compatible server
+export const WHATS_NEW = `## 🆕 New: a cleaner player — and a Cache switch
+
+The Voice player has a **refreshed look**: round controls with Voice's own icons that look **the same on every device** — desktop, iPhone, and iPad, on any Obsidian version.
+
+- 🛢️ **Cache** — a new toggle at the start of the reading options. **On** (the default), ▶️ plays the audio you already have for a note, so changing the voice or a setting never makes you **pay twice by accident**. Turn it **off** and the next ▶️ generates fresh audio with your current voice and settings; Cache then switches itself back on.
+- ▶️ **Play is just a tap** now — play, pause, or cancel. There's no hidden press-and-hold anymore: to regenerate a note, switch Cache off.
+- 🎚️ The reading toggles have short **labels** (Cache · Spell · Code · No URLs · Embed) and the speed control is one tidy **− 1.0× +** pill.
+
+## 🔌 Bring any OpenAI-compatible server
 
 Voice now talks to **any server that speaks OpenAI's speech API** — hosted routers like **OpenRouter**, gateways like **LiteLLM**, or a **self-hosted** engine such as **Kokoro** running on your own machine.
 
@@ -40,7 +49,7 @@ Voice now talks to **any server that speaks OpenAI's speech API** — hosted rou
 - 🎧 Pick **MP3** or **WAV** — WAV files are saved and listed as chapters just like MP3s.
 - 📱 On a phone, \`localhost\` means the phone itself — use an address the phone can reach.
 
-## MiniMax — text-to-speech that works from China — text-to-speech that works from China
+## MiniMax — text-to-speech that works from China
 
 Voice's **sixth provider** is here: **MiniMax**. It's a great fit for **Chinese-language** notes — and, crucially, it's reachable from **mainland China**, where the other engines often aren't.
 
@@ -55,7 +64,7 @@ Everything else — chapters, speed, downloads, the content toggles — works ex
 Playback is simpler now — the play button does everything, so the separate Regenerate button is gone. Open the Voice player (the audio-waveform ribbon icon) and use the big play button:
 
 - **Tap** ▶️ to play, pause, or cancel a generation that is in progress.
-- **Press and hold** to regenerate the current note from scratch — always with your current voice and settings. A ring fills around the button as you hold.
+- To regenerate the current note with your current voice and settings, switch **Cache** off and tap ▶️.
 
 And new **quick toggles** sit right in the player — flip **Read code blocks** (\`</>\`), **Spell out acronyms** (\`Aa\`), **Skip website URLs** (🔗), and **Embed MP3 in note** (📎) with one click. The settings tab is leaner now, because the things you change while listening live in the player.
 

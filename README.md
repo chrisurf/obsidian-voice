@@ -41,26 +41,34 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 #### Controls at a glance
 
-Every control is a single button. Some do **two things**: a quick **tap** and a **press & hold** (~1.5 s; right-click works too on desktop). A ring fills around a button while you hold it.
+Every control is a single button. The save button does **two things**: a quick **tap** and a **press & hold** (~1.5 s; right-click works too on desktop). A ring fills around it while you hold.
 
-| Button                                        | Tap                                                              | Press & hold                                                            |
-| --------------------------------------------- | ---------------------------------------------------------------- | ----------------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                | **Regenerate** the note from scratch with your current voice & settings |
-| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                                       |
-| ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                                       |
-| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                                       |
-| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                                       |
-| ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default           |
-| 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                                       |
-| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                                       |
-| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                                       |
-| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                                       |
-| 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                                       |
-| ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                                       |
+| Button                                        | Tap                                                              | Press & hold                                                  |
+| --------------------------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------- |
+| ▶️ **Play**                                   | Play, pause, or cancel a synthesis that's running                | —                                                             |
+| ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                              | —                                                             |
+| ⏪ ⏩ **Rewind / forward**                    | Jump back / ahead by your interval (default 3 s)                 | —                                                             |
+| 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                            | —                                                             |
+| **− / +** **Speed**                           | Slow down / speed up playback (0.5×–2.0×)                        | —                                                             |
+| ⬇️ **Save** (💾 when a default folder is set) | Save the MP3 now — next to the note, or into your default folder | Open the **folder picker** to save elsewhere or set a default |
+| 📂 **Folder**                                 | Save into a folder you pick, in one click                        | —                                                             |
+| 🛢️ **Cache**                                  | Toggle reusing the note's existing audio (see below)             | —                                                             |
+| `Aa` **Spell out acronyms**                   | Toggle reading `NASA`, `API` letter by letter                    | —                                                             |
+| `</>` **Read code blocks**                    | Toggle reading fenced code aloud                                 | —                                                             |
+| 🔗 **Skip website URLs**                      | Toggle dropping URLs (link labels are kept)                      | —                                                             |
+| 📎 **Embed in note**                          | Toggle adding an audio player to the note when you save          | —                                                             |
+| ⋮ **Track menu**                              | Open **Move / Rename / Delete** for that chapter                 | —                                                             |
 
-Each toggle (`</>` `Aa` 🔗 📎) **highlights when it's on**, so you can see your reading options at a glance — no trip to settings.
+Each toggle (🛢️ `Aa` `</>` 🔗 📎) **highlights when it's on**, so you can see your options at a glance — no trip to settings.
 
-> **Jumping between notes?** By default a tap on ▶️ plays the note you're viewing — its already-saved MP3 if one exists, otherwise a fresh render — so you don't re-generate audio you already saved. Turn this off with **Play the note's saved audio** in settings.
+#### Cache: never pay twice by accident
+
+The **Cache** toggle decides what ▶️ does when it starts a note:
+
+- **Cache on** (default): ▶️ plays the note's **existing audio** — its saved MP3, or the audio already generated this session — and only generates when there is none yet. Changing the voice or a reading toggle does **not** generate new audio on its own, so you never pay twice by accident.
+- **Cache off**: the next ▶️ **generates the note again** with your current voice and settings (that's a new request to your provider). Afterwards Cache switches itself **back on**, so the following taps don't pay again.
+
+So to hear a note with a new voice or new settings: turn **Cache** off, then press ▶️. Pausing and resuming never generates anything, in either mode.
 
 Above the chapter list sit the **provider** and **voice** dropdowns (switch engine or voice instantly) and a **folder dropdown** that points the chapter list at any folder in your vault that contains audio.
 
@@ -112,7 +120,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 > **Tip:** When a default folder is set, the save button shows a **floppy-disk** icon (💾) — in the player, the status bar, and the mobile bar — so you can tell at a glance that a tap saves into your default folder rather than next to the note.
 
 - Prefer a hands-off workflow? Turn on **Save automatically** in settings to save and embed after every playback (it uses your default folder too).
-- Cached audio prevents repeat synthesis costs until your note content changes.
+- With **Cache** on (the default), audio you already generated or saved is reused instead of paying for it again — see [Cache](#cache-never-pay-twice-by-accident).
 
 ### Precision Playback Controls
 
@@ -171,16 +179,15 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                         | What it does                                                                                                                                                                                                                                                                              |
-| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Speech Provider**             | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                |
-| **Rewind interval**             | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                       |
-| **Fast-forward interval**       | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                |
-| **Save automatically**          | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                 |
-| **Save location**               | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access.                                                                              |
-| **Folder list follows note**    | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                                                                                                        |
-| **Play the note's saved audio** | On play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — so jumping between notes picks up each note's audio, even with another chapter loaded. On by default; turn off to keep the loaded chapter playing and always re-generate. |
-| **Test Credentials**            | Validate your provider keys; on success it reports how many voices are available.                                                                                                                                                                                                         |
+| Setting                      | What it does                                                                                                                                                                                                 |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                   |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                          |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
+| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
+| **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
+| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |
+| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                            |
 
 ## Keyboard Shortcuts
 

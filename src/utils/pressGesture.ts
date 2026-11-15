@@ -32,6 +32,7 @@ export function attachPressGesture(
 ): () => void {
   const holdMs = handlers.holdMs ?? 1500;
   let pointerId: number | null = null;
+  let pointerType = "";
   let startX = 0;
   let startY = 0;
   let holdFired = false;
@@ -74,6 +75,7 @@ export function attachPressGesture(
       return;
     }
     pointerId = evt.pointerId;
+    pointerType = evt.pointerType;
     startX = evt.clientX;
     startY = evt.clientY;
     holdFired = false;
@@ -138,6 +140,12 @@ export function attachPressGesture(
       return;
     }
     evt.preventDefault();
+    // A long touch press also fires "contextmenu" (after ~0.5 s on iOS and
+    // Android). That is the hold in progress, not a right-click: let the ring
+    // finish instead of firing the hold early.
+    if (pointerId !== null && pointerType !== "mouse") {
+      return;
+    }
     reset();
     handlers.onHold();
   };

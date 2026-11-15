@@ -170,11 +170,6 @@ export class VoiceSettingTab extends PluginSettingTab {
         heading: "Player",
         items: [
           {
-            name: "Play the note's saved audio",
-            desc: "When you press play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — even if another chapter is loaded. Off keeps the loaded chapter playing and always re-generates notes.",
-            control: { type: "toggle", key: "playNoteSavedAudio" },
-          },
-          {
             name: "Folder list follows note",
             desc: "The player's folder list jumps to the current note's folder. Off keeps your chosen folder.",
             control: { type: "toggle", key: "folderSelectorFollowsNote" },
@@ -220,8 +215,6 @@ export class VoiceSettingTab extends PluginSettingTab {
         return this.plugin.settings.forwardSeconds;
       case "autoDownloadAudio":
         return this.plugin.settings.autoDownloadAudio;
-      case "playNoteSavedAudio":
-        return this.plugin.settings.playNoteSavedAudio;
       case "folderSelectorFollowsNote":
         return this.plugin.settings.folderSelectorFollowsNote;
       default:
@@ -258,10 +251,6 @@ export class VoiceSettingTab extends PluginSettingTab {
         break;
       case "autoDownloadAudio":
         this.plugin.settings.autoDownloadAudio = value as boolean;
-        await this.plugin.saveSettings();
-        break;
-      case "playNoteSavedAudio":
-        this.plugin.settings.playNoteSavedAudio = value as boolean;
         await this.plugin.saveSettings();
         break;
       case "folderSelectorFollowsNote":
@@ -390,20 +379,6 @@ export class VoiceSettingTab extends PluginSettingTab {
       );
 
     new Setting(containerEl).setName("Player").setHeading();
-
-    new Setting(containerEl)
-      .setName("Play the note's saved audio")
-      .setDesc(
-        "When you press play, load the MP3 already saved for the note you're viewing (matched by name) instead of re-generating it — even if another chapter is loaded. Off keeps the loaded chapter playing and always re-generates notes.",
-      )
-      .addToggle((toggle) =>
-        toggle
-          .setValue(this.plugin.settings.playNoteSavedAudio)
-          .onChange(async (value) => {
-            this.plugin.settings.playNoteSavedAudio = value;
-            await this.plugin.saveSettings();
-          }),
-      );
 
     new Setting(containerEl)
       .setName("Folder list follows note")

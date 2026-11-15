@@ -36,6 +36,28 @@
   display: none;
 }
 
+/* Voice's own icons (src/ui/icons.ts): fixed 24×24 artwork drawn the same on
+   every Obsidian version, instead of the app's bundled Lucide icons whose look
+   and stroke vary between versions. Size comes from --voice-icon-size on the
+   control; the doubled class keeps theme/app "svg" rules from restyling them,
+   and flex: 0 0 auto keeps a tight button from squeezing the icon away. */
+svg.voice-icon.voice-icon {
+  display: block;
+  flex: 0 0 auto;
+  width: var(--voice-icon-size, 18px);
+  height: var(--voice-icon-size, 18px);
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+svg.voice-icon.voice-icon .voice-icon-fill {
+  fill: currentColor;
+  stroke: none;
+}
+
 /* Native browser tooltips (title attribute) work best for status bar */
 /* They can escape container overflow constraints unlike CSS-based tooltips */
 
@@ -335,6 +357,11 @@
   min-height: 36px;
   transition: all 0.15s ease;
   opacity: 1;
+  --voice-icon-size: 18px;
+}
+
+.voice-mobile-primary-btn {
+  --voice-icon-size: 16px;
 }
 
 .voice-mobile-control-btn svg {
@@ -547,134 +574,164 @@
   text-align: center;
 }
 
-.voice-player-transport {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 18px;
+/* --- Player controls ---
+   Obsidian styles every native <button> per platform (desktop / phone /
+   tablet, e.g. "button:not(.clickable-icon)" and ".is-mobile button"): padding,
+   a fixed height, a background and a shadow. Those rules used to beat the
+   player's single-class selectors, so on iPad the controls turned into grey
+   pills whose padding squeezed the icons to nothing. Every control therefore
+   carries .voice-ctl, and the reset below ("button" plus a doubled class inside
+   .voice-player, specificity 0,3,1) outranks or, loading after the app CSS,
+   ties and wins against Obsidian's button rules on every version and platform. Sizes are set explicitly (no padding, no
+   min/max from the app) and icons never shrink, so a control is the same
+   circle with the same icon everywhere. */
+.voice-player {
+  --voice-surface: var(--background-modifier-hover);
+  --voice-surface-strong: var(--background-modifier-active-hover);
+  --voice-accent-soft: hsla(var(--interactive-accent-hsl, 258, 88%, 66%), 0.16);
 }
 
-.voice-player-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  color: var(--text-normal);
-  border-radius: 50%;
-  /* Reset native <button> styling so these match their previous div look. */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  box-shadow: none;
+.voice-player button.voice-ctl.voice-ctl {
   appearance: none;
-  transition:
-    transform 0.1s ease,
-    background-color 0.15s ease;
-}
-
-.voice-player-btn:hover {
-  transform: scale(1.08);
-}
-
-.voice-player-btn:active {
-  transform: scale(0.95);
-}
-
-.voice-player-skip {
+  box-sizing: border-box;
   position: relative;
-  width: 44px;
-  height: 44px;
-}
-
-.voice-player-track {
-  width: 36px;
-  height: 36px;
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: var(--voice-ctl-size, 36px);
+  height: var(--voice-ctl-size, 36px);
+  min-width: 0;
+  min-height: 0;
+  max-width: none;
+  max-height: none;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
   color: var(--text-muted);
+  font: inherit;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  /* A long press must reach the press gesture: no text selection or iOS
+     callout menu, which would cancel the hold. */
+  user-select: none;
+  -webkit-touch-callout: none;
+  --voice-icon-size: 18px;
+  transition:
+    transform 0.12s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
 }
 
-.voice-player-track:hover {
-  color: var(--text-normal);
+.voice-player button.voice-ctl.voice-ctl:active {
+  transform: scale(0.92);
 }
 
-.voice-player-btn.is-disabled {
-  opacity: 0.25;
+.voice-player button.voice-ctl.voice-ctl:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+/* Hover only where a real pointer hovers: on touch screens a tap would
+   otherwise leave the hover look stuck on the last button. */
+@media (hover: hover) {
+  .voice-player button.voice-ctl.voice-ctl:hover {
+    background: var(--voice-surface);
+    color: var(--text-normal);
+  }
+}
+
+.voice-player button.voice-ctl.voice-ctl.is-disabled {
+  opacity: 0.3;
   pointer-events: none;
 }
 
-.voice-player-skip-label {
-  position: absolute;
-  font-size: 9px;
-  font-weight: 600;
-  color: var(--text-muted);
-}
-
-.voice-player-play {
-  width: 64px;
-  height: 64px;
-  background: var(--interactive-accent);
-  color: var(--text-on-accent);
-}
-
-.voice-player-play:hover {
-  background: var(--interactive-accent-hover);
-}
-
-.voice-player-secondary {
+/* Transport: previous · seek back · play · seek forward · next */
+.voice-player-transport {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 6px;
+  gap: 4px;
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
 }
 
-/* On/off icon toggles in the controls row (code / acronyms / embed). */
-.voice-player-toggle {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex: 0 0 auto;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: var(--radius-s);
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-.voice-player-toggle:hover {
+.voice-player button.voice-ctl.voice-player-track {
+  --voice-ctl-size: 36px;
+  --voice-icon-size: 20px;
   color: var(--text-normal);
 }
 
-.voice-player-toggle.is-active {
-  color: var(--interactive-accent);
-}
-
-.voice-player-download,
-.voice-player-folder-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: var(--radius-s);
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-.voice-player-download:hover,
-.voice-player-folder-btn:hover {
+.voice-player button.voice-ctl.voice-player-skip {
+  --voice-ctl-size: 44px;
+  --voice-icon-size: 30px;
   color: var(--text-normal);
 }
 
-/* Tinted when a default folder is set, so a tap clearly saves into it. */
-.voice-player-folder-btn.is-active {
+/* Seconds shown inside the seek ring. */
+.voice-player-skip-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding-top: 1px;
+  font-size: 10px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  pointer-events: none;
+}
+
+.voice-player button.voice-ctl.voice-player-play {
+  --voice-ctl-size: 60px;
+  --voice-icon-size: 26px;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  box-shadow:
+    0 6px 16px rgba(0, 0, 0, 0.22),
+    0 1px 3px rgba(0, 0, 0, 0.18);
+}
+
+@media (hover: hover) {
+  .voice-player button.voice-ctl.voice-player-play:hover {
+    background: var(--interactive-accent-hover);
+    color: var(--text-on-accent);
+  }
+}
+
+/* Actions row: save · folder on the left, repeat · speed on the right. */
+.voice-player-secondary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.voice-player button.voice-ctl.voice-player-download,
+.voice-player button.voice-ctl.voice-player-folder-btn,
+.voice-player button.voice-ctl.voice-player-repeat {
+  --voice-ctl-size: 36px;
+  background: var(--voice-surface);
+}
+
+.voice-player button.voice-ctl.voice-player-repeat {
+  margin-left: auto;
+}
+
+.voice-player button.voice-ctl.voice-player-folder-btn.is-active,
+.voice-player button.voice-ctl.voice-player-repeat.is-active {
+  background: var(--voice-accent-soft);
   color: var(--interactive-accent);
 }
 
-.voice-player-folder-btn:disabled,
-.voice-player-folder-btn.is-disabled {
+.voice-player button.voice-ctl.voice-player-folder-btn:disabled,
+.voice-player button.voice-ctl.voice-player-folder-btn.is-disabled {
   opacity: 0.3;
   cursor: default;
   pointer-events: none;
@@ -683,66 +740,69 @@
 /* The download/save button stays interactive even with no audio to save, so a
    press-and-hold can still open the folder picker (e.g. to pin a default
    folder). It only dims to hint that a plain tap has nothing to save. */
-.voice-player-download.is-muted {
-  opacity: 0.4;
+.voice-player button.voice-ctl.voice-player-download.is-muted {
+  opacity: 0.45;
 }
 
-.voice-player-repeat {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  padding: 0;
-  border-radius: var(--radius-s);
-  cursor: pointer;
-  color: var(--text-muted);
-}
-
-.voice-player-repeat:hover {
-  color: var(--text-normal);
-}
-
-.voice-player-repeat.is-active {
-  color: var(--interactive-accent);
-}
-
+/* Speed stepper: one pill holding − 1.0× + */
 .voice-player-speed {
   display: flex;
+  flex: 0 0 auto;
   align-items: center;
-  gap: 6px;
+  height: 36px;
+  padding: 0 2px;
+  border-radius: 18px;
+  background: var(--voice-surface);
 }
 
-.voice-player-speed-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: var(--radius-s);
-  cursor: pointer;
-  color: var(--text-muted);
-  /* Reset native <button> styling so these match their previous div look. */
-  background: none;
-  border: none;
-  padding: 0;
-  margin: 0;
-  font: inherit;
-  box-shadow: none;
-  appearance: none;
+.voice-player button.voice-ctl.voice-player-speed-btn {
+  --voice-ctl-size: 32px;
+  --voice-icon-size: 16px;
 }
 
-.voice-player-speed-btn:hover {
-  background: var(--background-modifier-hover);
-  color: var(--text-normal);
+@media (hover: hover) {
+  .voice-player button.voice-ctl.voice-player-speed-btn:hover {
+    background: var(--voice-surface-strong);
+  }
 }
 
 .voice-player-speed-value {
-  min-width: 40px;
+  min-width: 38px;
   text-align: center;
-  font-size: 12px;
+  font-size: 13px;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-normal);
+}
+
+/* Reading toggles + Cache: five equal segments, icon over a short caption. */
+.voice-player-toggles {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.voice-player button.voice-ctl.voice-player-toggle {
+  flex-direction: column;
+  gap: 4px;
+  width: auto;
+  height: 52px;
+  border-radius: var(--radius-m, 8px);
+  background: var(--voice-surface);
+}
+
+.voice-player button.voice-ctl.voice-player-toggle.is-active {
+  background: var(--voice-accent-soft);
+  color: var(--interactive-accent);
+}
+
+.voice-player-toggle-caption {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 10.5px;
+  font-weight: 500;
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 
 .voice-player-chapters {
@@ -795,10 +855,14 @@
   );
 }
 
-.voice-player-chapter-action {
+/* Doubled class: outranks Obsidian's per-platform button rules (fixed height,
+   padding, background), which differ between desktop, phone and tablet. */
+.voice-player-chapter-action.voice-player-chapter-action {
   flex: 0 0 auto;
+  margin: 0;
   padding: 4px 9px;
   height: auto;
+  min-height: 0;
   font-size: var(--font-ui-smaller);
   line-height: 1.2;
   color: var(--text-muted);
@@ -878,6 +942,13 @@
 
 .voice-player-chapter:hover .voice-player-chapter-edit {
   opacity: 1;
+}
+
+/* Touch screens have no hover, so the actions control is always shown. */
+@media (hover: none) {
+  .voice-player-chapter-edit {
+    opacity: 1;
+  }
 }
 
 .voice-player-chapter-edit:hover {
@@ -1000,56 +1071,6 @@
   );
   opacity: 0.3;
   pointer-events: none;
-}
-
-/* The player's primary play button is itself accent-coloured, so the shared
-   accent sweep above is nearly invisible on it (accent on accent, 30% opacity).
-   Give this one button a thicker, high-contrast ring in the on-accent colour:
-   a faint full "track" (::before) plus a crisp sweep (::after) that grows to a
-   full circle as the regenerate-hold completes. Both sit BEHIND the opaque
-   button (z-index: -1) so only the ring protrudes and the icon is never washed
-   over. The press scale is dropped while holding so the button doesn't spawn a
-   stacking context (which would pull the ring in front of its own background).
-   No CSS mask/clip-path — those are only partially supported per stylelint. */
-.voice-player-play.voice-pressing {
-  transform: none;
-}
-
-.voice-player-play.voice-pressing::before,
-.voice-player-play.voice-pressing::after {
-  content: "";
-  position: absolute;
-  inset: -5px;
-  z-index: -1;
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.voice-player-play.voice-pressing::before {
-  background: var(--text-on-accent);
-  opacity: 0.25;
-}
-
-.voice-player-play.voice-pressing::after {
-  background: conic-gradient(
-    var(--text-on-accent) calc(var(--press, 0) * 360deg),
-    transparent 0deg
-  );
-  opacity: 0.95;
-}
-
-/* On light themes the on-accent colour is white, which vanishes on the light
-   pane. Swap the ring to the theme's dark ink so it contrasts with both the
-   accent button and the light background. */
-.theme-light .voice-player-play.voice-pressing::before {
-  background: var(--text-normal);
-}
-
-.theme-light .voice-player-play.voice-pressing::after {
-  background: conic-gradient(
-    var(--text-normal) calc(var(--press, 0) * 360deg),
-    transparent 0deg
-  );
 }
 
 /* File-conflict modal: the ".mp3" suffix shown next to the rename field. */

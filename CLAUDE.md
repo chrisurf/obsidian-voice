@@ -101,16 +101,49 @@ orchestrators pick the path by `inputFormat`:
 - `config/DefaultConfig.ts` — default pipeline options; `types/ProcessorTypes.ts`
   and `types/SSMLNodes.ts` hold the shared types/AST node shapes.
 
-`TextSpeaker.speakText()` is the funnel: read note → run the right pipeline →
-`provider.speak(content, speed, filePath)`.
+`TextSpeaker.speakText()` is the funnel: read note → resolve the speech
+profile → run the right pipeline → `provider.speak(content, speed, filePath)`.
+
+### Speech profiles (`src/profiles/`)
+
+How a language is read — lexicon, content (acronyms, code, URLs,
+abbreviations), structure (pauses, list numbering, line breaks), emphasis — is
+a **versioned YAML/JSON profile** (`voiceProfile: 1`), one per language plus an
+optional `default`. Pipeline options come from the resolved profile
+(`processorConfigFromProfile`); nothing language-specific is hard-coded in the
+processors.
+
+- `schema.ts` — the format: `FIELDS` registry (path, kind, options, label) is
+  the single source for validation, defaults, templates and the editor's
+  generated controls (enum → dropdown, boolean → toggle, duration → slider…).
+  Add a setting here first.
+- `parse.ts` (JSON/YAML detection, version check + migrations, validation;
+  unknown fields are kept with a warning), `resolve.ts` (layers: built-in →
+  `default` → `de` → `de-DE`; lexicon most specific first), `builtins.ts`
+  (base values + per-language data: ordinals, abbreviations, acronyms),
+  `lexicon.ts` (whole-word replacement, no lookbehind for old iOS),
+  `language.ts` (voice language, overridden by frontmatter `lang`/`language`),
+  `edit.ts` (change one value, keeping YAML comments), `template.ts`.
+- `ProfileStore.ts` — Obsidian glue: files in the plugin folder by default, or
+  a vault folder (`profilesInVault`). The player's Spell/Code/No URLs toggles
+  read and write the profile (`Voice.setProfileSetting`).
+
+### Local test system (`scripts/local-tts/`)
+
+A free German TTS server (Qwen3-TTS on MLX, OpenAI-compatible API) and tools
+that measure readings with Whisper: pauses per punctuation, stray pauses
+mid-sentence, misread words. Use it to check that a pipeline change really
+sounds better (`check.py vorher --legacy` vs `check.py nachher`). See its
+README.
 
 ### UI layer (`src/ui/` + status bar / mobile)
 
 - `VoicePlayerView.ts` — the player pane (right sidebar on desktop, full-screen
-  on mobile). Transport (the play button taps to play / pause / cancel and is
-  **held to regenerate**), scrubber, speed, provider/voice pickers, a download
+  on mobile). Transport (the play button only taps: play / pause / cancel;
+  whether a fresh start reuses audio or regenerates is the **Cache** toggle,
+  see `utils/playTap.ts`), scrubber, speed, provider/voice pickers, a download
   button (tap saves, hold opens the picker), a **folder button** ("save to a
-  custom folder"), code/acronym/skip-URL/embed toggles, repeat modes, and a **chapter
+  custom folder"), Cache/Spell/Code/No URLs/Embed toggles, repeat modes, and a **chapter
   list** built from the MP3s in a folder (each chapter has a **⋮** action bar:
   move / rename / delete).
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
@@ -156,7 +189,8 @@ orchestrators pick the path by `inputFormat`:
 ```
 src/
 ├── main.ts                     # entry (re-exports Voice)
-├── service/                    # provider layer (interface, base, 5 engines, factory)
+├── service/                    # provider layer (interface, base, 7 engines, factory)
+├── profiles/                   # speech profiles: format, parsing, resolution, store
 ├── processors/                 # Markdown → SSML/text pipeline (orchestrators + pipeline/)
 ├── ui/                         # player view, folder picker, what's-new modal
 ├── settings/                   # settings model, settings tab, hotkeys

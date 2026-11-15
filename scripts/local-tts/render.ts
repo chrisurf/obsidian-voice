@@ -3,7 +3,7 @@
  * for a Markdown note, using the plugin's own pipeline and speech profiles.
  *
  * Usage:
- *   npx tsx scripts/local-tts/render.ts note.md [--lang de-DE]
+ *   npx tsx scripts/local-tts/render.ts note.md|- [--lang de-DE]
  *       [--profile de.yaml ...]   profile files; the file name is the key
  *       [--legacy]                the pipeline without any speech profile
  */
@@ -35,7 +35,8 @@ async function main(): Promise<void> {
     );
     process.exit(2);
   }
-  const markdown = fs.readFileSync(file, "utf8");
+  // "-" reads the note from stdin (used by the test page's /render endpoint).
+  const markdown = fs.readFileSync(file === "-" ? 0 : file, "utf8");
 
   if (process.argv.includes("--legacy")) {
     const legacy = new MarkdownToTextProcessor(

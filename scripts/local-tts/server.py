@@ -1,5 +1,9 @@
 """Local, free OpenAI-compatible TTS server with German voices (Qwen3-TTS, MLX).
 
+Open http://127.0.0.1:8880/ for a test page: paste or pick a note, hear it
+read through Voice's own pipeline (with or without speech profiles), and
+measure it.
+
 Serves the endpoints Voice's "OpenAI-compatible" provider uses:
   GET  /v1/models          -> the speech model id
   GET  /v1/audio/voices    -> the German voices (with their language)
@@ -15,6 +19,7 @@ Usage: python server.py [--port 8880] [--host 127.0.0.1]
 
 import io
 import json
+from pathlib import Path
 import re
 import subprocess
 import sys
@@ -31,6 +36,9 @@ from common import CLONE_MODEL, HOME, REFERENCE_TEXT, VOICES, VOICES_DIR
 
 MODEL_ID = "qwen3-tts-de"
 REQUESTS_DIR = HOME / "requests"
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parent.parent
+last_request: dict = {}
 # Qwen3-TTS stays most stable on moderate inputs; longer texts are split at
 # sentence ends (never inside a sentence) and the audio is concatenated.
 MAX_SEGMENT_CHARS = 400
@@ -96,7 +104,23 @@ def log_request(text: str, voice: str, audio: np.ndarray, sr: int) -> str:
     stem = time.strftime("%Y%m%d-%H%M%S") + f"-{voice}"
     (REQUESTS_DIR / f"{stem}.txt").write_text(text, encoding="utf-8")
     sf.write(REQUESTS_DIR / f"{stem}.wav", audio, sr)
+    last_request.update(wav=REQUESTS_DIR / f"{stem}.wav", text=text)
     return stem
+
+
+def render(markdown: str, legacy: bool) -> str:
+    """The text Voice would send for this note (its own pipeline, via tsx)."""
+    cmd = ["npx", "tsx", str(HERE / "render.ts"), "-"] + (["--legacy"] if legacy else [])
+    return subprocess.run(
+        cmd, cwd=REPO, input=markdown, capture_output=True, text=True, check=True
+    ).stdout
+
+
+def measure_last(markdown: str) -> dict:
+    """Measure the last synthesized audio against the note's structure."""
+    from measure import markdown_tokens, measure, source_tokens
+
+    return measure(last_request["wav"], markdown_tokens(markdown), source_tokens(last_request["text"]))
 
 
 class Handler(BaseHTTPRequestHandler):
@@ -108,9 +132,24 @@ class Handler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(body)
 
+    def _read_json(self) -> dict:
+        return json.loads(self.rfile.read(int(self.headers.get("Content-Length", 0))) or b"{}")
+
     def do_GET(self) -> None:
         path = self.path.rstrip("/")
-        if path.endswith("/models"):
+        if path in ("", "/index.html"):
+            body = (HERE / "test.html").read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/html; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+        elif path == "/corpus":
+            self._json(
+                200,
+                {p.stem: p.read_text(encoding="utf-8") for p in sorted((HERE / "corpus").glob("*.md"))},
+            )
+        elif path.endswith("/models"):
             self._json(200, {"object": "list", "data": [{"id": MODEL_ID, "object": "model"}]})
         elif path.endswith("/audio/voices") or path.endswith("/voices"):
             self._json(
@@ -126,7 +165,22 @@ class Handler(BaseHTTPRequestHandler):
             self._json(404, {"error": {"message": f"Not found: {self.path}"}})
 
     def do_POST(self) -> None:
-        if not self.path.rstrip("/").endswith("/audio/speech"):
+        path = self.path.rstrip("/")
+        if path in ("/render", "/measure"):
+            try:
+                body = self._read_json()
+                markdown = str(body.get("markdown", ""))
+                if path == "/render":
+                    self._json(200, {"text": render(markdown, bool(body.get("legacy")))})
+                elif not last_request:
+                    self._json(400, {"error": {"message": "Nothing synthesized yet"}})
+                else:
+                    with lock:
+                        self._json(200, measure_last(markdown))
+            except subprocess.CalledProcessError as error:
+                self._json(500, {"error": {"message": error.stderr or str(error)}})
+            return
+        if not path.endswith("/audio/speech"):
             self._json(404, {"error": {"message": f"Not found: {self.path}"}})
             return
         try:

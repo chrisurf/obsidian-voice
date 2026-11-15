@@ -27,6 +27,19 @@ no API key, then **Test Credentials** and pick the voice _Anna_ or _Jonas_.
 Every request is logged to `~/.cache/obsidian-voice-tts/requests/` — the exact
 text Voice sent and the audio — so a reading from Obsidian can be measured.
 
+## Test page
+
+With the server running, open **http://127.0.0.1:8880/** (from a phone or
+tablet: the Mac's IP, with `--host 0.0.0.0`). Pick a sample note — the
+`testnotiz` covers abbreviations, acronyms, numbers, dates, lists, quotes,
+code, links and tables — or paste your own Markdown, then:
+
+- **Vergleichen** reads it twice through Voice's own pipeline: _vorher_
+  (without speech profiles) and _nachher_ (with the German profile), with the
+  exact text that was sent shown under each player.
+- **Messen** reports the pauses per punctuation, pauses mid-sentence and
+  changed words of the most recent reading.
+
 ## Measure
 
 ```bash

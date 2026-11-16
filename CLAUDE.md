@@ -175,8 +175,10 @@ README.
 - `FileConflictModal.ts` — Replace / Save-as-new / Cancel prompt shown when a
   picked folder already holds a file of the same name.
 - `WhatsNewModal.ts` — renders `utils/whatsNew.ts` once per install/update.
-- The **status bar** controls are created in `utils/IconEventHandler.ts`; the
-  **mobile** control bar is `utils/MobileControlBar.ts`.
+- The **status bar** controls are created in `utils/IconEventHandler.ts`
+  (Voice icons, `.voice-statusbar-btn` hover style; the speed is one button
+  opening a menu from `utils/speedChoices.ts`); the **mobile** control bar is
+  `utils/MobileControlBar.ts`.
 
 ### Saving audio (`src/utils/`)
 

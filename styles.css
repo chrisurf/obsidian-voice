@@ -62,15 +62,55 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 /* They can escape container overflow constraints unlike CSS-based tooltips */
 
 /* --- Status bar controls --- */
-.voice-statusbar-voice-switcher {
-  margin-right: 10px;
-  cursor: pointer;
-  font-weight: bold;
+.voice-statusbar-voice-switcher.voice-statusbar-btn {
+  margin-right: 6px;
+  padding: 0 6px;
+  font-weight: 600;
   font-size: 0.9em;
+  color: var(--text-normal);
 }
 
-.status-bar-icon {
-  margin-right: 5px;
+/* Status bar buttons: Voice's own icons on a soft rounded hover, so they
+   read as one modern control group (matching the player). */
+.voice-statusbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 22px;
+  min-width: 22px;
+  padding: 0 3px;
+  margin: 0 1px;
+  border-radius: var(--radius-s);
+  color: var(--text-muted);
+  cursor: pointer;
+  --voice-icon-size: 16px;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    transform 0.1s ease;
+}
+
+.voice-statusbar-btn:hover {
+  background: var(--background-modifier-hover);
+  color: var(--text-normal);
+}
+
+.voice-statusbar-btn:active {
+  transform: scale(0.92);
+}
+
+/* The seek arrows are drawn larger in their 24×24 box than the others. */
+.voice-statusbar-btn.rewind,
+.voice-statusbar-btn.fast-forward {
+  --voice-icon-size: 18px;
+}
+
+.voice-statusbar-btn.play {
+  color: var(--interactive-accent);
+}
+
+.voice-statusbar-btn.play:hover {
+  color: var(--interactive-accent-hover);
 }
 
 .status-bar-separator {
@@ -81,42 +121,27 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   user-select: none;
 }
 
-.status-bar-speed-display {
-  margin-left: 4px;
-  margin-right: 4px;
-  min-width: 30px;
-  text-align: center;
+/* The speed: its value with a small chevron, opening the speed menu. */
+.status-bar-speed-display.voice-statusbar-btn {
+  gap: 2px;
+  margin: 0 4px;
+  padding: 0 4px 0 7px;
   font-size: 11px;
-  font-weight: 500;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
   color: var(--text-normal);
   background: var(--background-modifier-hover);
-  border-radius: 3px;
-  padding: 2px 6px;
-  font-variant-numeric: tabular-nums;
-  transition: background-color 0.2s ease;
+  border-radius: 999px;
 }
 
-.status-bar-speed-display:hover {
+.status-bar-speed-display.voice-statusbar-btn:hover {
   background: var(--background-modifier-active-hover);
 }
 
-.status-bar-icon.speed-decrease,
-.status-bar-icon.speed-increase {
-  opacity: 0.8;
-  transition:
-    opacity 0.2s ease,
-    transform 0.1s ease;
-}
-
-.status-bar-icon.speed-decrease:hover,
-.status-bar-icon.speed-increase:hover {
-  opacity: 1;
-  transform: scale(1.1);
-}
-
-.status-bar-icon.speed-decrease:active,
-.status-bar-icon.speed-increase:active {
-  transform: scale(0.95);
+.voice-statusbar-chevron {
+  display: inline-flex;
+  color: var(--text-muted);
+  --voice-icon-size: 12px;
 }
 
 /* --- Desktop progress bar --- */

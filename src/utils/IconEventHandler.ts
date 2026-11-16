@@ -8,7 +8,13 @@ import { FileConflictModal } from "../ui/FileConflictModal";
 import { resolveSaveFolder } from "./audioFolders";
 import { attachPressGesture } from "./pressGesture";
 import { friendlySpeechError } from "./speechFeedback";
-import { setVoiceIcon } from "../ui/icons";
+import { setVoiceIcon, type VoiceIconName } from "../ui/icons";
+import {
+  formatSpeed,
+  MAX_SPEED,
+  MIN_SPEED,
+  speedChoices,
+} from "./speedChoices";
 
 export class IconEventHandler {
   private pollyService: SpeechProvider;
@@ -112,7 +118,7 @@ export class IconEventHandler {
 
   private createVoiceSwitcher(): void {
     this.voiceDisplayEl = this.statusBarItem.createSpan({
-      cls: "voice-statusbar-voice-switcher",
+      cls: "voice-statusbar-voice-switcher voice-statusbar-btn",
     });
     this.voiceDisplayEl.setAttribute("aria-label", "Change Voice");
     this.voiceDisplayEl.setAttribute("aria-label-position", "top");
@@ -179,11 +185,11 @@ export class IconEventHandler {
     // Progress bar (initially hidden)
     this.createProgressBar();
 
-    // Order: rewind, stop, slower, current speed, faster, play, fast-forward
+    // Order: rewind, stop, speed menu, play, fast-forward, save
 
     // Rewind
     this.rewindIconEl = this.createStatusBarIcon(
-      "rewind",
+      "seek-back",
       "rewind",
       () => this.pollyService.rewindAudio(),
       false,
@@ -192,7 +198,7 @@ export class IconEventHandler {
 
     // Stop
     this.createStatusBarIcon(
-      "square",
+      "stop",
       "stop",
       () => {
         // Stops playback only: audio being generated is finished regardless
@@ -229,7 +235,7 @@ export class IconEventHandler {
 
         if (!this.pollyService.isPlaying()) {
           this.playPauseIconEl.addClass("rotating-icon");
-          setIcon(this.playPauseIconEl, "refresh-ccw");
+          setVoiceIcon(this.playPauseIconEl, "loading");
         }
         void this.voice.speakText();
       },
@@ -239,7 +245,7 @@ export class IconEventHandler {
 
     // Fast-forward
     this.fastForwardIconEl = this.createStatusBarIcon(
-      "fast-forward",
+      "seek-forward",
       "fast-forward",
       () => this.pollyService.fastForwardAudio(),
       false,
@@ -269,16 +275,16 @@ export class IconEventHandler {
   }
 
   private createStatusBarIcon(
-    icon: string,
+    icon: VoiceIconName,
     cls: string,
     onClick: () => void,
     isPlayPauseIcon: boolean = false,
     tooltip?: string,
   ): HTMLElement {
     const iconEl = this.statusBarItem.createSpan({
-      cls: "status-bar-icon " + cls,
+      cls: "status-bar-icon voice-statusbar-btn " + cls,
     });
-    setIcon(iconEl, icon);
+    setVoiceIcon(iconEl, icon);
     iconEl.addEventListener("click", onClick);
 
     // Use native browser tooltip (title) - it can escape container boundaries
@@ -370,7 +376,7 @@ export class IconEventHandler {
       this.ribbonIconEl.addClass("rotating-icon");
       this.playPauseIconEl.addClass("rotating-icon");
       setIcon(this.ribbonIconEl, "refresh-ccw");
-      setIcon(this.playPauseIconEl, "refresh-ccw");
+      setVoiceIcon(this.playPauseIconEl, "loading");
 
       // Show mobile overlay when loading starts (mobile only)
       if (this.mobileControlBar) {
@@ -390,7 +396,7 @@ export class IconEventHandler {
     }
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "pause");
+      setVoiceIcon(this.playPauseIconEl, "pause");
     }
     // Hide progress bar when audio starts playing, unless the rest of the
     // reading is still being generated.
@@ -406,68 +412,69 @@ export class IconEventHandler {
     }
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "play");
+      setVoiceIcon(this.playPauseIconEl, "play");
     }
     // Hide progress bar when audio is paused (it stays while generating).
     this.syncGenerationState();
   }
 
+  /**
+   * The playback speed as one compact control: the current speed, which opens
+   * a menu of speeds on click.
+   */
   private addSpeedControls(): void {
-    // Add decrease speed button (slower)
-    this.createStatusBarIcon(
-      "minus",
-      "speed-decrease",
-      () => this.decreaseSpeed(),
-      false,
-      "Decrease speed",
-    );
-
-    // Add speed display
     this.speedDisplayEl = this.statusBarItem.createSpan({
-      cls: "status-bar-speed-display",
+      cls: "status-bar-speed-display voice-statusbar-btn",
+    });
+    this.speedDisplayEl.addEventListener("click", (event) => {
+      const current = this.pollyService.getSpeed();
+      const menu = new Menu();
+      for (const speed of speedChoices(current)) {
+        menu.addItem((item) =>
+          item
+            .setTitle(formatSpeed(speed))
+            .setChecked(Math.abs(speed - current) < 0.001)
+            .onClick(() => this.applySpeed(speed)),
+        );
+      }
+      menu.showAtMouseEvent(event);
     });
     this.updateSpeedDisplay();
-
-    // Add increase speed button (faster)
-    this.createStatusBarIcon(
-      "plus",
-      "speed-increase",
-      () => this.increaseSpeed(),
-      false,
-      "Increase speed",
-    );
   }
 
   private updateSpeedDisplay(): void {
     if (this.speedDisplayEl) {
-      const currentSpeed = this.pollyService.getSpeed();
-      this.speedDisplayEl.textContent = `${currentSpeed.toFixed(1)}x`;
-      this.speedDisplayEl.title = `Current playback speed: ${currentSpeed.toFixed(1)}x`;
+      const label = formatSpeed(this.pollyService.getSpeed());
+      this.speedDisplayEl.empty();
+      this.speedDisplayEl.createSpan({ text: label });
+      setVoiceIcon(
+        this.speedDisplayEl.createSpan({ cls: "voice-statusbar-chevron" }),
+        "chevron-up",
+      );
+      this.speedDisplayEl.title = `Playback speed: ${label} (click to change)`;
     }
+  }
+
+  /** Set, persist and show a playback speed. */
+  private applySpeed(speed: number): void {
+    const next = Math.min(MAX_SPEED, Math.max(MIN_SPEED, speed));
+    if (next === this.pollyService.getSpeed()) {
+      return;
+    }
+    this.pollyService.setSpeed(next);
+    this.voice.settings.SPEED = next;
+    void this.voice.saveSettings();
+    this.updateSpeedDisplay();
   }
 
   public decreaseSpeed(): void {
-    const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.max(0.5, Math.round((currentSpeed - 0.1) * 10) / 10);
-
-    if (newSpeed !== currentSpeed) {
-      this.pollyService.setSpeed(newSpeed);
-      this.voice.settings.SPEED = newSpeed;
-      void this.voice.saveSettings();
-      this.updateSpeedDisplay();
-    }
+    const current = this.pollyService.getSpeed();
+    this.applySpeed(Math.round((current - 0.1) * 10) / 10);
   }
 
   public increaseSpeed(): void {
-    const currentSpeed = this.pollyService.getSpeed();
-    const newSpeed = Math.min(1.9, Math.round((currentSpeed + 0.1) * 10) / 10);
-
-    if (newSpeed !== currentSpeed) {
-      this.pollyService.setSpeed(newSpeed);
-      this.voice.settings.SPEED = newSpeed;
-      void this.voice.saveSettings();
-      this.updateSpeedDisplay();
-    }
+    const current = this.pollyService.getSpeed();
+    this.applySpeed(Math.round((current + 0.1) * 10) / 10);
   }
 
   private addVoiceControlsSeparator(): void {
@@ -560,7 +567,7 @@ export class IconEventHandler {
     }
     if (this.playPauseIconEl) {
       this.playPauseIconEl.removeClass("rotating-icon");
-      setIcon(this.playPauseIconEl, "play");
+      setVoiceIcon(this.playPauseIconEl, "play");
     }
   }
 
@@ -813,7 +820,7 @@ export class IconEventHandler {
       return;
     }
     this.downloadShowsSave = hasDefault;
-    setIcon(this.downloadIconEl, hasDefault ? "save" : "download");
+    setVoiceIcon(this.downloadIconEl, hasDefault ? "save" : "download");
   }
 
   /**

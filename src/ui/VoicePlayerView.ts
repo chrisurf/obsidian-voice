@@ -24,13 +24,11 @@ import {
 import { attachPressGesture } from "../utils/pressGesture";
 import { noteAudioPath } from "../utils/audioFolders";
 import { resolvePlayTap } from "../utils/playTap";
+import { MAX_SPEED, MIN_SPEED } from "../utils/speedChoices";
 import { groupVoicesByLanguage } from "../service/voiceCatalog";
 import { setVoiceIcon } from "./icons";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
-
-const MIN_SPEED = 0.5;
-const MAX_SPEED = 2.0;
 
 type RepeatMode = "none" | "one" | "all";
 

@@ -134,13 +134,13 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Precision Playback Controls
 
-- Track synthesis progress with the real-time status bar indicator until playback is ready.
+- Track synthesis progress with the real-time status bar indicator. The status bar holds rewind, stop, speed, play and fast-forward, with the same circular seek arrows as the player and a soft highlight on hover.
 
   ![status bar controls](./assets/status-bar-complete.png)
 
 - Use rewind / fast-forward and on-the-fly speed changes for quick navigation — from the player or the status bar.
 - Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
-- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×) or from the status bar; hotkeys can also jump to preset tempos.
+- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×), or click the speed in the status bar (e.g. **1.0× ⌃**) and pick one from the menu; hotkeys can also jump to preset tempos.
 
   ![speed control](./assets/tempo.png)
 

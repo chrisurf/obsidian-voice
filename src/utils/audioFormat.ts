@@ -141,6 +141,188 @@ function parseWav(buffer: ArrayBuffer): WavParts {
   throw new Error("WAV file has no format or data chunk");
 }
 
+/**
+ * Join several MP3 files into one MP3 that reports its full length.
+ *
+ * Appending MP3 bytes plays fine, but many encoders (LAME, libsndfile, ffmpeg)
+ * put a Xing/Info header frame at the start of every file holding that file's
+ * frame count. After a byte-wise join, players read the first header and show
+ * the first chunk's length, or notice the mismatch and estimate a wrong one
+ * from the variable bitrate. This drops every header frame and ID3 tag and
+ * writes one Xing header for the whole stream (frame count, size, seek table).
+ *
+ * Chunks without such a header (Polly, Azure, ElevenLabs, OpenAI) are joined
+ * byte-wise as before. Anything that is not MPEG Layer III is left untouched.
+ */
+export function concatMp3Buffers(buffers: ArrayBuffer[]): ArrayBuffer {
+  const joined = concatBytes(buffers.map((b) => new Uint8Array(b)));
+  const parts = buffers.map((b) => parseMp3(new Uint8Array(b)));
+  if (!parts.some((p) => p?.hadHeader) || parts.some((p) => !p)) {
+    return joined.buffer as ArrayBuffer;
+  }
+  const frames = (parts as Mp3Parts[]).flatMap((p) => p.frames);
+  if (frames.length === 0) {
+    return joined.buffer as ArrayBuffer;
+  }
+  const header = xingFrame(frames);
+  const out = concatBytes([header, ...frames]);
+  writeXingCounts(out, header.length, frames);
+  return out.buffer as ArrayBuffer;
+}
+
+type Mp3Frame = Uint8Array;
+
+interface Mp3Parts {
+  frames: Mp3Frame[];
+  /** Whether the file carried a Xing/Info/VBRI header frame or an ID3 tag. */
+  hadHeader: boolean;
+}
+
+interface FrameInfo {
+  length: number;
+  /** Offset of a Xing/Info tag inside the frame (after the side info). */
+  tagOffset: number;
+}
+
+const LAYER3_KBPS = {
+  mpeg1: [0, 32, 40, 48, 56, 64, 80, 96, 112, 128, 160, 192, 224, 256, 320],
+  mpeg2: [0, 8, 16, 24, 32, 40, 48, 56, 64, 80, 96, 112, 128, 144, 160],
+};
+const SAMPLE_RATES = [44100, 48000, 32000];
+const XING_FLAGS = 0x7; // frames + bytes + seek table
+const XING_SIZE = 4 + 4 + 4 + 4 + 100;
+
+/** The Layer III frame starting at `offset`, or null if there is none. */
+function frameAt(bytes: Uint8Array, offset: number): FrameInfo | null {
+  if (offset + 4 > bytes.length) {
+    return null;
+  }
+  const [b0, b1, b2, b3] = bytes.subarray(offset, offset + 4);
+  const version = (b1 >> 3) & 3; // 0 = 2.5, 2 = 2, 3 = 1
+  const layer = (b1 >> 1) & 3; // 1 = Layer III
+  const bitrate = b2 >> 4;
+  const rate = (b2 >> 2) & 3;
+  if (
+    b0 !== 0xff ||
+    (b1 & 0xe0) !== 0xe0 ||
+    version === 1 ||
+    layer !== 1 ||
+    bitrate === 0 ||
+    bitrate === 15 ||
+    rate === 3
+  ) {
+    return null;
+  }
+  const mpeg1 = version === 3;
+  const sampleRate = SAMPLE_RATES[rate] / (mpeg1 ? 1 : version === 2 ? 2 : 4);
+  const kbps = (mpeg1 ? LAYER3_KBPS.mpeg1 : LAYER3_KBPS.mpeg2)[bitrate];
+  const padding = (b2 >> 1) & 1;
+  const length =
+    Math.floor(((mpeg1 ? 144000 : 72000) * kbps) / sampleRate) + padding;
+  const mono = b3 >> 6 === 3;
+  const sideInfo = mpeg1 ? (mono ? 17 : 32) : mono ? 9 : 17;
+  return { length, tagOffset: 4 + sideInfo };
+}
+
+/** Split one MP3 file into its audio frames, dropping tags and header frames. */
+function parseMp3(bytes: Uint8Array): Mp3Parts | null {
+  const frames: Mp3Frame[] = [];
+  let hadHeader = false;
+  let offset = 0;
+  let end = bytes.length;
+
+  if (end >= 128 && ascii(bytes, end - 128, 3) === "TAG") {
+    end -= 128; // ID3v1
+    hadHeader = true;
+  }
+  while (offset < end) {
+    if (offset + 10 <= end && ascii(bytes, offset, 3) === "ID3") {
+      const size =
+        (bytes[offset + 6] << 21) |
+        (bytes[offset + 7] << 14) |
+        (bytes[offset + 8] << 7) |
+        bytes[offset + 9];
+      const footer = bytes[offset + 5] & 0x10 ? 10 : 0;
+      offset += 10 + size + footer;
+      hadHeader = true;
+      continue;
+    }
+    const frame = frameAt(bytes, offset);
+    if (!frame || offset + frame.length > end) {
+      // A truncated last frame or stray bytes: keep what we have.
+      if (frames.length > 0 && end - offset < 4096) {
+        break;
+      }
+      return null;
+    }
+    const tag = ascii(bytes, offset + frame.tagOffset, 4);
+    if (
+      tag === "Xing" ||
+      tag === "Info" ||
+      ascii(bytes, offset + 36, 4) === "VBRI"
+    ) {
+      hadHeader = true;
+    } else {
+      frames.push(bytes.subarray(offset, offset + frame.length));
+    }
+    offset += frame.length;
+  }
+  return { frames, hadHeader };
+}
+
+/** An empty frame shaped like the first audio frame, big enough for a Xing tag. */
+function xingFrame(frames: Mp3Frame[]): Uint8Array {
+  const first = frames[0];
+  const info = frameAt(first, 0) as FrameInfo;
+  const needed = info.tagOffset + XING_SIZE;
+  // The smallest bitrate whose frame holds the tag (no padding).
+  for (let bitrate = 1; bitrate < 15; bitrate++) {
+    const b2 = (bitrate << 4) | (first[2] & 0x0c);
+    const header = [0xff, first[1] | 0x01, b2, first[3]]; // no CRC
+    const length = (frameAt(new Uint8Array(header), 0) as FrameInfo).length;
+    if (length >= needed) {
+      const out = new Uint8Array(length);
+      out.set(header);
+      writeAscii(out, info.tagOffset, "Xing");
+      return out;
+    }
+  }
+  throw new Error("No MP3 frame size fits a Xing header");
+}
+
+/** Fill in the Xing tag: frame count, total bytes, and the 100-entry seek table. */
+function writeXingCounts(
+  out: Uint8Array,
+  headerLength: number,
+  frames: Mp3Frame[],
+): void {
+  const tag = (frameAt(out, 0) as FrameInfo).tagOffset;
+  const view = new DataView(out.buffer);
+  view.setUint32(tag + 4, XING_FLAGS);
+  view.setUint32(tag + 8, frames.length);
+  view.setUint32(tag + 12, out.length);
+  const starts: number[] = [];
+  let position = headerLength;
+  for (const frame of frames) {
+    starts.push(position);
+    position += frame.length;
+  }
+  for (let i = 0; i < 100; i++) {
+    const start = starts[Math.floor((i / 100) * frames.length)];
+    out[tag + 16 + i] = Math.min(255, Math.floor((start / out.length) * 256));
+  }
+}
+
+function concatBytes(parts: Uint8Array[]): Uint8Array {
+  const out = new Uint8Array(parts.reduce((sum, p) => sum + p.length, 0));
+  let offset = 0;
+  for (const part of parts) {
+    out.set(part, offset);
+    offset += part.length;
+  }
+  return out;
+}
+
 function ascii(bytes: Uint8Array, start: number, length: number): string {
   let text = "";
   for (let i = start; i < start + length; i++) {

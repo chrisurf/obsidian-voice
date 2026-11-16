@@ -1,5 +1,6 @@
 import {
   audioExtensionForMime,
+  concatMp3Buffers,
   concatWavBuffers,
   isAudioExtension,
   isAudioPath,
@@ -34,6 +35,41 @@ function dataOf(buffer: ArrayBuffer): number[] {
   const view = new DataView(buffer);
   const size = view.getUint32(40, true);
   return [...new Uint8Array(buffer, 44, size)];
+}
+
+// MPEG-2 Layer III, 24 kHz mono, 48 kbps: 144-byte frames, side info 9 bytes.
+const FRAME = [0xff, 0xf3, 0x64, 0xc4];
+const FRAME_LENGTH = 144;
+const TAG_OFFSET = 4 + 9;
+
+/** One audio frame filled with `fill`, or a Xing header frame when tagged. */
+function frame(fill: number, tag?: string): number[] {
+  const out = new Array<number>(FRAME_LENGTH).fill(fill);
+  out.splice(0, 4, ...FRAME);
+  if (tag) {
+    out.splice(TAG_OFFSET, 4, ...[...tag].map((c) => c.charCodeAt(0)));
+  }
+  return out;
+}
+
+/** An MP3 file: optional header frame, then audio frames filled 1, 2, 3… */
+function mp3(frames: number, header?: string, id3 = false): ArrayBuffer {
+  const bytes: number[] = [];
+  if (id3) {
+    bytes.push(...[..."ID3"].map((c) => c.charCodeAt(0)), 4, 0, 0, 0, 0, 0, 2);
+    bytes.push(0, 0);
+  }
+  if (header) {
+    bytes.push(...frame(0, header));
+  }
+  for (let i = 1; i <= frames; i++) {
+    bytes.push(...frame(i));
+  }
+  return new Uint8Array(bytes).buffer;
+}
+
+function count(bytes: Uint8Array, text: string): number {
+  return Buffer.from(bytes).toString("latin1").split(text).length - 1;
 }
 
 describe("Unit Tests - Audio format helpers", () => {
@@ -83,6 +119,49 @@ describe("Unit Tests - Audio format helpers", () => {
     test("rejects data that is not WAV", () => {
       expect(() => concatWavBuffers([new ArrayBuffer(8)])).toThrow(/WAV/);
       expect(() => concatWavBuffers([])).toThrow();
+    });
+  });
+
+  describe("concatMp3Buffers", () => {
+    test("joins chunks without a header byte-wise, as before", () => {
+      const a = mp3(2);
+      const b = mp3(3);
+      const out = new Uint8Array(concatMp3Buffers([a, b]));
+      expect([...out]).toEqual([...new Uint8Array(a), ...new Uint8Array(b)]);
+    });
+
+    test("replaces the per-chunk Xing/Info headers with one for the whole file", () => {
+      const out = new Uint8Array(
+        concatMp3Buffers([mp3(2, "Xing"), mp3(3, "Info", true), mp3(1)]),
+      );
+      const view = new DataView(out.buffer);
+      expect(count(out, "Xing")).toBe(1);
+      expect(count(out, "Info")).toBe(0);
+      expect(count(out, "ID3")).toBe(0);
+      // Header frame first, then all six audio frames in order.
+      expect(out[0]).toBe(0xff);
+      const header = out.length - 6 * FRAME_LENGTH;
+      const fills = [0, 1, 2, 3, 4, 5].map(
+        (i) => out[header + i * FRAME_LENGTH + 20],
+      );
+      expect(fills).toEqual([1, 2, 1, 2, 3, 1]);
+      // The tag holds frame count and total size.
+      const tag = TAG_OFFSET;
+      expect(String.fromCharCode(...out.subarray(tag, tag + 4))).toBe("Xing");
+      expect(view.getUint32(tag + 4)).toBe(0x7);
+      expect(view.getUint32(tag + 8)).toBe(6);
+      expect(view.getUint32(tag + 12)).toBe(out.length);
+      // Seek table rises from the first audio frame towards the end.
+      const toc = [...out.subarray(tag + 16, tag + 116)];
+      expect(toc[0]).toBe(Math.floor((header / out.length) * 256));
+      expect([...toc].sort((x, y) => x - y)).toEqual(toc);
+    });
+
+    test("leaves data that is not MPEG Layer III untouched", () => {
+      const junk = new Uint8Array([1, 2, 3, 4, 5, 6, 7, 8]).buffer;
+      const tagged = mp3(1, "Xing");
+      const out = new Uint8Array(concatMp3Buffers([tagged, junk]));
+      expect(out.length).toBe(tagged.byteLength + junk.byteLength);
     });
   });
 });

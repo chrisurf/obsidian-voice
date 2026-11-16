@@ -5,6 +5,7 @@ import {
   type VoiceSettings,
 } from "../settings/VoiceSettings";
 import {
+  concatMp3Buffers,
   concatWavBuffers,
   isWavBuffer,
   mimeForAudioExtension,
@@ -253,8 +254,9 @@ export class OpenAiSpeechService extends BaseSpeechService {
 }
 
 /**
- * Join the per-chunk audio into one playable blob. MP3 frames can simply be
- * appended; WAV chunks each carry a header, so they are merged into one file.
+ * Join the per-chunk audio into one playable blob. Both formats can carry a
+ * per-file header (WAV always, MP3 often a Xing/Info frame with the length), so
+ * the chunks are merged into one file with a single header.
  * The format is read from the bytes rather than trusted from the request, since
  * some servers ignore `response_format`.
  */
@@ -264,7 +266,9 @@ export function joinAudioChunks(chunks: ArrayBuffer[]): Blob {
       type: mimeForAudioExtension("wav"),
     });
   }
-  return new Blob(chunks, { type: mimeForAudioExtension("mp3") });
+  return new Blob([concatMp3Buffers(chunks)], {
+    type: mimeForAudioExtension("mp3"),
+  });
 }
 
 /** Best-effort error text from a JSON error body (`{ error: { message } }`). */

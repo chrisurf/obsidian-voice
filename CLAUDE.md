@@ -172,8 +172,9 @@ README.
   first, then favorites). Fully unit-tested.
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
 - `audioFormat.ts` — **pure** MP3/WAV helpers: extensions, MIME mapping, and
-  joining WAV chunks under one header. Saving, chapters, and the saved-audio
-  lookup accept both formats.
+  joining WAV or MP3 chunks under one header (MP3: per-chunk Xing/Info frames
+  dropped, one Xing header with the total length written). Saving, chapters,
+  and the saved-audio lookup accept both formats.
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
   play button: tap = play/pause/cancel, hold = regenerate). Shared by the

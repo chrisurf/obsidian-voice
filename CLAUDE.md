@@ -83,7 +83,14 @@ All providers implement one interface so the rest of the plugin is
   rate measured per provider after each reading and stored in
   `settings.streamRates`). When generation ends, the element moves onto the
   joined file. While a reading streams, `isStreaming()` is true and play taps
-  pause/resume instead of cancelling (`utils/playTap.ts`).
+  pause/resume (`utils/playTap.ts`); before its start point a tap plays what
+  is ready (`playWhatIsReady`). **Generating is never cancelled implicitly:**
+  pause, stop, other notes, chapters, provider/voice changes leave it running
+  (`Voice.notifyStillGenerating`); only the ✕ next to the progress bars does,
+  after `CancelGenerationModal` (`Voice.confirmCancelGeneration`). Between
+  chunks the progress is estimated (`utils/generationProgress.ts`). Providers
+  end `speak()` with `endSpeak(controller)`, so a cancelled call returning
+  late can't clear a newer call's state.
 - `voiceCatalog.ts` — **pure** helpers (unit-tested) to map a provider's fetched
   voice list into `VoiceOption[]` and group it by language for the picker.
   Azure uses it: "Test Credentials" fetches `/voices/list`, the result is cached

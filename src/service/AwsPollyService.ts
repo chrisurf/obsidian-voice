@@ -377,6 +377,8 @@ export class AwsPollyService extends BaseSpeechService {
       );
     }
 
+    const controller = this.abortController;
+
     this.isLoading = true;
 
     try {
@@ -454,8 +456,7 @@ export class AwsPollyService extends BaseSpeechService {
         }
       }
     } finally {
-      this.isLoading = false;
-      this.abortController = undefined;
+      this.endSpeak(controller);
     }
   }
 

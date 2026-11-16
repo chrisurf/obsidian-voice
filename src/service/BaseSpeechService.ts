@@ -32,6 +32,7 @@ import {
   rampedChunkLimit,
   shouldStartPlayback,
 } from "../utils/streamStart";
+import { interpolatedProgress } from "../utils/generationProgress";
 import { canPlayWhileGenerating, ProgressiveAudio } from "./progressiveAudio";
 
 /** How a long reading may start playing before all of it is synthesized. */
@@ -67,6 +68,11 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // has started (see synthesizeChunks).
   private progressive: ProgressiveAudio | null = null;
   private progressivePlaying = false;
+  // The user asked to play what is ready, before the computed start point.
+  private startEarly: (() => void) | null = null;
+  private startRequested = false;
+  // The note the running operation reads, for "still generating" notices.
+  private operationFilePath: string | null = null;
 
   constructor(voice: string, speed?: number) {
     this.voice = voice;
@@ -153,10 +159,49 @@ export abstract class BaseSpeechService implements SpeechProvider {
         ? new ProgressiveAudio(this.audio)
         : null;
     this.progressive = stream;
+    // A cancelled reading whose last request returns late must leave the
+    // audio element and the streaming state to the reading started since.
+    const isCurrent = () => !signal?.aborted;
+    let chunksAppended = 0;
+    this.startRequested = false;
+    const startPlayback = () => {
+      if (stream && !this.progressivePlaying && chunksAppended > 0) {
+        this.progressivePlaying = true;
+        void this.playAudio(speed);
+      }
+    };
+    this.startEarly = startPlayback;
+
+    // Keep the bar moving while a chunk is synthesized (see
+    // utils/generationProgress.ts); the finished chunk sets the real value.
+    let chunkStarted = started;
+    let chunkIndex = 0;
+    const reportedAt = (chars: number) => (chars / totalChars) * 0.95;
+    const tick = () => {
+      // A cancelled request may still be waiting for its response.
+      if (signal?.aborted) {
+        return;
+      }
+      const elapsed = Date.now() - chunkStarted;
+      this.reportProgress(
+        interpolatedProgress({
+          from: reportedAt(charsReady),
+          to: reportedAt(charsReady + chunks[chunkIndex].length),
+          elapsedMs: elapsed,
+          msPerChar: charsReady > 0 ? (chunkStarted - started) / charsReady : 0,
+          chunkChars: chunks[chunkIndex].length,
+        }),
+        1,
+      );
+    };
+    const ticker =
+      typeof window !== "undefined" ? window.setInterval(tick, 250) : null;
 
     try {
       for (let i = 0; i < chunks.length; i++) {
         throwIfAborted();
+        chunkIndex = i;
+        chunkStarted = Date.now();
         const result = await synthesize(chunks[i], i);
         throwIfAborted();
         const buffer =
@@ -174,8 +219,9 @@ export abstract class BaseSpeechService implements SpeechProvider {
         }
         if (stream) {
           await stream.append(mp3AudioFrames(buffer));
+          chunksAppended++;
           if (
-            !this.progressivePlaying &&
+            this.startRequested ||
             shouldStartPlayback({
               chunksReady: i + 1,
               charsReady,
@@ -183,10 +229,12 @@ export abstract class BaseSpeechService implements SpeechProvider {
               fraction,
             })
           ) {
-            this.progressivePlaying = true;
-            void this.playAudio(speed);
+            startPlayback();
           }
         }
+      }
+      if (ticker !== null) {
+        window.clearInterval(ticker);
       }
 
       const seconds = (Date.now() - started) / 1000;
@@ -205,13 +253,52 @@ export abstract class BaseSpeechService implements SpeechProvider {
     } catch (error) {
       if (stream) {
         stream.dispose();
-        this.unloadAudio();
+        // cancelOperation() already unloaded a cancelled reading.
+        if (isCurrent()) {
+          this.unloadAudio();
+        }
       }
       throw error;
     } finally {
-      this.progressive = null;
-      this.progressivePlaying = false;
+      if (ticker !== null) {
+        window.clearInterval(ticker);
+      }
+      if (isCurrent()) {
+        this.progressive = null;
+        this.progressivePlaying = false;
+        this.startEarly = null;
+        this.startRequested = false;
+      }
     }
+  }
+
+  /**
+   * Play what is ready of a reading that has not reached its start point yet
+   * (a play tap while generating). Returns false when the reading can't play
+   * before it is complete (WAV, a single chunk, no MediaSource); otherwise
+   * playback starts now, or with the first chunk if none is ready yet.
+   */
+  playWhatIsReady(): boolean {
+    if (!this.progressive || !this.startEarly) {
+      return false;
+    }
+    this.startRequested = true;
+    this.startEarly();
+    return true;
+  }
+
+  /**
+   * Clear the per-call state at the end of a provider's speak(). A call that
+   * was cancelled may return long after a new one started (its request was
+   * still in flight); it must not clear the newer call's state, or that call
+   * could no longer be cancelled.
+   */
+  protected endSpeak(controller: AbortController | undefined): void {
+    if (this.abortController !== controller) {
+      return;
+    }
+    this.isLoading = false;
+    this.abortController = undefined;
   }
 
   /**
@@ -419,7 +506,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
     return this.currentRequestId !== null;
   }
 
-  startOperation(): string {
+  startOperation(filePath?: string): string {
     if (this.currentRequestId !== null) {
       throw new Error(
         `Operation already in progress: ${this.currentRequestId}`,
@@ -430,8 +517,14 @@ export abstract class BaseSpeechService implements SpeechProvider {
     this.currentRequestId = requestId;
     this.abortController = new AbortController();
     this.lastProgress = 0;
+    this.operationFilePath = filePath ?? null;
 
     return requestId;
+  }
+
+  /** The note the running operation reads, if it was given one. */
+  getOperationFilePath(): string | null {
+    return this.currentRequestId !== null ? this.operationFilePath : null;
   }
 
   isCurrentRequest(requestId: string): boolean {
@@ -448,7 +541,10 @@ export abstract class BaseSpeechService implements SpeechProvider {
         this.progressivePlaying = false;
         this.unloadAudio();
       }
+      this.startEarly = null;
+      this.startRequested = false;
       this.currentRequestId = null;
+      this.operationFilePath = null;
       this.isLoading = false;
       this.abortController = undefined;
 
@@ -460,6 +556,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
   endOperation(requestId: string): void {
     if (this.currentRequestId === requestId) {
       this.currentRequestId = null;
+      this.operationFilePath = null;
       this.isLoading = false;
       this.abortController = undefined;
     } else if (this.currentRequestId !== null) {
@@ -494,8 +591,13 @@ export abstract class BaseSpeechService implements SpeechProvider {
   }
 
   protected reportProgress(current: number, total: number): void {
-    const progress = total > 0 ? current / total : 0;
-    this.lastProgress = Math.min(1, Math.max(0, progress));
+    const progress = Math.min(1, Math.max(0, total > 0 ? current / total : 0));
+    // While generating, the bar only moves forward: the smooth estimate may
+    // run ahead of a provider's own coarser report. 0 still resets it.
+    if (progress > 0 && progress < this.lastProgress && this.currentRequestId) {
+      return;
+    }
+    this.lastProgress = progress;
     if (this.progressCallback) {
       this.progressCallback(this.lastProgress);
     }

@@ -21,6 +21,7 @@ import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
 import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 import { WhatsNewModal } from "../ui/WhatsNewModal";
+import { CancelGenerationModal } from "../ui/CancelGenerationModal";
 import { shouldShowWhatsNew } from "./whatsNew";
 import { ProfileStore } from "../profiles/ProfileStore";
 import { readingLanguage } from "../profiles/language";
@@ -144,6 +145,23 @@ export class Voice extends Plugin {
   }
 
   async speakText(speed?: number) {
+    const provider = this.speechProvider;
+    // Generating, nothing playing yet: never start a second reading or cut
+    // this one short. On its own note a tap plays what is ready.
+    if (
+      this.isGenerating() &&
+      !provider.isPlaying() &&
+      !provider.isStreaming()
+    ) {
+      const active = this.markdownHelper.getActiveFilePath();
+      const generating = provider.getOperationFilePath();
+      if (active && generating && active !== generating) {
+        this.notifyStillGenerating();
+      } else {
+        this.playWhatIsReady();
+      }
+      return;
+    }
     await this.textSpeaker.speakText(speed);
   }
 
@@ -370,6 +388,11 @@ export class Voice extends Plugin {
    * provider, apply it to the running provider, and refresh the display.
    */
   public async persistActiveVoice(voiceId: string): Promise<void> {
+    // A new voice would apply to the rest of the reading being generated.
+    if (this.isGenerating()) {
+      this.notifyStillGenerating();
+      return;
+    }
     if (this.settings.TTS_PROVIDER === "elevenlabs") {
       this.settings.ELEVENLABS_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "google") {
@@ -458,6 +481,10 @@ export class Voice extends Plugin {
    * Backs the "Switch to the next voice" command.
    */
   public async cycleVoice(): Promise<void> {
+    if (this.isGenerating()) {
+      this.notifyStillGenerating();
+      return;
+    }
     const options = this.speechProvider.getVoiceOptions();
     if (options.length === 0) {
       return;
@@ -500,10 +527,71 @@ export class Voice extends Plugin {
     return this.speechProvider;
   }
 
+  // --- Audio being generated ---
+  // Generating runs to the end whatever the user does meanwhile (pause, stop,
+  // another note or chapter); only the ✕ next to the progress bar cancels it,
+  // after asking.
+
+  /** Audio is being generated right now. */
+  public isGenerating(): boolean {
+    return this.speechProvider.isOperationInProgress();
+  }
+
+  /** Explain why an action waits for the audio being generated. */
+  public notifyStillGenerating(): void {
+    const path = this.speechProvider.getOperationFilePath();
+    const what = path ? `“${noteName(path)}”` : "A note";
+    new Notice(
+      `${what} is still being generated. Wait for it to finish, or stop it with ✕ next to the progress bar.`,
+    );
+  }
+
+  /**
+   * A play tap while generating: start playing what is ready, or resume. A
+   * reading that can only play once complete says so instead.
+   */
+  public playWhatIsReady(): void {
+    const provider = this.speechProvider;
+    if (provider.isStreaming()) {
+      if (!provider.isPlaying()) {
+        void provider.playAudio();
+      }
+      return;
+    }
+    if (!provider.playWhatIsReady()) {
+      new Notice(
+        "This audio plays once it is fully generated. To stop it, use ✕ next to the progress bar.",
+      );
+    }
+  }
+
+  /** The ✕ next to the progress bar: confirm, then cancel generating. */
+  public async confirmCancelGeneration(): Promise<void> {
+    if (!this.isGenerating()) {
+      return;
+    }
+    const path = this.speechProvider.getOperationFilePath();
+    const confirmed = await CancelGenerationModal.confirm(
+      this.app,
+      path ? noteName(path) : null,
+    );
+    if (confirmed && this.isGenerating()) {
+      this.speechProvider.cancelOperation();
+      this.iconEventHandler.resetAfterCancel();
+    }
+  }
+
   /**
    * @deprecated Use getSpeechProvider() instead.
    */
   public getPollyService(): SpeechProvider {
     return this.speechProvider;
   }
+}
+
+/** A note's name without folder and extension. */
+function noteName(path: string): string {
+  const file = path.slice(path.lastIndexOf("/") + 1);
+  const dot = file.lastIndexOf(".");
+  return dot > 0 ? file.slice(0, dot) : file;
 }

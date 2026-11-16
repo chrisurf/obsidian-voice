@@ -94,6 +94,8 @@ export class MiniMaxSpeechService extends BaseSpeechService {
       return;
     }
 
+    const controller = this.abortController;
+
     this.isLoading = true;
     try {
       this.reportProgress(0, 1);
@@ -113,8 +115,7 @@ export class MiniMaxSpeechService extends BaseSpeechService {
       this.reportError(error);
       throw error;
     } finally {
-      this.isLoading = false;
-      this.abortController = undefined;
+      this.endSpeak(controller);
     }
   }
 

@@ -16,6 +16,7 @@ export class MobileControlBar {
   private speedDisplayEl: HTMLElement | null = null;
   private progressBarContainer: HTMLElement | null = null;
   private progressBar: HTMLElement | null = null;
+  private cancelGenerationEl: HTMLElement | null = null;
   private isErrorState: boolean = false;
   // Tracks whether the download icon currently shows the save (floppy) glyph.
   private downloadShowsSave = false;
@@ -112,17 +113,20 @@ export class MobileControlBar {
       () => this.pollyService.rewindAudio(),
     );
 
-    // Stop button
+    // Stop button: stops playback only; audio being generated is finished
+    // regardless (cancelling it is the ✕ next to the progress bar).
     this.createControlButton(controlsWrapper, "stop", "Stop", () => {
-      if (this.pollyService.isOperationInProgress()) {
-        this.pollyService.cancelOperation();
-        this.resetToPlayState();
-        this.hideProgressBar();
-        // Hide overlay after stop
-        window.setTimeout(() => this.hide(), 3000);
-        return; // EXIT - don't do anything else
+      if (
+        this.pollyService.isOperationInProgress() &&
+        !this.pollyService.isStreaming()
+      ) {
+        this.plugin.notifyStillGenerating();
+        return;
       }
       this.pollyService.stopAudio();
+      if (this.pollyService.isOperationInProgress()) {
+        return; // Keep the bar: the progress bar is still in use.
+      }
       // Hide overlay after stop
       window.setTimeout(() => this.hide(), 3000);
     });
@@ -154,14 +158,13 @@ export class MobileControlBar {
       "play",
       "Play/Pause",
       () => {
+        // Generating, nothing playing yet: play what is ready (never cancel).
         if (
           this.pollyService.isOperationInProgress() &&
           !this.pollyService.isStreaming()
         ) {
-          this.pollyService.cancelOperation();
-          this.resetToPlayState();
-          this.hideProgressBar();
-          return; // CRITICAL: EXIT - don't start new request
+          void this.plugin.speakText();
+          return;
         }
 
         if (!this.pollyService.isPlaying()) {
@@ -205,13 +208,27 @@ export class MobileControlBar {
   private createProgressBar(): void {
     if (!this.containerEl) return;
 
-    this.progressBarContainer = this.containerEl.createDiv({
+    const row = this.containerEl.createDiv({
+      cls: "voice-mobile-progress-row",
+    });
+    this.progressBarContainer = row.createDiv({
       cls: "voice-mobile-progress-container",
     });
 
     this.progressBar = this.progressBarContainer.createDiv({
       cls: "voice-mobile-progress-bar",
     });
+
+    // The only way to cancel audio being generated (asks first).
+    this.cancelGenerationEl = row.createEl("button", {
+      cls: "voice-cancel-generation voice-hidden",
+      attr: { "aria-label": "Stop generating audio" },
+    });
+    setVoiceIcon(this.cancelGenerationEl, "close");
+    this.cancelGenerationEl.addEventListener(
+      "click",
+      () => void this.plugin.confirmCancelGeneration(),
+    );
 
     // Initially hidden
     this.hideProgressBar();
@@ -275,6 +292,8 @@ export class MobileControlBar {
   private hideProgressBar(): void {
     if (this.progressBarContainer) {
       this.progressBarContainer.removeClass("visible");
+      this.progressBarContainer.removeClass("is-generating");
+      this.cancelGenerationEl?.addClass("voice-hidden");
       this.progressBarContainer.removeClass("error");
       this.isErrorState = false;
     }
@@ -311,7 +330,7 @@ export class MobileControlBar {
       this.playPauseIconEl.removeClass("rotating-icon");
       setVoiceIcon(this.playPauseIconEl, "pause");
     }
-    this.hideProgressBar();
+    this.setGenerating(this.pollyService.isOperationInProgress());
     this.show(); // Keep overlay visible during playback
     // Show download button when audio is successfully generated
     this.showDownloadButton();
@@ -322,18 +341,39 @@ export class MobileControlBar {
       this.playPauseIconEl.removeClass("rotating-icon");
       setVoiceIcon(this.playPauseIconEl, "play");
     }
-    this.hideProgressBar();
+    this.setGenerating(this.pollyService.isOperationInProgress());
 
-    // Auto-hide after 3 seconds when paused, but only if not playing
+    // Auto-hide after 3 seconds when paused, but only if not playing and
+    // nothing is being generated (its progress bar stays in view).
     window.setTimeout(() => {
-      if (!this.pollyService.isPlaying()) {
+      if (
+        !this.pollyService.isPlaying() &&
+        !this.pollyService.isOperationInProgress()
+      ) {
         this.hide();
       }
     }, 3000);
   }
 
   private onCanPlayThrough(): void {
-    this.hideProgressBar();
+    this.setGenerating(this.pollyService.isOperationInProgress());
+  }
+
+  /**
+   * Show the progress bar (shimmering, with its ✕) while audio is being
+   * generated — playing, paused or not started yet — and hide it once done.
+   */
+  public setGenerating(generating: boolean): void {
+    if (this.isErrorState || !this.progressBarContainer) {
+      return;
+    }
+    if (!generating) {
+      this.hideProgressBar();
+      return;
+    }
+    this.progressBarContainer.addClass("visible");
+    this.progressBarContainer.addClass("is-generating");
+    this.cancelGenerationEl?.removeClass("voice-hidden");
   }
 
   private onEnded(): void {

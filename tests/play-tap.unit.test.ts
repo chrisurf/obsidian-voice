@@ -13,11 +13,11 @@ const idle: PlayTapState = {
 };
 
 describe("Play button tap Unit", () => {
-  it("cancels a running synthesis, whatever the Cache says", () => {
-    expect(resolvePlayTap({ ...idle, synthesizing: true })).toBe("cancel");
+  it("plays what is ready of a running synthesis, never cancels it", () => {
+    expect(resolvePlayTap({ ...idle, synthesizing: true })).toBe("play-now");
     expect(
       resolvePlayTap({ ...idle, synthesizing: true, cacheOn: false }),
-    ).toBe("cancel");
+    ).toBe("play-now");
   });
 
   it("pauses while playing, also with Cache off", () => {

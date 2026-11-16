@@ -45,7 +45,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 | Control                                       | What it does                                                                                                            |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play or pause. While a note is generated it shows ⏹ inside a ring that fills with the progress — tap to cancel          |
+| ▶️ **Play**                                   | Play or pause. While a note is generated, a ring fills with the progress — tap to play what is ready                    |
 | ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
 | ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
 | ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
@@ -54,9 +54,11 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 | **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
 | ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
 
-While a note is being generated, the play button shows ⏹ and a ring around it fills with the progress — tap it to cancel:
+While a note is being generated, a ring around the play button fills with the progress, and a bar at the bottom of the player moves along with a light sheen, so you can always tell work is going on:
 
-![The play button while a note is generated: a stop icon inside a progress ring](./assets/voice-player-generating.png)
+![The play button while a note is generated, inside a progress ring](./assets/voice-player-generating.png)
+
+**Generating always runs to the end.** Pause, Stop, switching notes or tapping a chapter never interrupt it — Voice tells you the note is still being generated instead of starting something else. The only way to stop it is the red **✕** next to the progress bar (in the player, the status bar, and the mobile bar, or the command _Stop generating audio_), and Voice asks before throwing the audio away.
 
 Below them sits a row of **toggles** that light up when on:
 
@@ -98,7 +100,7 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
 - Default playback reads the entire note. In Source mode, select text first and only your selection is read.
 - The **Voice read text** icon shows a refresh indicator while synthesizing and flips to a pause icon when playback is ready.
-- **Long notes start playing early.** Voice generates long notes in parts and starts playing while the rest is still being made — after the first part when your provider is fast, later when it is slower than real time (for example a model running on your own machine). The ring around ▶️ keeps filling while you listen; tap ▶️ to pause and resume. Voice measures how fast each provider generates audio and sets the start point itself. Works with MP3 on desktop, iPad, and iPhone (iOS 17.1+); elsewhere, and with WAV, the audio plays once it is complete.
+- **Long notes start playing early.** Voice generates long notes in parts and starts playing while the rest is still being made — after the first part when your provider is fast, later when it is slower than real time (for example a model running on your own machine). The ring around ▶️ keeps filling while you listen; tap ▶️ to pause and resume — generating goes on in the background. Can't wait? Tap ▶️ before it starts to play what is ready right away. Voice measures how fast each provider generates audio and sets the start point itself. Works with MP3 on desktop, iPad, and iPhone (iOS 17.1+); elsewhere, and with WAV, the audio plays once it is complete.
 
 ### Save & Play Audio Offline
 
@@ -228,7 +230,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 ## Keyboard Shortcuts
 
-Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
+Voice ships **17 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
 
 | Command                                                                   | What it does                             |
 | ------------------------------------------------------------------------- | ---------------------------------------- |
@@ -236,6 +238,7 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 | Play or Stop reading the current document.                                | Toggle playback with one key             |
 | Pause reading the current document.                                       | Pause playback                           |
 | Stop reading the current document.                                        | Stop playback and reset                  |
+| Stop generating audio (asks first).                                       | Cancel the audio being generated         |
 | Rewind by few seconds reading the current document.                       | Jump back by your rewind interval        |
 | Fast-Forward by few seconds reading the current document.                 | Jump ahead by your fast-forward interval |
 | Increase the reading speed by 0.1x.                                       | Speed up playback                        |

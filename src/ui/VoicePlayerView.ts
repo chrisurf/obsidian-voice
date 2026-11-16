@@ -375,11 +375,25 @@ export class VoicePlayerView extends ItemView {
       cls: "voice-player-chapters-list",
     });
 
-    // Loading bar (indeterminate), shown while a note is being processed.
+    // Loading bar, shown while a note's audio is being generated, with the
+    // only control that cancels it (asks first).
     this.loadingBarEl = root.createDiv({ cls: "voice-player-loading" });
-    this.loadingFillEl = this.loadingBarEl.createDiv({
+    const track = this.loadingBarEl.createDiv({
+      cls: "voice-player-loading-track",
+    });
+    this.loadingFillEl = track.createDiv({
       cls: "voice-player-loading-fill",
     });
+    const cancelBtn = this.loadingBarEl.createEl("button", {
+      cls: "voice-cancel-generation",
+      attr: { "aria-label": "Stop generating audio" },
+    });
+    setVoiceIcon(cancelBtn, "close");
+    this.registerDomEvent(
+      cancelBtn,
+      "click",
+      () => void this.plugin.confirmCancelGeneration(),
+    );
 
     this.refreshControls();
   }
@@ -433,8 +447,8 @@ export class VoicePlayerView extends ItemView {
     });
 
     switch (action) {
-      case "cancel":
-        provider.cancelOperation();
+      case "play-now":
+        this.plugin.playWhatIsReady();
         return;
       case "pause":
         provider.pauseAudio();
@@ -588,8 +602,10 @@ export class VoicePlayerView extends ItemView {
    */
   private regenerate(): void {
     const provider = this.provider();
+    // Audio being generated is never cut short (only its ✕ cancels it).
     if (provider.isOperationInProgress()) {
-      provider.cancelOperation();
+      this.plugin.notifyStillGenerating();
+      return;
     }
     provider.stopAudio();
     // Reading the note replaces any loaded chapter as the active audio, so
@@ -603,6 +619,11 @@ export class VoicePlayerView extends ItemView {
   /** Switch the active TTS provider and resync the voice list. */
   private changeProvider(provider: TtsProvider): void {
     if (provider === this.plugin.settings.TTS_PROVIDER) {
+      return;
+    }
+    if (this.plugin.isGenerating()) {
+      this.plugin.notifyStillGenerating();
+      this.providerSelect.value = this.plugin.settings.TTS_PROVIDER;
       return;
     }
     this.plugin.settings.TTS_PROVIDER = provider;
@@ -1191,6 +1212,12 @@ export class VoicePlayerView extends ItemView {
     if (!(file instanceof TFile)) {
       return;
     }
+    // The audio element is playing (or about to play) the reading being
+    // generated; loading a file would cut it off.
+    if (this.plugin.isGenerating()) {
+      this.plugin.notifyStillGenerating();
+      return;
+    }
     const audio = this.audio();
     audio.src = this.app.vault.getResourcePath(file);
     this.currentChapterPath = path;
@@ -1341,12 +1368,12 @@ export class VoicePlayerView extends ItemView {
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
 
     // Loading feedback while a note is being synthesized: grow the bottom bar to
-    // the real synthesis progress and spin the play button (a tap cancels it).
+    // the synthesis progress and fill the ring around the play button.
     const loading = provider.isOperationInProgress();
     this.loadingBarEl.toggleClass("is-visible", loading);
-    // The play button itself never moves: it shows a stop icon (a tap
-    // cancels) inside a ring that fills with the synthesis progress, or spins
-    // a short arc while no progress is known yet.
+    // The play button itself never moves: it sits inside a ring that fills
+    // with the synthesis progress, or spins a short arc while no progress is
+    // known yet. A tap plays what is ready, then pauses/resumes.
     this.playPauseBtn.toggleClass("voice-generating", loading);
     if (loading) {
       const pct = Math.round(provider.getProgress() * 100);
@@ -1356,14 +1383,7 @@ export class VoicePlayerView extends ItemView {
         "stroke-dasharray",
         `${pct <= 0 ? 22 : pct} 100`,
       );
-      // Once the start plays while the rest is generated, the ring keeps
-      // filling and the button pauses/resumes (see playTap.ts).
-      const icon = !provider.isStreaming()
-        ? "stop"
-        : provider.isPlaying()
-          ? "pause"
-          : "play";
-      setVoiceIcon(this.playPauseBtn, icon);
+      setVoiceIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     } else {
       setVoiceIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }

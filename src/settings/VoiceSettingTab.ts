@@ -472,6 +472,15 @@ export class VoiceSettingTab extends PluginSettingTab {
   async setControlValue(key: string, value: unknown): Promise<void> {
     switch (key) {
       case "TTS_PROVIDER":
+        // The running provider finishes the audio it is generating first.
+        if (this.plugin.isGenerating()) {
+          this.plugin.notifyStillGenerating();
+          // Redraw so the dropdown shows the provider still in use.
+          if (this.providerSectionEl) {
+            this.render();
+          }
+          break;
+        }
         this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
         await this.plugin.saveSettings();
         this.plugin.reinitializeProvider();
@@ -544,6 +553,12 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("minimax", "MiniMax")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
+            // The running provider finishes the audio it is generating first.
+            if (this.plugin.isGenerating()) {
+              this.plugin.notifyStillGenerating();
+              dropdown.setValue(this.plugin.settings.TTS_PROVIDER);
+              return;
+            }
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration

@@ -58,13 +58,17 @@ export class TextSpeaker {
       return;
     }
 
-    // Guard: Prevent concurrent operations
+    // Guard: one reading is generated at a time, and it is never cut short
+    // by starting another.
+    // (Voice.speakText answers a tap while generating before it gets here.)
     if (this.provider.isOperationInProgress()) {
       return;
     }
 
     // Start operation and get unique request ID
-    const requestId = this.provider.startOperation();
+    const requestId = this.provider.startOperation(
+      this.markdownHelper.getActiveFilePath() || undefined,
+    );
 
     try {
       // Get the note text to read (or a reason it couldn't be read)

@@ -123,10 +123,10 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 .voice-progress-bar-container {
   display: none;
   width: 100px;
-  height: 4px;
+  height: 6px;
   background: var(--background-modifier-border);
-  border-radius: 2px;
-  margin: 0 8px;
+  border-radius: 3px;
+  margin: 0 4px 0 8px;
   overflow: hidden;
   position: relative;
   align-self: center;
@@ -449,10 +449,16 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   opacity: 0.9;
 }
 
+.voice-mobile-progress-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
 .voice-mobile-progress-container {
   display: none;
-  width: 100%;
-  height: 3px;
+  flex: 1;
+  height: 6px;
   background: var(--background-modifier-border);
   border-radius: var(--radius-xs);
   overflow: hidden;
@@ -1097,16 +1103,28 @@ svg.voice-icon.voice-icon .voice-icon-fill {
    to the real synthesis progress via the --voice-progress custom property. */
 .voice-player-loading {
   margin-top: auto;
-  height: 3px;
-  border-radius: 3px;
-  background: var(--background-modifier-border);
-  overflow: hidden;
+  /* Clear of the status bar, which floats over the panel's bottom edge. */
+  padding-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   opacity: 0;
+  visibility: hidden;
   transition: opacity 0.15s ease;
 }
 
 .voice-player-loading.is-visible {
   opacity: 1;
+  visibility: visible;
+}
+
+.voice-player-loading-track {
+  position: relative;
+  flex: 1;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--background-modifier-border);
+  overflow: hidden;
 }
 
 .voice-player-loading-fill {
@@ -1114,8 +1132,75 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   height: 100%;
   border-radius: 3px;
   background: var(--interactive-accent);
-  transition: width 0.2s ease;
+  transition: width 0.3s linear;
 }
+
+/* While audio is being generated, a light sheen runs across the progress
+   bars, so it is clear work goes on between the (sometimes slow) steps. */
+.voice-player-loading.is-visible .voice-player-loading-track::after,
+.voice-progress-bar-container.is-generating::after,
+.voice-mobile-progress-container.is-generating::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.35) 50%,
+    transparent 100%
+  );
+  transform: translateX(-100%);
+  animation: voice-progress-sheen 1.6s ease-in-out infinite;
+  pointer-events: none;
+}
+
+@keyframes voice-progress-sheen {
+  to {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-player-loading.is-visible .voice-player-loading-track::after,
+  .voice-progress-bar-container.is-generating::after,
+  .voice-mobile-progress-container.is-generating::after {
+    animation: none;
+  }
+}
+
+/* The ✕ next to a progress bar: the only control that cancels generating. */
+.voice-cancel-generation {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-red);
+  cursor: pointer;
+  --voice-icon-size: 16px;
+}
+
+/* Over the player's and mobile bar's own button styles. */
+.voice-player-loading .voice-cancel-generation,
+.voice-mobile-progress-row .voice-cancel-generation {
+  color: var(--color-red);
+  background: transparent;
+  box-shadow: none;
+}
+
+.voice-cancel-generation:hover,
+.voice-player-loading .voice-cancel-generation:hover,
+.voice-mobile-progress-row .voice-cancel-generation:hover {
+  background: rgba(var(--color-red-rgb), 0.15);
+}
+
+
 
 /* Tap-vs-hold save gesture (issue #57): a translucent accent sweep fills around
    the button while it is held, signalling that the hold action is about to

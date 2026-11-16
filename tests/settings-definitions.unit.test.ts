@@ -59,6 +59,8 @@ interface MockPlugin {
   saveSettings: jest.Mock;
   updateSkipIntervals: jest.Mock;
   reinitializeProvider: jest.Mock;
+  isGenerating: jest.Mock;
+  notifyStillGenerating: jest.Mock;
   isMobile: () => boolean;
 }
 
@@ -68,6 +70,8 @@ function makePlugin(): MockPlugin {
     saveSettings: jest.fn().mockResolvedValue(undefined),
     updateSkipIntervals: jest.fn(),
     reinitializeProvider: jest.fn(),
+    isGenerating: jest.fn().mockReturnValue(false),
+    notifyStillGenerating: jest.fn(),
     isMobile: () => false,
   };
 }
@@ -178,6 +182,17 @@ describe("Unit: VoiceSettingTab control value binding", () => {
     // No provider section is mounted in a headless test, so the in-place
     // re-render is safely skipped rather than throwing.
     expect(plugin.updateSkipIntervals).not.toHaveBeenCalled();
+  });
+
+  it("keeps the provider while audio is being generated", async () => {
+    const plugin = makePlugin();
+    plugin.isGenerating.mockReturnValue(true);
+    const tab = makeTab(plugin);
+    await tab.setControlValue("TTS_PROVIDER", "azure");
+    expect(plugin.settings.TTS_PROVIDER).toBe(DEFAULT_SETTINGS.TTS_PROVIDER);
+    expect(plugin.saveSettings).not.toHaveBeenCalled();
+    expect(plugin.reinitializeProvider).not.toHaveBeenCalled();
+    expect(plugin.notifyStillGenerating).toHaveBeenCalledTimes(1);
   });
 
   it("a toggle change persists without provider/skip side effects", async () => {

@@ -40,6 +40,7 @@ No more waiting for a long note to be generated in full. Voice now **starts play
 - 🧮 **It works out when to start:** with a fast provider right away; with a slower one (such as a model on your own computer) once enough is ready that playback never catches up. Voice measures each provider's speed after every long note and adjusts itself.
 - ⚙️ Turn it off, or set the start point yourself, in **Settings → Voice → Playback → Play while generating**.
 - 🕒 **Correct length for long audio:** files from servers that send each part with its own length header (common for self-hosted servers) now show their full length, and the seek bar reaches the end with the audio.
+- 🏠 **Local servers out of the box:** the OpenAI-compatible provider now starts with \`http://127.0.0.1:8880/v1\`, the address many local servers use.
 
 ## 🗣️ New: speech profiles — reading that sounds natural
 

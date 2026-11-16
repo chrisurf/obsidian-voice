@@ -1,4 +1,5 @@
 import {
+  DEFAULT_OPENAI_COMPAT_BASE_URL,
   DEFAULT_SETTINGS,
   VoiceSettings,
   migrateMiniMaxHost,
@@ -325,6 +326,14 @@ export class Voice extends Plugin {
   public reinitializeProvider(): void {
     // Stop any audio on the outgoing provider before swapping
     this.speechProvider.stopAudio();
+    // Installs from before the default URL existed start with an empty one.
+    if (
+      this.settings.TTS_PROVIDER === "openai-compatible" &&
+      !this.settings.OPENAI_COMPAT_BASE_URL.trim()
+    ) {
+      this.settings.OPENAI_COMPAT_BASE_URL = DEFAULT_OPENAI_COMPAT_BASE_URL;
+      void this.saveSettings();
+    }
     this.speechProvider = createSpeechProvider(this.settings);
     this.speechProvider.setStreaming(this.streamingOptions());
     this.iconEventHandler.setProvider(this.speechProvider);

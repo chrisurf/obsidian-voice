@@ -12,6 +12,7 @@ import {
   AZURE_REGIONS,
   OPENAI_MODELS,
   OPENAI_COMPAT_FORMATS,
+  DEFAULT_OPENAI_COMPAT_BASE_URL,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
   MIN_SKIP_SECONDS,
@@ -778,11 +779,11 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Server URL")
       .setDesc(
-        "The API address of a server that implements OpenAI's speech API, e.g. https://openrouter.ai/api/v1 or http://localhost:8880/v1. On a phone, localhost means the phone itself.",
+        "The API address of a server that implements OpenAI's speech API, e.g. https://openrouter.ai/api/v1 or http://127.0.0.1:8880/v1 (the default, used by many local servers). On a phone, 127.0.0.1 and localhost mean the phone itself.",
       )
       .addText((text) =>
         text
-          .setPlaceholder("https://openrouter.ai/api/v1")
+          .setPlaceholder(DEFAULT_OPENAI_COMPAT_BASE_URL)
           .setValue(settings.OPENAI_COMPAT_BASE_URL)
           .onChange(async (value) => {
             settings.OPENAI_COMPAT_BASE_URL = value;

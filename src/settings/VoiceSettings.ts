@@ -12,6 +12,12 @@ export type TtsProvider =
   | "openai-compatible"
   | "minimax";
 
+/**
+ * Server URL filled in for the OpenAI-compatible provider: the address many
+ * local servers listen on (Kokoro-FastAPI and others).
+ */
+export const DEFAULT_OPENAI_COMPAT_BASE_URL = "http://127.0.0.1:8880/v1";
+
 /** Audio formats the OpenAI-compatible provider can request. */
 export type OpenAiCompatibleFormat = "mp3" | "wav";
 
@@ -506,7 +512,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
 
-  OPENAI_COMPAT_BASE_URL: "",
+  OPENAI_COMPAT_BASE_URL: DEFAULT_OPENAI_COMPAT_BASE_URL,
   OPENAI_COMPAT_API_KEY: "",
   OPENAI_COMPAT_MODEL: "",
   OPENAI_COMPAT_VOICE: "alloy",

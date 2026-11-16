@@ -300,7 +300,7 @@ Many services and self-hosted servers offer the same speech API as OpenAI. Choos
    | [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) (local) | `http://localhost:8880/v1`     |
    | [LiteLLM](https://docs.litellm.ai/) proxy (local)                  | `http://localhost:4000/v1`     |
 
-   The URL is used exactly as entered; Voice appends `/audio/speech` and `/models` to it.
+   The field starts with `http://127.0.0.1:8880/v1`, the address many local servers use, so a server running on the same computer often works without changing anything. The URL is used exactly as entered; Voice appends `/audio/speech` and `/models` to it.
 
 2. Paste an **API key** if the server needs one (OpenRouter does; most local servers don't).
 3. Press **Test Credentials**. Voice connects and loads the server's **models** and, where the server publishes them, its **voices**.

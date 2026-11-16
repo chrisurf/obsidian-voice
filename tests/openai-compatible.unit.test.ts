@@ -289,6 +289,52 @@ describe("Unit Tests - OpenAI-compatible Provider", () => {
       expect(blob?.size).toBe(44 + 3);
     });
 
+    test("reports the measured synthesis speed after a long reading", async () => {
+      // 250 MPEG-2 Layer III frames (24 kHz, 576 samples): 6 s of audio each.
+      const frames = new Uint8Array(250 * 144);
+      for (let i = 0; i < 250; i++) {
+        frames.set([0xff, 0xf3, 0x64, 0xc4], i * 144);
+      }
+      mockRequestUrl.mockImplementation(async () => ({
+        status: 200,
+        arrayBuffer: frames.slice().buffer,
+      }));
+      const now = jest.spyOn(Date, "now");
+      now.mockReturnValueOnce(1000).mockReturnValue(7000);
+      const onMeasured = jest.fn();
+      const service = new OpenAiCompatibleSpeechService(settings());
+      service.setStreaming({
+        enabled: () => true,
+        startFraction: () => 0,
+        onMeasured,
+      });
+      const paragraph = "word ".repeat(300).trim();
+
+      await service.speak([paragraph, paragraph].join("\n\n"), 1.0, "a.md");
+
+      now.mockRestore();
+      // 12 s of audio in 6 s of work.
+      expect(onMeasured).toHaveBeenCalledTimes(1);
+      expect(onMeasured.mock.calls[0][0]).toBeCloseTo(2, 5);
+      expect(onMeasured.mock.calls[0][1]).toBe(false);
+      expect(service.getLastGeneratedAudio("a.md")?.size).toBe(2 * 250 * 144);
+    });
+
+    test("stops between chunks when the reading is cancelled", async () => {
+      const service = new OpenAiCompatibleSpeechService(settings());
+      mockRequestUrl.mockImplementation(async () => {
+        service.cancelOperation();
+        return { status: 200, arrayBuffer: new ArrayBuffer(32) };
+      });
+      const paragraph = "word ".repeat(300).trim();
+      service.startOperation();
+
+      await service.speak([paragraph, paragraph].join("\n\n"), 1.0, "a.md");
+
+      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
+      expect(service.getLastGeneratedAudio("a.md")).toBeNull();
+    });
+
     test("refuses to synthesize without a valid server URL", async () => {
       const service = new OpenAiCompatibleSpeechService(
         settings({ OPENAI_COMPAT_BASE_URL: "" }),

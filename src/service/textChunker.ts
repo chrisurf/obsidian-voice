@@ -8,15 +8,22 @@
 
 /**
  * Split text into chunks under the given character limit, preferring paragraph
- * then sentence then word boundaries.
+ * then sentence then word boundaries. The limit can also be a function of the
+ * chunk index, e.g. small first chunks so streamed playback starts quickly.
  */
-export function chunkPlainText(text: string, maxLen: number): string[] {
-  if (text.length <= maxLen) {
-    return [text];
-  }
-
+export function chunkPlainText(
+  text: string,
+  limit: number | ((index: number) => number),
+): string[] {
   const chunks: string[] = [];
   let current = "";
+  const maxLenAt = typeof limit === "number" ? () => limit : limit;
+  // The limit of the chunk being filled.
+  const max = () => maxLenAt(chunks.length);
+
+  if (text.length <= max()) {
+    return [text];
+  }
 
   const flush = () => {
     const trimmed = current.trim();
@@ -28,7 +35,7 @@ export function chunkPlainText(text: string, maxLen: number): string[] {
 
   const addPiece = (piece: string, separator: string) => {
     if (!piece) return;
-    if (current && (current + separator + piece).length > maxLen) {
+    if (current && (current + separator + piece).length > max()) {
       flush();
     }
     current = current ? current + separator + piece : piece;
@@ -36,27 +43,39 @@ export function chunkPlainText(text: string, maxLen: number): string[] {
 
   const paragraphs = text.split(/\n{2,}/);
   for (const paragraph of paragraphs) {
-    if (paragraph.length <= maxLen) {
+    // A chunk that is still less than half full (e.g. just a heading) is
+    // topped up with the next paragraph's sentences rather than sent almost
+    // empty: a tiny first chunk would play out before the next one is ready.
+    const topUp =
+      current.length > 0 &&
+      current.length < max() / 2 &&
+      (current + "\n\n" + paragraph).length > max();
+    if (paragraph.length <= max() && !topUp) {
       addPiece(paragraph, "\n\n");
       continue;
     }
 
-    // Paragraph too long: split into sentences. Avoid regex lookbehind
-    // (unsupported on iOS < 16.4) by matching sentence runs incl. their
-    // terminator instead.
-    flush();
+    // Paragraph too long (or topping up): split into sentences. Avoid regex
+    // lookbehind (unsupported on iOS < 16.4) by matching sentence runs incl.
+    // their terminator instead.
+    if (!topUp) {
+      flush();
+    }
     const sentences = paragraph.match(/[^.!?]+[.!?]*\s*/g) ?? [paragraph];
+    let separator = "\n\n";
     for (const sentence of sentences) {
-      if (sentence.length <= maxLen) {
-        addPiece(sentence, " ");
+      if (sentence.length <= max()) {
+        addPiece(sentence, separator);
+        separator = " ";
         continue;
       }
+      separator = " ";
 
       // Sentence too long: hard-split by words.
       flush();
       const words = sentence.split(/\s+/);
       for (const word of words) {
-        if (current && (current + " " + word).length > maxLen) {
+        if (current && (current + " " + word).length > max()) {
           flush();
         }
         current = current ? current + " " + word : word;

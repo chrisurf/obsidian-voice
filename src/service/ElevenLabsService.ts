@@ -76,28 +76,13 @@ export class ElevenLabsService extends BaseSpeechService {
     try {
       this.reportProgress(0, 1);
 
-      const chunks = chunkPlainText(text, MAX_CHUNK_CHARS);
-      const audioBlobs: Blob[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        const blob = await this.synthesizeChunk(chunks[i]);
-
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        audioBlobs.push(blob);
-
-        // Reserve the last slice of the bar for concatenation + buffering.
-        this.reportProgress(((i + 1) / chunks.length) * 0.95, 1);
-      }
-
-      const finalBlob = new Blob(audioBlobs, { type: "audio/mpeg" });
-      this.playBlob(finalBlob, speed, filePath);
+      const chunks = chunkPlainText(text, this.chunkLimit(MAX_CHUNK_CHARS));
+      await this.synthesizeChunks(
+        chunks,
+        (chunk) => this.synthesizeChunk(chunk),
+        speed,
+        filePath,
+      );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;

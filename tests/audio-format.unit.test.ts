@@ -1,6 +1,8 @@
 import {
+  audioDurationSeconds,
   audioExtensionForMime,
   concatMp3Buffers,
+  mp3AudioFrames,
   concatWavBuffers,
   isAudioExtension,
   isAudioPath,
@@ -162,6 +164,25 @@ describe("Unit Tests - Audio format helpers", () => {
       const tagged = mp3(1, "Xing");
       const out = new Uint8Array(concatMp3Buffers([tagged, junk]));
       expect(out.length).toBe(tagged.byteLength + junk.byteLength);
+    });
+  });
+
+  describe("streaming helpers", () => {
+    test("strips tags and header frames for appending to a stream", () => {
+      const frames = mp3AudioFrames(mp3(3, "Xing", true));
+      expect(frames.length).toBe(3 * FRAME_LENGTH);
+      expect(count(frames, "Xing")).toBe(0);
+      expect(frames[20]).toBe(1);
+    });
+
+    test("measures MP3 and WAV playing time", () => {
+      // MPEG-2 Layer III: 576 samples per frame at 24 kHz.
+      expect(audioDurationSeconds(mp3(250, "Xing"))).toBeCloseTo(6, 5);
+      // 8-bit mono at 24 kHz: 24000 bytes per second.
+      const view = new DataView(wav(new Array(12000).fill(0)));
+      view.setUint32(28, 24000, true);
+      expect(audioDurationSeconds(view.buffer)).toBeCloseTo(0.5, 5);
+      expect(audioDurationSeconds(new ArrayBuffer(8))).toBeNull();
     });
   });
 });

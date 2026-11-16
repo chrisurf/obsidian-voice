@@ -3,6 +3,7 @@ import { resolvePlayTap, type PlayTapState } from "../src/utils/playTap";
 /** A note is open, nothing is loaded or running, Cache is on. */
 const idle: PlayTapState = {
   synthesizing: false,
+  streaming: false,
   playing: false,
   pausedMidTrack: false,
   loadedAudioIsStale: false,
@@ -73,5 +74,19 @@ describe("Play button tap Unit", () => {
     const noNote = { ...idle, hasActiveNote: false, cacheOn: false };
     expect(resolvePlayTap({ ...noNote, hasLoadedAudio: true })).toBe("resume");
     expect(resolvePlayTap(noNote)).toBe("play-cached");
+  });
+
+  it("pauses and resumes a reading that plays while it is generated", () => {
+    const streaming = { ...idle, streaming: true, hasLoadedAudio: true };
+    expect(resolvePlayTap({ ...streaming, playing: true })).toBe("pause");
+    expect(resolvePlayTap(streaming)).toBe("resume");
+    // It is the fresh render already: Cache off doesn't start another one.
+    expect(
+      resolvePlayTap({
+        ...streaming,
+        cacheOn: false,
+        loadedAudioIsStale: true,
+      }),
+    ).toBe("resume");
   });
 });

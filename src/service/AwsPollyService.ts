@@ -273,31 +273,12 @@ export class AwsPollyService extends BaseSpeechService {
     speed?: number,
     filePath?: string,
   ): Promise<void> {
-    const audioBlobs: Blob[] = [];
-
-    for (const chunk of chunks) {
-      if (this.abortController?.signal.aborted) {
-        throw new Error("AbortError");
-      }
-
-      // Synthesize this chunk
-      const blob = await this.synthesizeSSMLChunk(
-        chunk.ssml,
-        chunk.index,
-        chunk.total,
-      );
-      audioBlobs.push(blob);
-    }
-
-    // Concatenate all audio blobs
-    const finalBlob = new Blob(audioBlobs, { type: "audio/mpeg" });
-    this.lastGeneratedAudio = finalBlob; // Cache for download
-    if (filePath) {
-      this.lastGeneratedAudioFilePath = filePath;
-    }
-    this.audio.src = URL.createObjectURL(finalBlob);
-    this.reportProgress(1, 1);
-    void this.playAudio(speed);
+    await this.synthesizeChunks(
+      chunks.map((chunk) => chunk.ssml),
+      (ssml, index) => this.synthesizeSSMLChunk(ssml, index, chunks.length),
+      speed,
+      filePath,
+    );
   }
 
   /**

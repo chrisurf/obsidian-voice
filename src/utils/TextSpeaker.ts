@@ -52,6 +52,12 @@ export class TextSpeaker {
       return;
     }
 
+    // Paused while the rest of the reading is still being generated.
+    if (this.provider.isStreaming()) {
+      void this.provider.playAudio(speed);
+      return;
+    }
+
     // Guard: Prevent concurrent operations
     if (this.provider.isOperationInProgress()) {
       return;

@@ -170,6 +170,59 @@ export function concatMp3Buffers(buffers: ArrayBuffer[]): ArrayBuffer {
   return out.buffer as ArrayBuffer;
 }
 
+/**
+ * The audio frames of one MP3 file without its ID3 tags and Xing/Info header
+ * frame — what a streaming player (MediaSource) appends chunk after chunk.
+ * Returns the bytes unchanged when they are not MPEG Layer III.
+ */
+export function mp3AudioFrames(buffer: ArrayBuffer): Uint8Array {
+  const parts = parseMp3(new Uint8Array(buffer));
+  return parts ? concatBytes(parts.frames) : new Uint8Array(buffer);
+}
+
+/** The playing time of an MP3 or WAV file in seconds, or null if unknown. */
+export function audioDurationSeconds(buffer: ArrayBuffer): number | null {
+  if (isWavBuffer(buffer)) {
+    try {
+      const { format, data } = parseWav(buffer);
+      const byteRate = new DataView(
+        format.buffer,
+        format.byteOffset,
+        format.byteLength,
+      ).getUint32(8, true);
+      return byteRate > 0 ? data.length / byteRate : null;
+    } catch {
+      return null;
+    }
+  }
+  const parts = parseMp3(new Uint8Array(buffer));
+  if (!parts || parts.frames.length === 0) {
+    return null;
+  }
+  return parts.frames.reduce((sum, frame) => {
+    const info = frameAt(frame, 0) as FrameInfo;
+    return sum + info.samples / info.sampleRate;
+  }, 0);
+}
+
+/**
+ * Join the per-chunk audio of one reading into one playable blob. Both formats
+ * can carry a per-file header (WAV always, MP3 often a Xing/Info frame with
+ * the length), so the chunks are merged into one file with a single header.
+ * The format is read from the bytes rather than trusted from the request,
+ * since some servers ignore the requested format.
+ */
+export function joinAudioBuffers(chunks: ArrayBuffer[]): Blob {
+  if (chunks.length > 0 && isWavBuffer(chunks[0])) {
+    return new Blob([concatWavBuffers(chunks)], {
+      type: mimeForAudioExtension("wav"),
+    });
+  }
+  return new Blob([concatMp3Buffers(chunks)], {
+    type: mimeForAudioExtension("mp3"),
+  });
+}
+
 type Mp3Frame = Uint8Array;
 
 interface Mp3Parts {
@@ -182,6 +235,9 @@ interface FrameInfo {
   length: number;
   /** Offset of a Xing/Info tag inside the frame (after the side info). */
   tagOffset: number;
+  sampleRate: number;
+  /** Samples per channel the frame decodes to. */
+  samples: number;
 }
 
 const LAYER3_KBPS = {
@@ -221,7 +277,12 @@ function frameAt(bytes: Uint8Array, offset: number): FrameInfo | null {
     Math.floor(((mpeg1 ? 144000 : 72000) * kbps) / sampleRate) + padding;
   const mono = b3 >> 6 === 3;
   const sideInfo = mpeg1 ? (mono ? 17 : 32) : mono ? 9 : 17;
-  return { length, tagOffset: 4 + sideInfo };
+  return {
+    length,
+    tagOffset: 4 + sideInfo,
+    sampleRate,
+    samples: mpeg1 ? 1152 : 576,
+  };
 }
 
 /** Split one MP3 file into its audio frames, dropping tags and header frames. */

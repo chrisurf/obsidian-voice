@@ -5,9 +5,6 @@ import {
   type VoiceSettings,
 } from "../settings/VoiceSettings";
 import {
-  concatMp3Buffers,
-  concatWavBuffers,
-  isWavBuffer,
   mimeForAudioExtension,
   type AudioExtension,
 } from "../utils/audioFormat";
@@ -110,27 +107,13 @@ export class OpenAiSpeechService extends BaseSpeechService {
     try {
       this.reportProgress(0, 1);
 
-      const chunks = chunkPlainText(text, MAX_CHUNK_CHARS);
-      const audioChunks: ArrayBuffer[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        const audio = await this.synthesizeChunk(chunks[i]);
-
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        audioChunks.push(audio);
-
-        // Reserve the last slice of the bar for concatenation + buffering.
-        this.reportProgress(((i + 1) / chunks.length) * 0.95, 1);
-      }
-
-      this.playBlob(joinAudioChunks(audioChunks), speed, filePath);
+      const chunks = chunkPlainText(text, this.chunkLimit(MAX_CHUNK_CHARS));
+      await this.synthesizeChunks(
+        chunks,
+        (chunk) => this.synthesizeChunk(chunk),
+        speed,
+        filePath,
+      );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;
@@ -251,24 +234,6 @@ export class OpenAiSpeechService extends BaseSpeechService {
     }
     return "OpenAI error. Please try again.";
   }
-}
-
-/**
- * Join the per-chunk audio into one playable blob. Both formats can carry a
- * per-file header (WAV always, MP3 often a Xing/Info frame with the length), so
- * the chunks are merged into one file with a single header.
- * The format is read from the bytes rather than trusted from the request, since
- * some servers ignore `response_format`.
- */
-export function joinAudioChunks(chunks: ArrayBuffer[]): Blob {
-  if (chunks.length > 0 && isWavBuffer(chunks[0])) {
-    return new Blob([concatWavBuffers(chunks)], {
-      type: mimeForAudioExtension("wav"),
-    });
-  }
-  return new Blob([concatMp3Buffers(chunks)], {
-    type: mimeForAudioExtension("mp3"),
-  });
 }
 
 /** Best-effort error text from a JSON error body (`{ error: { message } }`). */

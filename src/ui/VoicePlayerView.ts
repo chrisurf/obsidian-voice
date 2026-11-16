@@ -422,7 +422,8 @@ export class VoicePlayerView extends ItemView {
     const hasLoadedAudio = audio.currentSrc !== "";
 
     const action = resolvePlayTap({
-      synthesizing: provider.isOperationInProgress(),
+      synthesizing: provider.isOperationInProgress() && !provider.isStreaming(),
+      streaming: provider.isStreaming(),
       playing: provider.isPlaying(),
       pausedMidTrack: hasLoadedAudio && !audio.ended && audio.currentTime > 0,
       loadedAudioIsStale: this.loadedAudioIsStale(),
@@ -1325,7 +1326,9 @@ export class VoicePlayerView extends ItemView {
     const provider = this.provider();
     const audio = this.audio();
 
-    const duration = isNaN(audio.duration) ? 0 : audio.duration;
+    // The provider reports the buffered length while a reading streams.
+    const total = provider.getDuration();
+    const duration = Number.isFinite(total) ? total : 0;
     const currentTime = isNaN(audio.currentTime) ? 0 : audio.currentTime;
 
     if (!this.isScrubbing) {
@@ -1353,7 +1356,14 @@ export class VoicePlayerView extends ItemView {
         "stroke-dasharray",
         `${pct <= 0 ? 22 : pct} 100`,
       );
-      setVoiceIcon(this.playPauseBtn, "stop");
+      // Once the start plays while the rest is generated, the ring keeps
+      // filling and the button pauses/resumes (see playTap.ts).
+      const icon = !provider.isStreaming()
+        ? "stop"
+        : provider.isPlaying()
+          ? "pause"
+          : "play";
+      setVoiceIcon(this.playPauseBtn, icon);
     } else {
       setVoiceIcon(this.playPauseBtn, provider.isPlaying() ? "pause" : "play");
     }

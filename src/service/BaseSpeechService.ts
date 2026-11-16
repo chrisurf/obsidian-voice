@@ -20,6 +20,29 @@ import {
   MAX_SKIP_SECONDS,
 } from "../settings/VoiceSettings";
 import type { PauseStyle } from "../types/ProcessorTypes";
+import {
+  audioDurationSeconds,
+  isWavBuffer,
+  joinAudioBuffers,
+  mp3AudioFrames,
+} from "../utils/audioFormat";
+import {
+  FIRST_CHUNK_CHARS,
+  MIN_MEASURED_SECONDS,
+  rampedChunkLimit,
+  shouldStartPlayback,
+} from "../utils/streamStart";
+import { canPlayWhileGenerating, ProgressiveAudio } from "./progressiveAudio";
+
+/** How a long reading may start playing before all of it is synthesized. */
+export interface StreamingOptions {
+  /** "Play while generating" is on. */
+  enabled(): boolean;
+  /** Share of the reading (0..1) to have ready before playing at `speed`. */
+  startFraction(speed: number): number;
+  /** A full reading finished: audio seconds per second of synthesis. */
+  onMeasured(rate: number, stalled: boolean): void;
+}
 
 export abstract class BaseSpeechService implements SpeechProvider {
   protected audio: HTMLAudioElement;
@@ -39,6 +62,11 @@ export abstract class BaseSpeechService implements SpeechProvider {
   // Last reported synthesis progress (0..1), exposed via getProgress() for
   // pollers such as the Voice player's loading bar.
   protected lastProgress: number = 0;
+  protected streaming: StreamingOptions | null = null;
+  // The reading being played while it is still synthesized, once playback
+  // has started (see synthesizeChunks).
+  private progressive: ProgressiveAudio | null = null;
+  private progressivePlaying = false;
 
   constructor(voice: string, speed?: number) {
     this.voice = voice;
@@ -88,6 +116,158 @@ export abstract class BaseSpeechService implements SpeechProvider {
     this.audio.src = URL.createObjectURL(blob);
     this.reportProgress(1, 1);
     void this.playAudio(speed);
+  }
+
+  /**
+   * Synthesize a reading chunk by chunk and play it — shared by every provider
+   * that splits long notes. Reports progress, honours cancellation, and joins
+   * the chunks into one file for the cache and saving. With "play while
+   * generating" on, MP3 chunks are played as they arrive once enough of the
+   * reading is ready (see utils/streamStart.ts).
+   */
+  protected async synthesizeChunks(
+    chunks: string[],
+    synthesize: (chunk: string, index: number) => Promise<ArrayBuffer | Blob>,
+    speed?: number,
+    filePath?: string,
+  ): Promise<void> {
+    const totalChars = chunks.reduce((sum, c) => sum + c.length, 0);
+    const playSpeed = speed ?? this.speed;
+    const fraction = this.streaming?.startFraction(playSpeed) ?? 1;
+    const buffers: ArrayBuffer[] = [];
+    let charsReady = 0;
+    let audioSeconds = 0;
+    const started = Date.now();
+    // Read once: cancelOperation() drops the controller after aborting it.
+    const signal = this.abortController?.signal;
+    const throwIfAborted = () => {
+      if (signal?.aborted) {
+        // Providers recognise a cancellation by the error's name.
+        const error = new Error("AbortError");
+        error.name = "AbortError";
+        throw error;
+      }
+    };
+    let stream =
+      chunks.length > 1 && this.streaming?.enabled() && canPlayWhileGenerating()
+        ? new ProgressiveAudio(this.audio)
+        : null;
+    this.progressive = stream;
+
+    try {
+      for (let i = 0; i < chunks.length; i++) {
+        throwIfAborted();
+        const result = await synthesize(chunks[i], i);
+        throwIfAborted();
+        const buffer =
+          result instanceof ArrayBuffer ? result : await result.arrayBuffer();
+        buffers.push(buffer);
+        charsReady += chunks[i].length;
+        audioSeconds += audioDurationSeconds(buffer) ?? 0;
+        // Reserve the last slice of the bar for concatenation + buffering.
+        this.reportProgress((charsReady / totalChars) * 0.95, 1);
+
+        if (stream && isWavBuffer(buffer)) {
+          // MediaSource can't play WAV: play the finished file instead.
+          stream.dispose();
+          stream = this.progressive = null;
+        }
+        if (stream) {
+          await stream.append(mp3AudioFrames(buffer));
+          if (
+            !this.progressivePlaying &&
+            shouldStartPlayback({
+              chunksReady: i + 1,
+              charsReady,
+              totalChars,
+              fraction,
+            })
+          ) {
+            this.progressivePlaying = true;
+            void this.playAudio(speed);
+          }
+        }
+      }
+
+      const seconds = (Date.now() - started) / 1000;
+      if (audioSeconds >= MIN_MEASURED_SECONDS && seconds > 0) {
+        this.streaming?.onMeasured(audioSeconds / seconds, !!stream?.stalled);
+      }
+
+      const blob = joinAudioBuffers(buffers);
+      if (stream && this.progressivePlaying) {
+        stream.finish();
+        this.handOver(blob, filePath);
+      } else {
+        stream?.dispose();
+        this.playBlob(blob, speed, filePath);
+      }
+    } catch (error) {
+      if (stream) {
+        stream.dispose();
+        this.unloadAudio();
+      }
+      throw error;
+    } finally {
+      this.progressive = null;
+      this.progressivePlaying = false;
+    }
+  }
+
+  /**
+   * The character limit per chunk for a text provider: with "play while
+   * generating" on, the first chunks are small so the first audio comes fast.
+   */
+  protected chunkLimit(max: number): number | ((index: number) => number) {
+    if (!this.streaming?.enabled() || !canPlayWhileGenerating()) {
+      return max;
+    }
+    return (index) => rampedChunkLimit(index, FIRST_CHUNK_CHARS, max);
+  }
+
+  /**
+   * Generation finished while its start is already playing: cache the joined
+   * file and move the element onto it, keeping position, speed and play state,
+   * so seeking, saving and the length shown all use the complete file.
+   */
+  private handOver(blob: Blob, filePath?: string): void {
+    this.lastGeneratedAudio = blob;
+    if (filePath) {
+      this.lastGeneratedAudioFilePath = filePath;
+    }
+    const audio = this.audio;
+    const position = audio.currentTime;
+    const rate = audio.playbackRate;
+    const wasPlaying = !audio.paused;
+    audio.src = URL.createObjectURL(blob);
+    audio.addEventListener(
+      "loadedmetadata",
+      () => {
+        audio.currentTime = position;
+        audio.playbackRate = rate;
+        if (wasPlaying) {
+          void audio.play();
+        }
+      },
+      { once: true },
+    );
+    this.reportProgress(1, 1);
+  }
+
+  /** Drop a partly streamed reading from the element. */
+  private unloadAudio(): void {
+    this.audio.pause();
+    this.audio.removeAttribute("src");
+    this.audio.load();
+  }
+
+  setStreaming(options: StreamingOptions | null): void {
+    this.streaming = options;
+  }
+
+  /** Audio is playing (or paused) while the rest is still being generated. */
+  isStreaming(): boolean {
+    return this.progressive !== null && this.progressivePlaying;
   }
 
   // --- Playback controls ---
@@ -215,7 +395,14 @@ export abstract class BaseSpeechService implements SpeechProvider {
   }
 
   getDuration(): number {
-    return this.audio.duration;
+    const duration = this.audio.duration;
+    // While a reading streams, the total length is still open: report what
+    // is buffered so far.
+    const buffered = this.audio.buffered;
+    if (!Number.isFinite(duration) && buffered?.length) {
+      return buffered.end(buffered.length - 1);
+    }
+    return duration;
   }
 
   getCurrentTime(): number {
@@ -254,6 +441,13 @@ export abstract class BaseSpeechService implements SpeechProvider {
   cancelOperation(): void {
     if (this.currentRequestId && this.abortController) {
       this.abortController.abort();
+      if (this.progressive) {
+        // Stop a reading that already plays while generating.
+        this.progressive.dispose();
+        this.progressive = null;
+        this.progressivePlaying = false;
+        this.unloadAudio();
+      }
       this.currentRequestId = null;
       this.isLoading = false;
       this.abortController = undefined;

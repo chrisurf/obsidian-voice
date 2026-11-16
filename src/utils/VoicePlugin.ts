@@ -7,6 +7,13 @@ import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import type { StreamingOptions } from "../service/BaseSpeechService";
+import {
+  mergeRate,
+  startFractionForRate,
+  startPercentForRate,
+  streamRateKey,
+} from "./streamStart";
 import { Plugin, Platform, Notice } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
@@ -42,6 +49,7 @@ export class Voice extends Plugin {
     this.markdownHelper = new MarkdownHelper(this.app);
 
     this.speechProvider = createSpeechProvider(this.settings);
+    this.speechProvider.setStreaming(this.streamingOptions());
 
     this.iconEventHandler = new IconEventHandler(
       this,
@@ -318,6 +326,7 @@ export class Voice extends Plugin {
     // Stop any audio on the outgoing provider before swapping
     this.speechProvider.stopAudio();
     this.speechProvider = createSpeechProvider(this.settings);
+    this.speechProvider.setStreaming(this.streamingOptions());
     this.iconEventHandler.setProvider(this.speechProvider);
     this.reinitializeTextSpeaker();
   }
@@ -377,6 +386,58 @@ export class Voice extends Plugin {
    * provider and refresh the control tooltips. Called when the user changes
    * the interval in settings (no audio interruption).
    */
+  /** The key the active provider's measured speed is stored under. */
+  public streamRateKey(): string {
+    return streamRateKey(
+      this.settings.TTS_PROVIDER,
+      this.settings.OPENAI_COMPAT_BASE_URL,
+    );
+  }
+
+  /** The measured synthesis speed of the active provider, if any. */
+  public measuredStreamRate(): number | undefined {
+    return this.settings.streamRates[this.streamRateKey()];
+  }
+
+  /**
+   * The start point shown in settings: computed from the active provider's
+   * measured speed while automatic, else the stored value.
+   */
+  public streamStartPercent(): number {
+    const rate = this.measuredStreamRate();
+    return this.settings.streamStartAuto && rate
+      ? startPercentForRate(rate, this.settings.SPEED)
+      : this.settings.streamStartPercent;
+  }
+
+  /** "Play while generating" settings, read live by the provider. */
+  private streamingOptions(): StreamingOptions {
+    return {
+      enabled: () => this.settings.playWhileGenerating,
+      startFraction: (speed) => {
+        const rate = this.measuredStreamRate();
+        return this.settings.streamStartAuto && rate
+          ? startFractionForRate(rate, speed)
+          : this.settings.streamStartPercent / 100;
+      },
+      onMeasured: (rate, stalled) => {
+        const key = this.streamRateKey();
+        const merged = mergeRate(this.settings.streamRates[key], rate, stalled);
+        this.settings.streamRates = {
+          ...this.settings.streamRates,
+          [key]: merged,
+        };
+        if (this.settings.streamStartAuto) {
+          this.settings.streamStartPercent = startPercentForRate(
+            merged,
+            this.settings.SPEED,
+          );
+        }
+        void this.saveSettings();
+      },
+    };
+  }
+
   public updateSkipIntervals(): void {
     this.speechProvider.setRewindSeconds(this.settings.rewindSeconds);
     this.speechProvider.setForwardSeconds(this.settings.forwardSeconds);

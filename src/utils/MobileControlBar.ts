@@ -154,7 +154,10 @@ export class MobileControlBar {
       "play",
       "Play/Pause",
       () => {
-        if (this.pollyService.isOperationInProgress()) {
+        if (
+          this.pollyService.isOperationInProgress() &&
+          !this.pollyService.isStreaming()
+        ) {
           this.pollyService.cancelOperation();
           this.resetToPlayState();
           this.hideProgressBar();

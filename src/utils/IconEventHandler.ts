@@ -215,7 +215,10 @@ export class IconEventHandler {
       "play",
       () => {
         // If operation is in progress, cancel it
-        if (this.pollyService.isOperationInProgress()) {
+        if (
+          this.pollyService.isOperationInProgress() &&
+          !this.pollyService.isStreaming()
+        ) {
           this.pollyService.cancelOperation();
           this.resetIconsToPlayState();
           this.hideProgressBar();
@@ -295,7 +298,10 @@ export class IconEventHandler {
       "Voice read text",
       () => {
         // If operation is in progress, cancel it
-        if (this.pollyService.isOperationInProgress()) {
+        if (
+          this.pollyService.isOperationInProgress() &&
+          !this.pollyService.isStreaming()
+        ) {
           this.pollyService.cancelOperation();
           this.resetIconsToPlayState();
           this.hideProgressBar();

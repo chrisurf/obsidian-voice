@@ -72,7 +72,18 @@ All providers implement one interface so the rest of the plugin is
   `openAiCompatible.ts` and merged with hand-added entries).
 - `SpeechProviderFactory.ts` — `createSpeechProvider(settings)` builds the
   provider chosen in settings and applies rewind/forward prefs.
-- `textChunker.ts` — splits long text for the text-input providers.
+- `textChunker.ts` — splits long text for the text-input providers (the limit
+  may grow per chunk: small first chunks when playing while generating).
+- **Play while generating:** every provider hands its chunks to
+  `BaseSpeechService.synthesizeChunks()`, which reports progress, honours
+  cancellation, joins the chunks (`joinAudioBuffers`) and — when the setting is
+  on and the platform supports MediaSource for MP3 — plays them as they arrive
+  via `progressiveAudio.ts` (ManagedMediaSource on iPhone). When to start is
+  pure logic in `utils/streamStart.ts` (start share = 1 − rate / speed + margin,
+  rate measured per provider after each reading and stored in
+  `settings.streamRates`). When generation ends, the element moves onto the
+  joined file. While a reading streams, `isStreaming()` is true and play taps
+  pause/resume instead of cancelling (`utils/playTap.ts`).
 - `voiceCatalog.ts` — **pure** helpers (unit-tested) to map a provider's fetched
   voice list into `VoiceOption[]` and group it by language for the picker.
   Azure uses it: "Test Credentials" fetches `/voices/list`, the result is cached

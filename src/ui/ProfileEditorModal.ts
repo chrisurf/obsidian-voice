@@ -73,6 +73,8 @@ export class ProfileEditorModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.addClass("voice-profile-editor");
+    // Sizes the dialog itself (a class rather than `.modal:has(...)`).
+    this.modalEl.addClass("voice-profile-editor-modal");
     this.titleEl.setText(
       this.options.key
         ? `Speech profile: ${this.options.key}`

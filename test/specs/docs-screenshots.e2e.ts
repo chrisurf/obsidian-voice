@@ -216,7 +216,7 @@ describe("Docs screenshots (Integration)", function () {
     await browser.pause(400);
     await blur();
     await browser
-      .$(".modal:has(.voice-profile-editor)")
+      .$(".modal.voice-profile-editor-modal")
       .saveScreenshot(path.join(OUT_DIR, "profile-editor.png"));
   });
 

@@ -1358,7 +1358,7 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 }
 
 /* --- Speech profile editor (src/ui/ProfileEditorModal.ts) --- */
-.modal:has(.voice-profile-editor) {
+.modal.voice-profile-editor-modal {
   width: min(760px, 95vw);
 }
 

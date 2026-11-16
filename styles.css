@@ -99,6 +99,16 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   transform: scale(0.92);
 }
 
+/* While loading, only the icon spins, not the button with its hover
+   background (which would turn as a square). */
+.voice-statusbar-btn.rotating-icon {
+  animation: none;
+}
+
+.voice-statusbar-btn.rotating-icon svg {
+  animation: rotateCounterClockwise 2s linear infinite;
+}
+
 /* The seek arrows are drawn larger in their 24×24 box than the others. */
 .voice-statusbar-btn.rewind,
 .voice-statusbar-btn.fast-forward {

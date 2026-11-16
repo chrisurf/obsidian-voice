@@ -1,4 +1,5 @@
 import {
+  DEFAULT_OPENAI_COMPAT_BASE_URL,
   DEFAULT_SETTINGS,
   VoiceSettings,
   migrateMiniMaxHost,
@@ -7,12 +8,20 @@ import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
 import type { SpeechProvider } from "../service/SpeechProvider";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import type { StreamingOptions } from "../service/BaseSpeechService";
+import {
+  mergeRate,
+  startFractionForRate,
+  startPercentForRate,
+  streamRateKey,
+} from "./streamStart";
 import { Plugin, Platform, Notice } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
 import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 import { WhatsNewModal } from "../ui/WhatsNewModal";
+import { CancelGenerationModal } from "../ui/CancelGenerationModal";
 import { shouldShowWhatsNew } from "./whatsNew";
 import { ProfileStore } from "../profiles/ProfileStore";
 import { readingLanguage } from "../profiles/language";
@@ -42,6 +51,7 @@ export class Voice extends Plugin {
     this.markdownHelper = new MarkdownHelper(this.app);
 
     this.speechProvider = createSpeechProvider(this.settings);
+    this.speechProvider.setStreaming(this.streamingOptions());
 
     this.iconEventHandler = new IconEventHandler(
       this,
@@ -135,6 +145,23 @@ export class Voice extends Plugin {
   }
 
   async speakText(speed?: number) {
+    const provider = this.speechProvider;
+    // Generating, nothing playing yet: never start a second reading or cut
+    // this one short. On its own note a tap plays what is ready.
+    if (
+      this.isGenerating() &&
+      !provider.isPlaying() &&
+      !provider.isStreaming()
+    ) {
+      const active = this.markdownHelper.getActiveFilePath();
+      const generating = provider.getOperationFilePath();
+      if (active && generating && active !== generating) {
+        this.notifyStillGenerating();
+      } else {
+        this.playWhatIsReady();
+      }
+      return;
+    }
     await this.textSpeaker.speakText(speed);
   }
 
@@ -317,7 +344,16 @@ export class Voice extends Plugin {
   public reinitializeProvider(): void {
     // Stop any audio on the outgoing provider before swapping
     this.speechProvider.stopAudio();
+    // Installs from before the default URL existed start with an empty one.
+    if (
+      this.settings.TTS_PROVIDER === "openai-compatible" &&
+      !this.settings.OPENAI_COMPAT_BASE_URL.trim()
+    ) {
+      this.settings.OPENAI_COMPAT_BASE_URL = DEFAULT_OPENAI_COMPAT_BASE_URL;
+      void this.saveSettings();
+    }
     this.speechProvider = createSpeechProvider(this.settings);
+    this.speechProvider.setStreaming(this.streamingOptions());
     this.iconEventHandler.setProvider(this.speechProvider);
     this.reinitializeTextSpeaker();
   }
@@ -352,6 +388,11 @@ export class Voice extends Plugin {
    * provider, apply it to the running provider, and refresh the display.
    */
   public async persistActiveVoice(voiceId: string): Promise<void> {
+    // A new voice would apply to the rest of the reading being generated.
+    if (this.isGenerating()) {
+      this.notifyStillGenerating();
+      return;
+    }
     if (this.settings.TTS_PROVIDER === "elevenlabs") {
       this.settings.ELEVENLABS_VOICE = voiceId;
     } else if (this.settings.TTS_PROVIDER === "google") {
@@ -377,6 +418,58 @@ export class Voice extends Plugin {
    * provider and refresh the control tooltips. Called when the user changes
    * the interval in settings (no audio interruption).
    */
+  /** The key the active provider's measured speed is stored under. */
+  public streamRateKey(): string {
+    return streamRateKey(
+      this.settings.TTS_PROVIDER,
+      this.settings.OPENAI_COMPAT_BASE_URL,
+    );
+  }
+
+  /** The measured synthesis speed of the active provider, if any. */
+  public measuredStreamRate(): number | undefined {
+    return this.settings.streamRates[this.streamRateKey()];
+  }
+
+  /**
+   * The start point shown in settings: computed from the active provider's
+   * measured speed while automatic, else the stored value.
+   */
+  public streamStartPercent(): number {
+    const rate = this.measuredStreamRate();
+    return this.settings.streamStartAuto && rate
+      ? startPercentForRate(rate, this.settings.SPEED)
+      : this.settings.streamStartPercent;
+  }
+
+  /** "Play while generating" settings, read live by the provider. */
+  private streamingOptions(): StreamingOptions {
+    return {
+      enabled: () => this.settings.playWhileGenerating,
+      startFraction: (speed) => {
+        const rate = this.measuredStreamRate();
+        return this.settings.streamStartAuto && rate
+          ? startFractionForRate(rate, speed)
+          : this.settings.streamStartPercent / 100;
+      },
+      onMeasured: (rate, stalled) => {
+        const key = this.streamRateKey();
+        const merged = mergeRate(this.settings.streamRates[key], rate, stalled);
+        this.settings.streamRates = {
+          ...this.settings.streamRates,
+          [key]: merged,
+        };
+        if (this.settings.streamStartAuto) {
+          this.settings.streamStartPercent = startPercentForRate(
+            merged,
+            this.settings.SPEED,
+          );
+        }
+        void this.saveSettings();
+      },
+    };
+  }
+
   public updateSkipIntervals(): void {
     this.speechProvider.setRewindSeconds(this.settings.rewindSeconds);
     this.speechProvider.setForwardSeconds(this.settings.forwardSeconds);
@@ -388,6 +481,10 @@ export class Voice extends Plugin {
    * Backs the "Switch to the next voice" command.
    */
   public async cycleVoice(): Promise<void> {
+    if (this.isGenerating()) {
+      this.notifyStillGenerating();
+      return;
+    }
     const options = this.speechProvider.getVoiceOptions();
     if (options.length === 0) {
       return;
@@ -430,10 +527,71 @@ export class Voice extends Plugin {
     return this.speechProvider;
   }
 
+  // --- Audio being generated ---
+  // Generating runs to the end whatever the user does meanwhile (pause, stop,
+  // another note or chapter); only the ✕ next to the progress bar cancels it,
+  // after asking.
+
+  /** Audio is being generated right now. */
+  public isGenerating(): boolean {
+    return this.speechProvider.isOperationInProgress();
+  }
+
+  /** Explain why an action waits for the audio being generated. */
+  public notifyStillGenerating(): void {
+    const path = this.speechProvider.getOperationFilePath();
+    const what = path ? `“${noteName(path)}”` : "A note";
+    new Notice(
+      `${what} is still being generated. Wait for it to finish, or stop it with ✕ next to the progress bar.`,
+    );
+  }
+
+  /**
+   * A play tap while generating: start playing what is ready, or resume. A
+   * reading that can only play once complete says so instead.
+   */
+  public playWhatIsReady(): void {
+    const provider = this.speechProvider;
+    if (provider.isStreaming()) {
+      if (!provider.isPlaying()) {
+        void provider.playAudio();
+      }
+      return;
+    }
+    if (!provider.playWhatIsReady()) {
+      new Notice(
+        "This audio plays once it is fully generated. To stop it, use ✕ next to the progress bar.",
+      );
+    }
+  }
+
+  /** The ✕ next to the progress bar: confirm, then cancel generating. */
+  public async confirmCancelGeneration(): Promise<void> {
+    if (!this.isGenerating()) {
+      return;
+    }
+    const path = this.speechProvider.getOperationFilePath();
+    const confirmed = await CancelGenerationModal.confirm(
+      this.app,
+      path ? noteName(path) : null,
+    );
+    if (confirmed && this.isGenerating()) {
+      this.speechProvider.cancelOperation();
+      this.iconEventHandler.resetAfterCancel();
+    }
+  }
+
   /**
    * @deprecated Use getSpeechProvider() instead.
    */
   public getPollyService(): SpeechProvider {
     return this.speechProvider;
   }
+}
+
+/** A note's name without folder and extension. */
+function noteName(path: string): string {
+  const file = path.slice(path.lastIndexOf("/") + 1);
+  const dot = file.lastIndexOf(".");
+  return dot > 0 ? file.slice(0, dot) : file;
 }

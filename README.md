@@ -45,7 +45,7 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 
 | Control                                       | What it does                                                                                                            |
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| ▶️ **Play**                                   | Play or pause. While a note is generated it shows ⏹ inside a ring that fills with the progress — tap to cancel          |
+| ▶️ **Play**                                   | Play or pause. While a note is generated, a ring fills with the progress — tap to play what is ready                    |
 | ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
 | ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
 | ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
@@ -54,9 +54,11 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 | **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
 | ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
 
-While a note is being generated, the play button shows ⏹ and a ring around it fills with the progress — tap it to cancel:
+While a note is being generated, a ring around the play button fills with the progress, and a bar at the bottom of the player moves along with a light sheen, so you can always tell work is going on:
 
-![The play button while a note is generated: a stop icon inside a progress ring](./assets/voice-player-generating.png)
+![The play button while a note is generated, inside a progress ring](./assets/voice-player-generating.png)
+
+**Generating always runs to the end.** Pause, Stop, switching notes or tapping a chapter never interrupt it — Voice tells you the note is still being generated instead of starting something else. The only way to stop it is the red **✕** next to the progress bar (in the player, the status bar, and the mobile bar, or the command _Stop generating audio_), and Voice asks before throwing the audio away.
 
 Below them sits a row of **toggles** that light up when on:
 
@@ -98,6 +100,7 @@ On mobile, the same player opens as a full-screen pane, optimized for touch:
 
 - Default playback reads the entire note. In Source mode, select text first and only your selection is read.
 - The **Voice read text** icon shows a refresh indicator while synthesizing and flips to a pause icon when playback is ready.
+- **Long notes start playing early.** Voice generates long notes in parts and starts playing while the rest is still being made — after the first part when your provider is fast, later when it is slower than real time (for example a model running on your own machine). The ring around ▶️ keeps filling while you listen; tap ▶️ to pause and resume — generating goes on in the background. Can't wait? Tap ▶️ before it starts to play what is ready right away. Voice measures how fast each provider generates audio and sets the start point itself. Works with MP3 on desktop, iPad, and iPhone (iOS 17.1+); elsewhere, and with WAV, the audio plays once it is complete.
 
 ### Save & Play Audio Offline
 
@@ -131,13 +134,13 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
 
 ### Precision Playback Controls
 
-- Track synthesis progress with the real-time status bar indicator until playback is ready.
+- Track synthesis progress with the real-time status bar indicator. The status bar holds rewind, stop, speed, play and fast-forward, with the same circular seek arrows as the player and a soft highlight on hover.
 
   ![status bar controls](./assets/status-bar-complete.png)
 
 - Use rewind / fast-forward and on-the-fly speed changes for quick navigation — from the player or the status bar.
 - Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
-- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×) or from the status bar; hotkeys can also jump to preset tempos.
+- **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×), or click the speed in the status bar (e.g. **1.0× ⌃**) and pick one from the menu; hotkeys can also jump to preset tempos.
 
   ![speed control](./assets/tempo.png)
 
@@ -213,20 +216,21 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 ![Voice settings](./assets/settings.png)
 
-| Setting                      | What it does                                                                                                                                                                                                 |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                   |
-| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                          |
-| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                   |
-| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                    |
-| **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access. |
-| **Speech profiles**          | How Voice reads, per language — see [Speech Profiles](#speech-profiles-how-voice-reads). Edit, paste, import, or delete profiles; optionally store them in a vault folder.                                   |
-| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                           |
-| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                            |
+| Setting                      | What it does                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                                                                                        |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                                                                                               |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                                                                                        |
+| **Play while generating**    | Start playing long notes before all of the audio is generated. On by default. **Set start point automatically** (on) calculates when to start from the provider's measured speed after every long note; until it is measured, playback starts once 25% is ready. Turn it off to choose the **Start playback at** share yourself (0% starts after the first part). |
+| **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                                                                                         |
+| **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access.                                                                                                                                                      |
+| **Speech profiles**          | How Voice reads, per language — see [Speech Profiles](#speech-profiles-how-voice-reads). Edit, paste, import, or delete profiles; optionally store them in a vault folder.                                                                                                                                                                                        |
+| **Folder list follows note** | Player's folder picker auto-switches to the folder of the note you're viewing. On by default; turn off to keep your chosen folder.                                                                                                                                                                                                                                |
+| **Test Credentials**         | Validate your provider keys; on success it reports how many voices are available.                                                                                                                                                                                                                                                                                 |
 
 ## Keyboard Shortcuts
 
-Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
+Voice ships **17 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
 
 | Command                                                                   | What it does                             |
 | ------------------------------------------------------------------------- | ---------------------------------------- |
@@ -234,6 +238,7 @@ Voice ships **16 commands** you can bind to any hotkey. No keys are assigned by 
 | Play or Stop reading the current document.                                | Toggle playback with one key             |
 | Pause reading the current document.                                       | Pause playback                           |
 | Stop reading the current document.                                        | Stop playback and reset                  |
+| Stop generating audio (asks first).                                       | Cancel the audio being generated         |
 | Rewind by few seconds reading the current document.                       | Jump back by your rewind interval        |
 | Fast-Forward by few seconds reading the current document.                 | Jump ahead by your fast-forward interval |
 | Increase the reading speed by 0.1x.                                       | Speed up playback                        |
@@ -298,7 +303,7 @@ Many services and self-hosted servers offer the same speech API as OpenAI. Choos
    | [Kokoro-FastAPI](https://github.com/remsky/Kokoro-FastAPI) (local) | `http://localhost:8880/v1`     |
    | [LiteLLM](https://docs.litellm.ai/) proxy (local)                  | `http://localhost:4000/v1`     |
 
-   The URL is used exactly as entered; Voice appends `/audio/speech` and `/models` to it.
+   The field starts with `http://127.0.0.1:8880/v1`, the address many local servers use, so a server running on the same computer often works without changing anything. The URL is used exactly as entered; Voice appends `/audio/speech` and `/models` to it.
 
 2. Paste an **API key** if the server needs one (OpenRouter does; most local servers don't).
 3. Press **Test Credentials**. Voice connects and loads the server's **models** and, where the server publishes them, its **voices**.

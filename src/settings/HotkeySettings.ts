@@ -27,6 +27,20 @@ export class HotkeySettings {
     });
 
     this.voice.addCommand({
+      id: "cancel-generating",
+      name: "Stop generating audio (asks first).",
+      checkCallback: (checking) => {
+        if (!this.voice.isGenerating()) {
+          return false;
+        }
+        if (!checking) {
+          void this.voice.confirmCancelGeneration();
+        }
+        return true;
+      },
+    });
+
+    this.voice.addCommand({
       id: "rewind-audio",
       name: "Rewind by few seconds reading the current document.",
       callback: () => this.voice.getSpeechProvider().rewindAudio(),

@@ -73,6 +73,8 @@ export class ProfileEditorModal extends Modal {
   onOpen(): void {
     const { contentEl } = this;
     contentEl.addClass("voice-profile-editor");
+    // Sizes the dialog itself (a class rather than `.modal:has(...)`).
+    this.modalEl.addClass("voice-profile-editor-modal");
     this.titleEl.setText(
       this.options.key
         ? `Speech profile: ${this.options.key}`
@@ -287,9 +289,11 @@ export class ProfileEditorModal extends Modal {
 
   /** Pick a .yaml / .yml / .json file and load it into the editor. */
   private importFile(): void {
-    const input = activeDocument.createElement("input");
-    input.type = "file";
-    input.accept = ".yaml,.yml,.json,application/json,text/yaml";
+    // A detached file input, only used to open the system file picker.
+    const input = createEl("input", {
+      type: "file",
+      attr: { accept: ".yaml,.yml,.json,application/json,text/yaml" },
+    });
     input.addEventListener("change", () => {
       const file = input.files?.[0];
       if (!file) {

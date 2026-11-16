@@ -158,6 +158,8 @@ export const VOICE_ICONS = {
     { d: "M18 5v13" },
     { d: "M22 10v3" },
   ],
+  "chevron-up": [{ d: "m18 15-6-6-6 6" }],
+  close: [{ d: "M18 6 6 18" }, { d: "m6 6 12 12" }],
 } satisfies Record<string, VoiceIconShape[]>;
 
 export type VoiceIconName = keyof typeof VOICE_ICONS;

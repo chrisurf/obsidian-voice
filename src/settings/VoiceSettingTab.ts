@@ -2,6 +2,7 @@ import {
   App,
   type DropdownComponent,
   PluginSettingTab,
+  requireApiVersion,
   Setting,
   type SettingDefinitionItem,
 } from "obsidian";
@@ -11,6 +12,7 @@ import {
   AZURE_REGIONS,
   OPENAI_MODELS,
   OPENAI_COMPAT_FORMATS,
+  DEFAULT_OPENAI_COMPAT_BASE_URL,
   MINIMAX_MODELS,
   MINIMAX_REGIONS,
   MIN_SKIP_SECONDS,
@@ -19,6 +21,8 @@ import {
   type TtsProvider,
 } from "./VoiceSettings";
 import { createSpeechProvider } from "../service/SpeechProviderFactory";
+import { canPlayWhileGenerating } from "../service/progressiveAudio";
+import { DEFAULT_START_PERCENT } from "../utils/streamStart";
 import type { CredentialValidationResult } from "../service/SpeechProvider";
 import { ProfileEditorModal } from "../ui/ProfileEditorModal";
 import { profileTemplate } from "../profiles/template";
@@ -56,6 +60,82 @@ export class VoiceSettingTab extends PluginSettingTab {
     const valueEl = setting.controlEl.createSpan({ cls: "voice-slider-value" });
     valueEl.setText(text);
     return valueEl;
+  }
+
+  /**
+   * "Play while generating": the switch, whether the start point follows the
+   * provider's measured speed, and the start point itself (editable only when
+   * not automatic). Re-renders itself in place after a change.
+   */
+  private renderStreamingSettings(el: HTMLElement): void {
+    el.empty();
+    const rerender = () => this.renderStreamingSettings(el);
+    const settings = this.plugin.settings;
+
+    new Setting(el)
+      .setName("Play while generating")
+      .setDesc(
+        canPlayWhileGenerating()
+          ? "Start playing long notes before all of the audio is generated."
+          : "Start playing long notes before all of the audio is generated. Not supported on this device: the audio plays once it is complete.",
+      )
+      .addToggle((toggle) =>
+        toggle.setValue(settings.playWhileGenerating).onChange(async (on) => {
+          settings.playWhileGenerating = on;
+          await this.plugin.saveSettings();
+          rerender();
+        }),
+      );
+    if (!settings.playWhileGenerating) {
+      return;
+    }
+
+    const rate = this.plugin.measuredStreamRate();
+    const measured = rate
+      ? `Measured for this provider: ${rate.toFixed(1)}× real time.`
+      : `Not measured for this provider yet: starts at ${DEFAULT_START_PERCENT}% until the first long note has been read.`;
+    new Setting(el)
+      .setName("Set start point automatically")
+      .setDesc(
+        `Calculate the start point from how fast the provider generates audio, after every long note. ${measured}`,
+      )
+      .addToggle((toggle) =>
+        toggle.setValue(settings.streamStartAuto).onChange(async (on) => {
+          // Turning it off keeps the last automatic value as the start.
+          settings.streamStartPercent = this.plugin.streamStartPercent();
+          settings.streamStartAuto = on;
+          await this.plugin.saveSettings();
+          rerender();
+        }),
+      );
+
+    const percent = this.plugin.streamStartPercent();
+    const start = new Setting(el)
+      .setName("Start playback at")
+      .setDesc(
+        settings.streamStartAuto
+          ? "Share of the note generated before playback starts. Set automatically."
+          : "Share of the note generated before playback starts. 0% starts after the first part.",
+      );
+    const format = (value: number) => `${value}%`;
+    let valueEl: HTMLElement | null = null;
+    start.addSlider((slider) => {
+      slider
+        .setLimits(0, 100, 1)
+        .setValue(percent)
+        .setDisabled(settings.streamStartAuto)
+        .onChange(async (value) => {
+          settings.streamStartPercent = value;
+          await this.plugin.saveSettings();
+          valueEl?.setText(format(value));
+        });
+      // Obsidian 1.13+ shows the value itself; older versions get a readout.
+      if (requireApiVersion("1.13.0")) {
+        slider.setDisplayFormat(format);
+      } else {
+        valueEl = this.appendSliderValue(start, format(percent));
+      }
+    });
   }
 
   /**
@@ -147,6 +227,18 @@ export class VoiceSettingTab extends PluginSettingTab {
               max: MAX_SKIP_SECONDS,
               step: 1,
               displayFormat: (value) => this.formatSecondsValue(value),
+            },
+          },
+          {
+            // Toggles and a slider whose state depends on each other, so the
+            // same imperative code as the display() fallback renders them.
+            name: "Play while generating",
+            aliases: ["streaming", "start playback"],
+            render: (setting) => {
+              const el = setting.settingEl;
+              el.empty();
+              el.removeClass("setting-item");
+              this.renderStreamingSettings(el);
             },
           },
         ],
@@ -380,6 +472,15 @@ export class VoiceSettingTab extends PluginSettingTab {
   async setControlValue(key: string, value: unknown): Promise<void> {
     switch (key) {
       case "TTS_PROVIDER":
+        // The running provider finishes the audio it is generating first.
+        if (this.plugin.isGenerating()) {
+          this.plugin.notifyStillGenerating();
+          // Redraw so the dropdown shows the provider still in use.
+          if (this.providerSectionEl) {
+            this.render();
+          }
+          break;
+        }
         this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
         await this.plugin.saveSettings();
         this.plugin.reinitializeProvider();
@@ -452,6 +553,12 @@ export class VoiceSettingTab extends PluginSettingTab {
           .addOption("minimax", "MiniMax")
           .setValue(this.plugin.settings.TTS_PROVIDER)
           .onChange(async (value) => {
+            // The running provider finishes the audio it is generating first.
+            if (this.plugin.isGenerating()) {
+              this.plugin.notifyStillGenerating();
+              dropdown.setValue(this.plugin.settings.TTS_PROVIDER);
+              return;
+            }
             this.plugin.settings.TTS_PROVIDER = value as TtsProvider;
             await this.plugin.saveSettings();
             // Swap the active provider and rewire the UI/orchestration
@@ -506,6 +613,8 @@ export class VoiceSettingTab extends PluginSettingTab {
       forwardSetting,
       this.formatSecondsValue(this.plugin.settings.forwardSeconds),
     );
+
+    this.renderStreamingSettings(containerEl.createDiv());
 
     new Setting(containerEl).setName("Saving audio").setHeading();
 
@@ -685,11 +794,11 @@ export class VoiceSettingTab extends PluginSettingTab {
     new Setting(containerEl)
       .setName("Server URL")
       .setDesc(
-        "The API address of a server that implements OpenAI's speech API, e.g. https://openrouter.ai/api/v1 or http://localhost:8880/v1. On a phone, localhost means the phone itself.",
+        "The API address of a server that implements OpenAI's speech API, e.g. https://openrouter.ai/api/v1 or http://127.0.0.1:8880/v1 (the default, used by many local servers). On a phone, 127.0.0.1 and localhost mean the phone itself.",
       )
       .addText((text) =>
         text
-          .setPlaceholder("https://openrouter.ai/api/v1")
+          .setPlaceholder(DEFAULT_OPENAI_COMPAT_BASE_URL)
           .setValue(settings.OPENAI_COMPAT_BASE_URL)
           .onChange(async (value) => {
             settings.OPENAI_COMPAT_BASE_URL = value;

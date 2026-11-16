@@ -1,3 +1,5 @@
+import { DEFAULT_START_PERCENT } from "../utils/streamStart";
+
 /**
  * Supported text-to-speech providers
  */
@@ -9,6 +11,12 @@ export type TtsProvider =
   | "openai"
   | "openai-compatible"
   | "minimax";
+
+/**
+ * Server URL filled in for the OpenAI-compatible provider: the address many
+ * local servers listen on (Kokoro-FastAPI and others).
+ */
+export const DEFAULT_OPENAI_COMPAT_BASE_URL = "http://127.0.0.1:8880/v1";
 
 /** Audio formats the OpenAI-compatible provider can request. */
 export type OpenAiCompatibleFormat = "mp3" | "wav";
@@ -99,6 +107,18 @@ export interface VoiceSettings {
   // and only synthesizes when there is none. When false, the next play renders
   // the note again with the current voice and settings, then switches back on.
   playNoteSavedAudio: boolean;
+  // Playback: start playing a long note while the rest is still synthesized
+  // (MP3 on platforms with MediaSource; otherwise the finished file plays).
+  playWhileGenerating: boolean;
+  // When on, the start point follows the provider's measured speed; when off,
+  // streamStartPercent is the user's own choice.
+  streamStartAuto: boolean;
+  // Share of the note (percent) to have ready before playback starts. Written
+  // after each measured reading while streamStartAuto is on.
+  streamStartPercent: number;
+  // Measured synthesis speed (audio seconds per second) per provider, see
+  // utils/streamStart.ts streamRateKey.
+  streamRates: Record<string, number>;
   // Audio files: the default folder for saved MP3s. When set, a tap on the save
   // button always saves here (and auto-save writes here silently); when empty,
   // saves go next to the active note. Managed from the folder picker's pin
@@ -492,7 +512,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   OPENAI_VOICE: "alloy",
   OPENAI_MODEL: "gpt-4o-mini-tts",
 
-  OPENAI_COMPAT_BASE_URL: "",
+  OPENAI_COMPAT_BASE_URL: DEFAULT_OPENAI_COMPAT_BASE_URL,
   OPENAI_COMPAT_API_KEY: "",
   OPENAI_COMPAT_MODEL: "",
   OPENAI_COMPAT_VOICE: "alloy",
@@ -517,6 +537,10 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   forwardSeconds: DEFAULT_SKIP_SECONDS,
   folderSelectorFollowsNote: true,
   playNoteSavedAudio: true,
+  playWhileGenerating: true,
+  streamStartAuto: true,
+  streamStartPercent: DEFAULT_START_PERCENT,
+  streamRates: {},
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,

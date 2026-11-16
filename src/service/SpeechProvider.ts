@@ -10,6 +10,7 @@
  * differ between providers.
  */
 
+import type { StreamingOptions } from "./BaseSpeechService";
 import type { VoiceSettings, VoiceOption } from "../settings/VoiceSettings";
 import type { PauseStyle } from "../types/ProcessorTypes";
 
@@ -88,7 +89,21 @@ export interface SpeechProvider {
 
   // Operation lifecycle
   isOperationInProgress(): boolean;
-  startOperation(): string;
+  /**
+   * The start of a reading is playing (or paused) while the rest is still
+   * being generated — a tap then pauses/resumes instead of cancelling.
+   */
+  isStreaming(): boolean;
+  /** How long readings may start playing before they are fully generated. */
+  setStreaming(options: StreamingOptions | null): void;
+  startOperation(filePath?: string): string;
+  /** The note the running operation reads, if it was given one. */
+  getOperationFilePath(): string | null;
+  /**
+   * Play what is ready of a reading still before its start point. False when
+   * it can only play once complete.
+   */
+  playWhatIsReady(): boolean;
   isCurrentRequest(requestId: string): boolean;
   cancelOperation(): void;
   endOperation(requestId: string): void;

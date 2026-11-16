@@ -72,7 +72,25 @@ All providers implement one interface so the rest of the plugin is
   `openAiCompatible.ts` and merged with hand-added entries).
 - `SpeechProviderFactory.ts` — `createSpeechProvider(settings)` builds the
   provider chosen in settings and applies rewind/forward prefs.
-- `textChunker.ts` — splits long text for the text-input providers.
+- `textChunker.ts` — splits long text for the text-input providers (the limit
+  may grow per chunk: small first chunks when playing while generating).
+- **Play while generating:** every provider hands its chunks to
+  `BaseSpeechService.synthesizeChunks()`, which reports progress, honours
+  cancellation, joins the chunks (`joinAudioBuffers`) and — when the setting is
+  on and the platform supports MediaSource for MP3 — plays them as they arrive
+  via `progressiveAudio.ts` (ManagedMediaSource on iPhone). When to start is
+  pure logic in `utils/streamStart.ts` (start share = 1 − rate / speed + margin,
+  rate measured per provider after each reading and stored in
+  `settings.streamRates`). When generation ends, the element moves onto the
+  joined file. While a reading streams, `isStreaming()` is true and play taps
+  pause/resume (`utils/playTap.ts`); before its start point a tap plays what
+  is ready (`playWhatIsReady`). **Generating is never cancelled implicitly:**
+  pause, stop, other notes, chapters, provider/voice changes leave it running
+  (`Voice.notifyStillGenerating`); only the ✕ next to the progress bars does,
+  after `CancelGenerationModal` (`Voice.confirmCancelGeneration`). Between
+  chunks the progress is estimated (`utils/generationProgress.ts`). Providers
+  end `speak()` with `endSpeak(controller)`, so a cancelled call returning
+  late can't clear a newer call's state.
 - `voiceCatalog.ts` — **pure** helpers (unit-tested) to map a provider's fetched
   voice list into `VoiceOption[]` and group it by language for the picker.
   Azure uses it: "Test Credentials" fetches `/voices/list`, the result is cached
@@ -157,8 +175,10 @@ README.
 - `FileConflictModal.ts` — Replace / Save-as-new / Cancel prompt shown when a
   picked folder already holds a file of the same name.
 - `WhatsNewModal.ts` — renders `utils/whatsNew.ts` once per install/update.
-- The **status bar** controls are created in `utils/IconEventHandler.ts`; the
-  **mobile** control bar is `utils/MobileControlBar.ts`.
+- The **status bar** controls are created in `utils/IconEventHandler.ts`
+  (Voice icons, `.voice-statusbar-btn` hover style; the speed is one button
+  opening a menu from `utils/speedChoices.ts`); the **mobile** control bar is
+  `utils/MobileControlBar.ts`.
 
 ### Saving audio (`src/utils/`)
 
@@ -172,8 +192,9 @@ README.
   first, then favorites). Fully unit-tested.
 - `chapters.ts` — **pure** helpers for the player's folder/chapter lists.
 - `audioFormat.ts` — **pure** MP3/WAV helpers: extensions, MIME mapping, and
-  joining WAV chunks under one header. Saving, chapters, and the saved-audio
-  lookup accept both formats.
+  joining WAV or MP3 chunks under one header (MP3: per-chunk Xing/Info frames
+  dropped, one Xing header with the total length written). Saving, chapters,
+  and the saved-audio lookup accept both formats.
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
   play button: tap = play/pause/cancel, hold = regenerate). Shared by the

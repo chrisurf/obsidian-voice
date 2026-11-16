@@ -5,8 +5,6 @@ import {
   type VoiceSettings,
 } from "../settings/VoiceSettings";
 import {
-  concatWavBuffers,
-  isWavBuffer,
   mimeForAudioExtension,
   type AudioExtension,
 } from "../utils/audioFormat";
@@ -105,31 +103,19 @@ export class OpenAiSpeechService extends BaseSpeechService {
       return;
     }
 
+    const controller = this.abortController;
+
     this.isLoading = true;
     try {
       this.reportProgress(0, 1);
 
-      const chunks = chunkPlainText(text, MAX_CHUNK_CHARS);
-      const audioChunks: ArrayBuffer[] = [];
-
-      for (let i = 0; i < chunks.length; i++) {
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        const audio = await this.synthesizeChunk(chunks[i]);
-
-        if (this.abortController?.signal.aborted) {
-          throw new Error("AbortError");
-        }
-
-        audioChunks.push(audio);
-
-        // Reserve the last slice of the bar for concatenation + buffering.
-        this.reportProgress(((i + 1) / chunks.length) * 0.95, 1);
-      }
-
-      this.playBlob(joinAudioChunks(audioChunks), speed, filePath);
+      const chunks = chunkPlainText(text, this.chunkLimit(MAX_CHUNK_CHARS));
+      await this.synthesizeChunks(
+        chunks,
+        (chunk) => this.synthesizeChunk(chunk),
+        speed,
+        filePath,
+      );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
         return;
@@ -138,8 +124,7 @@ export class OpenAiSpeechService extends BaseSpeechService {
       this.reportError(error);
       throw error;
     } finally {
-      this.isLoading = false;
-      this.abortController = undefined;
+      this.endSpeak(controller);
     }
   }
 
@@ -250,21 +235,6 @@ export class OpenAiSpeechService extends BaseSpeechService {
     }
     return "OpenAI error. Please try again.";
   }
-}
-
-/**
- * Join the per-chunk audio into one playable blob. MP3 frames can simply be
- * appended; WAV chunks each carry a header, so they are merged into one file.
- * The format is read from the bytes rather than trusted from the request, since
- * some servers ignore `response_format`.
- */
-export function joinAudioChunks(chunks: ArrayBuffer[]): Blob {
-  if (chunks.length > 0 && isWavBuffer(chunks[0])) {
-    return new Blob([concatWavBuffers(chunks)], {
-      type: mimeForAudioExtension("wav"),
-    });
-  }
-  return new Blob(chunks, { type: mimeForAudioExtension("mp3") });
 }
 
 /** Best-effort error text from a JSON error body (`{ error: { message } }`). */

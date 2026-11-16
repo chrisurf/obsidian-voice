@@ -9,12 +9,19 @@
  * - Cache off: the next tap renders the note again with the current voice and
  *   settings — even when old audio is paused mid-track — and the player then
  *   switches Cache back on, so the next tap doesn't pay again by accident.
- * With Cache on, a paused track resumes.
+ * With Cache on, a paused track resumes. A tap never cancels a reading that
+ * is being generated (only the ✕ next to the progress bar does): before its
+ * start point it plays what is ready, afterwards it pauses and resumes.
  */
 
 export interface PlayTapState {
-  /** A synthesis request is running. */
+  /** A synthesis request is running and nothing of it plays yet. */
   synthesizing: boolean;
+  /**
+   * The start of a reading plays (or is paused) while the rest is still
+   * being generated ("Play while generating").
+   */
+  streaming: boolean;
   /** Audio is currently playing. */
   playing: boolean;
   /** Audio is loaded and paused part-way (not at its start, not ended). */
@@ -30,8 +37,8 @@ export interface PlayTapState {
 }
 
 export type PlayTapAction =
-  /** Cancel the running synthesis. */
-  | "cancel"
+  /** Play what is ready of the reading being generated. */
+  | "play-now"
   | "pause"
   /** Resume the loaded audio. */
   | "resume"
@@ -42,10 +49,14 @@ export type PlayTapAction =
 
 export function resolvePlayTap(state: PlayTapState): PlayTapAction {
   if (state.synthesizing) {
-    return "cancel";
+    return "play-now";
   }
   if (state.playing) {
     return "pause";
+  }
+  // Paused while the rest is still being generated: it is the fresh render.
+  if (state.streaming) {
+    return "resume";
   }
   // Cache off means "make new audio": checked before resuming, because Cache
   // only stays off until the next render, so paused audio is the old one.

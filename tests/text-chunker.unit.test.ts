@@ -34,4 +34,22 @@ describe("Unit Tests - Plain text chunker", () => {
     const chunks = chunkPlainText(text, 80);
     expect(chunks.every((c) => c.trim().length > 0)).toBe(true);
   });
+
+  test("takes a per-chunk limit, e.g. a small first chunk", () => {
+    const sentence = "This sentence has forty characters in it. ";
+    const text = sentence.repeat(20).trim();
+    const chunks = chunkPlainText(text, (i) => (i === 0 ? 100 : 400));
+    expect(chunks[0].length).toBeLessThanOrEqual(100);
+    expect(chunks.slice(1).every((c) => c.length <= 400)).toBe(true);
+    expect(chunks.length).toBe(3);
+    expect(chunks.join(" ").replace(/\s+/g, " ")).toBe(text);
+  });
+
+  test("tops up a chunk holding only a heading with the next sentences", () => {
+    const paragraph = "A sentence of about thirty chars. ".repeat(10).trim();
+    const chunks = chunkPlainText(`Heading\n\n${paragraph}`, 100);
+    expect(chunks[0].startsWith("Heading\n\nA sentence")).toBe(true);
+    expect(chunks[0].length).toBeGreaterThan(50);
+    expect(chunks.every((c) => c.length <= 100)).toBe(true);
+  });
 });

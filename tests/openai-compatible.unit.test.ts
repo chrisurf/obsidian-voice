@@ -289,6 +289,106 @@ describe("Unit Tests - OpenAI-compatible Provider", () => {
       expect(blob?.size).toBe(44 + 3);
     });
 
+    test("reports the measured synthesis speed after a long reading", async () => {
+      // 250 MPEG-2 Layer III frames (24 kHz, 576 samples): 6 s of audio each.
+      const frames = new Uint8Array(250 * 144);
+      for (let i = 0; i < 250; i++) {
+        frames.set([0xff, 0xf3, 0x64, 0xc4], i * 144);
+      }
+      mockRequestUrl.mockImplementation(async () => ({
+        status: 200,
+        arrayBuffer: frames.slice().buffer,
+      }));
+      const now = jest.spyOn(Date, "now");
+      now.mockReturnValueOnce(1000).mockReturnValue(7000);
+      const onMeasured = jest.fn();
+      const service = new OpenAiCompatibleSpeechService(settings());
+      service.setStreaming({
+        enabled: () => true,
+        startFraction: () => 0,
+        onMeasured,
+      });
+      const paragraph = "word ".repeat(300).trim();
+
+      await service.speak([paragraph, paragraph].join("\n\n"), 1.0, "a.md");
+
+      now.mockRestore();
+      // 12 s of audio in 6 s of work.
+      expect(onMeasured).toHaveBeenCalledTimes(1);
+      expect(onMeasured.mock.calls[0][0]).toBeCloseTo(2, 5);
+      expect(onMeasured.mock.calls[0][1]).toBe(false);
+      expect(service.getLastGeneratedAudio("a.md")?.size).toBe(2 * 250 * 144);
+    });
+
+    test("stops between chunks when the reading is cancelled", async () => {
+      const service = new OpenAiCompatibleSpeechService(settings());
+      mockRequestUrl.mockImplementation(async () => {
+        service.cancelOperation();
+        return { status: 200, arrayBuffer: new ArrayBuffer(32) };
+      });
+      const paragraph = "word ".repeat(300).trim();
+      service.startOperation();
+
+      await service.speak([paragraph, paragraph].join("\n\n"), 1.0, "a.md");
+
+      expect(mockRequestUrl).toHaveBeenCalledTimes(1);
+      expect(service.getLastGeneratedAudio("a.md")).toBeNull();
+    });
+
+    test("a cancelled call returning late leaves the newer call cancellable", async () => {
+      const service = new OpenAiCompatibleSpeechService(settings());
+      let releaseFirst: () => void = () => {};
+      mockRequestUrl.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseFirst = () =>
+              resolve({ status: 200, arrayBuffer: new ArrayBuffer(32) });
+          }),
+      );
+      const paragraph = "word ".repeat(300).trim();
+      const text = [paragraph, paragraph].join("\n\n");
+
+      service.startOperation("a.md");
+      const first = service.speak(text, 1.0, "a.md");
+      service.cancelOperation();
+
+      // The second reading's request is cancelled once the first returned.
+      service.startOperation("a.md");
+      let releaseSecond: () => void = () => {};
+      mockRequestUrl.mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            releaseSecond = () =>
+              resolve({ status: 200, arrayBuffer: new ArrayBuffer(32) });
+          }),
+      );
+      const second = service.speak(text, 1.0, "a.md");
+      releaseFirst();
+      await first;
+      service.cancelOperation();
+      releaseSecond();
+      await second;
+
+      // Neither reading went on to its second chunk.
+      expect(mockRequestUrl).toHaveBeenCalledTimes(2);
+      expect(service.getLastGeneratedAudio("a.md")).toBeNull();
+    });
+
+    test("knows which note it generates while the operation runs", () => {
+      const service = new OpenAiCompatibleSpeechService(settings());
+      expect(service.getOperationFilePath()).toBeNull();
+      const id = service.startOperation("Folder/Note.md");
+      expect(service.getOperationFilePath()).toBe("Folder/Note.md");
+      service.endOperation(id);
+      expect(service.getOperationFilePath()).toBeNull();
+    });
+
+    test("cannot play early what only plays once complete", () => {
+      const service = new OpenAiCompatibleSpeechService(settings());
+      service.startOperation("a.md");
+      expect(service.playWhatIsReady()).toBe(false);
+    });
+
     test("refuses to synthesize without a valid server URL", async () => {
       const service = new OpenAiCompatibleSpeechService(
         settings({ OPENAI_COMPAT_BASE_URL: "" }),

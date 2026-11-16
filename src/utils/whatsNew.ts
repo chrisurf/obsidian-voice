@@ -28,12 +28,24 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * changes (speech profiles, the refreshed player with its Cache toggle and
- * progress ring), then the providers added most recently, then saving audio,
+ * changes (playing while generating, speech profiles, the refreshed player
+ * with its Cache toggle and progress ring), then the providers added most recently, then saving audio,
  * the Voice player and everything added since 1.8.0, so both new and
  * long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## 🗣️ New: speech profiles — reading that sounds natural
+export const WHATS_NEW = `## ⚡ New: long notes start playing while they are generated
+
+No more waiting for a long note to be generated in full. Voice now **starts playing after the first part** and generates the rest while you listen — the ring around ▶️ keeps filling, and a tap pauses and resumes.
+
+- 🧮 **It works out when to start:** with a fast provider right away; with a slower one (such as a model on your own computer) once enough is ready that playback never catches up. Voice measures each provider's speed after every long note and adjusts itself.
+- ⏯️ **Generating never stops by accident:** pause, stop, another note or a chapter leave it running in the background. Only the red **✕** next to the progress bar stops it — after asking. Tap ▶️ early to hear what is ready right away.
+- 📶 **A bar that keeps moving:** progress now advances smoothly with a light sheen, instead of jumping once per part.
+- 🎛️ **A tidier status bar:** the speed is one button that opens a menu of speeds, the seek buttons use the player's circular arrows, and every control lights up on hover.
+- ⚙️ Turn it off, or set the start point yourself, in **Settings → Voice → Playback → Play while generating**.
+- 🕒 **Correct length for long audio:** files from servers that send each part with its own length header (common for self-hosted servers) now show their full length, and the seek bar reaches the end with the audio.
+- 🏠 **Local servers out of the box:** the OpenAI-compatible provider now starts with \`http://127.0.0.1:8880/v1\`, the address many local servers use.
+
+## 🗣️ New: speech profiles — reading that sounds natural
 
 Voice now reads the way the language is spoken. A **speech profile** per language decides pronunciation and pacing — **American and British English, German and French** ship as editable YAML files.
 

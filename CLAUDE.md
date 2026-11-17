@@ -49,7 +49,8 @@ The `Voice` instance wires together:
 | `IconEventHandler` | `utils/IconEventHandler.ts`   | Status-bar controls, ribbon state, save orchestration.  |
 | `MobileControlBar` | `utils/MobileControlBar.ts`   | Touch control bar (mobile only).                        |
 | `VoicePlayerView`  | `ui/VoicePlayerView.ts`       | The audiobook-style player pane.                        |
-| `HotkeySettings`   | `settings/HotkeySettings.ts`  | Registers the ~16 hotkey commands.                      |
+| `HotkeySettings`   | `settings/HotkeySettings.ts`  | Registers the ~18 hotkey commands.                      |
+| `BookmarkStore`    | `utils/BookmarkStore.ts`      | Bookmarks per MP3, written into the file as chapters.   |
 | `VoiceSettingTab`  | `settings/VoiceSettingTab.ts` | The settings UI.                                        |
 
 ### Provider layer (`src/service/`)
@@ -168,7 +169,8 @@ README.
   button (tap saves, hold opens the picker), a **folder button** ("save to a
   custom folder"), Cache/Spell/Code/No URLs/Embed toggles, repeat modes, and a **chapter
   list** built from the MP3s in a folder (each chapter has a **⋮** action bar:
-  move / rename / delete).
+  bookmarks / delete / move / rename), plus a **bookmark** button and the
+  bookmarks marked on the scrubber (see "Bookmarks" below).
 - `FolderPickerModal.ts` — quick folder picker (fuzzy search, a per-folder
   default-folder **pin**, starred favorites, "create folder") used by the
   custom-save-location feature.
@@ -195,6 +197,20 @@ README.
   joining WAV or MP3 chunks under one header (MP3: per-chunk Xing/Info frames
   dropped, one Xing header with the total length written). Saving, chapters,
   and the saved-audio lookup accept both formats.
+- **Bookmarks** — named positions in a saved MP3, stored **in the file** as
+  standard ID3v2 chapters (CHAP + CTOC, read by podcast apps).
+  `bookmarks.ts` (pure list logic: add / rename / remove, "Bookmark N",
+  scrubber positions, `formatClock`), `id3Chapters.ts` (pure ID3v2.3/2.4
+  reader/writer; only CHAP/CTOC frames are replaced, other frames kept, a new
+  tag is v2.3) and `BookmarkStore.ts` (Obsidian glue: reads lazily, writes a
+  moment after the last change but **never while that file plays** — the
+  player flushes on pause / chapter switch — and journals unwritten bookmarks
+  in `settings.pendingBookmarks`). Bookmarks set on a generated reading that
+  isn't saved yet live in memory (`SpeechProvider.getLoadedReading()`) and
+  are written into the MP3 on save (`AudioFileManager`'s `saveBytes` hook →
+  `Voice.bookmarkBytesForSave`). The player adds them (🔖 button, command
+  `add-bookmark`), marks them on the scrubber, and lists them under a chapter
+  (🔖 icon next to the row's ⋮, or **⋮ → Bookmarks**).
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
   play button: tap = play/pause/cancel, hold = regenerate). Shared by the

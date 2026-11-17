@@ -45,7 +45,9 @@ export class IconEventHandler {
     this.plugin = plugin;
     this.voice = voice;
     this.pollyService = pollyService;
-    this.audioFileManager = new AudioFileManager(plugin.app);
+    this.audioFileManager = new AudioFileManager(plugin.app, (blob, path) =>
+      this.voice.bookmarkBytesForSave(blob, path),
+    );
 
     this.initStatusBarItem();
     this.initRibbonIcon();

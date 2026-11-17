@@ -28,12 +28,21 @@ export const BUY_ME_A_COFFEE_IMAGE_URL =
 
 /**
  * Markdown rendered inside the "What's New" modal. Leads with the newest
- * changes (playing while generating, speech profiles, the refreshed player
+ * changes (bookmarks, playing while generating, speech profiles, the refreshed player
  * with its Cache toggle and progress ring), then the providers added most recently, then saving audio,
  * the Voice player and everything added since 1.8.0, so both new and
  * long-time users catch up at a glance.
  */
-export const WHATS_NEW = `## ⚡ New: long notes start playing while they are generated
+export const WHATS_NEW = `## 🔖 New: bookmarks in your audio
+
+Mark the spots you want to come back to. Tap 🔖 in the Voice player while you listen — or bind the command _Add a bookmark at the current position_ to a hotkey.
+
+- 📍 **On the seek bar:** every bookmark is a small mark; tap it to jump there.
+- 📑 **Below the chapter:** the 🔖 icon next to its **⋮** lists them with their position. Tap one to play from there; rename or delete it from its **⋮**.
+- 🎧 **Stored in the MP3 itself** as standard chapters — they travel with the file and show up in podcast apps such as Apple Podcasts or Overcast.
+- ⏪ **Longer skips:** rewind and fast-forward now jump 5 seconds by default (was 3). Set your own interval in the settings.
+
+## ⚡ New: long notes start playing while they are generated
 
 No more waiting for a long note to be generated in full. Voice now **starts playing after the first part** and generates the rest while you listen — the ring around ▶️ keeps filling, and a tap pauses and resumes.
 

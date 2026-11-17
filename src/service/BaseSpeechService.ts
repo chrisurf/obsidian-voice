@@ -10,6 +10,7 @@
  */
 
 import type {
+  LoadedReading,
   SpeechProvider,
   CredentialValidationResult,
 } from "./SpeechProvider";
@@ -55,6 +56,9 @@ export abstract class BaseSpeechService implements SpeechProvider {
   protected isLoading: boolean = false;
   protected lastGeneratedAudio: Blob | null = null;
   protected lastGeneratedAudioFilePath: string | null = null;
+  // The generated reading in the element, for bookmarks set while it plays.
+  private loadedReading: LoadedReading | null = null;
+  private readingCount = 0;
   // Request lock mechanism - prevents concurrent operations
   protected currentRequestId: string | null = null;
   // How many seconds the rewind / fast-forward controls jump
@@ -120,6 +124,7 @@ export abstract class BaseSpeechService implements SpeechProvider {
       this.lastGeneratedAudioFilePath = filePath;
     }
     this.audio.src = URL.createObjectURL(blob);
+    this.markReadingLoaded(filePath);
     this.reportProgress(1, 1);
     void this.playAudio(speed);
   }
@@ -159,6 +164,9 @@ export abstract class BaseSpeechService implements SpeechProvider {
         ? new ProgressiveAudio(this.audio)
         : null;
     this.progressive = stream;
+    if (stream) {
+      this.markReadingLoaded(filePath);
+    }
     // A cancelled reading whose last request returns late must leave the
     // audio element and the streaming state to the reading started since.
     const isCurrent = () => !signal?.aborted;
@@ -625,6 +633,14 @@ export abstract class BaseSpeechService implements SpeechProvider {
       return null;
     }
     return this.lastGeneratedAudio;
+  }
+
+  getLoadedReading(): LoadedReading | null {
+    return this.loadedReading;
+  }
+
+  private markReadingLoaded(filePath?: string): void {
+    this.loadedReading = { path: filePath ?? null, id: ++this.readingCount };
   }
 
   clearCachedAudio(): void {

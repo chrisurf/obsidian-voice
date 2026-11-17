@@ -47,12 +47,13 @@ The Voice player is the heart of the plugin: an audiobook-style pane that turns 
 | --------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
 | ▶️ **Play**                                   | Play or pause. While a note is generated, a ring fills with the progress — tap to play what is ready                    |
 | ⏮ ⏭ **Prev / next**                         | Jump to the previous / next chapter                                                                                     |
-| ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 3 s)                                                 |
+| ↺ ↻ **Rewind / forward**                      | Jump back / ahead by your interval (shown inside the ring; default 5 s)                                                 |
 | ⬇️ **Save** (💾 when a default folder is set) | **Tap:** save the MP3 — next to the note, or into your default folder. **Hold** (~1.5 s, or right-click): folder picker |
 | 📂 **Folder**                                 | Save into a folder you pick, in one click                                                                               |
+| 🔖 **Bookmark**                               | Bookmark the spot you're hearing (see [Bookmarks](#bookmarks-jump-back-to-any-spot))                                    |
 | 🔁 **Repeat**                                 | Cycle _off → repeat one → repeat all_                                                                                   |
 | **− 1.0× +** **Speed**                        | Slow down / speed up playback (0.5×–2.0×)                                                                               |
-| ⋮ **Track menu**                              | **Move / Rename / Delete** that chapter                                                                                 |
+| ⋮ **Track menu**                              | **Bookmarks / Delete / Move / Rename** for that chapter                                                                 |
 
 While a note is being generated, a ring around the play button fills with the progress, and a bar at the bottom of the player moves along with a light sheen, so you can always tell work is going on:
 
@@ -83,6 +84,18 @@ Above the chapter list sit the **provider** and **voice** dropdowns (switch engi
 
 - **Chapters from your folder** — every MP3 in the selected folder appears as a numbered chapter; the one you're hearing is highlighted. The folder list follows the note you're viewing by default — turn off **Folder list follows note** in settings to keep your chosen folder while you browse.
 - **Manage tracks** — the **⋮** action bar appears right over the track, so it's clear which file it acts on. **Move** opens the folder picker for that file, **Rename** edits it in place (`.mp3` kept, embeds updated), and **Delete** asks for a quick confirmation.
+
+#### Bookmarks: jump back to any spot
+
+Tap 🔖 while you listen and Voice bookmarks the spot — _Bookmark 1 · 12:34_ appears with **Rename** and **Undo**. You can also bind the command _Add a bookmark at the current position_ to a hotkey.
+
+![Bookmarks of a chapter, listed below it and marked on the seek bar](./assets/voice-player-bookmarks.png)
+
+- **On the seek bar** — every bookmark is a small mark; tap one to jump there.
+- **Below the chapter** — the 🔖 icon next to the chapter's **⋮** (or **⋮ → Bookmarks**) opens the list (the icon is filled once a file has bookmarks): name on the left, position on the right. Tap a bookmark to play from there, even from another chapter; its **⋮** renames or deletes it (with Undo).
+- **Stored in the MP3 itself** — as standard ID3 chapters, so they travel with the file and show up as chapters in podcast apps such as Apple Podcasts or Overcast. A file is written a moment after your last change, never while it plays (it is written when you pause), and nothing is lost if Obsidian closes first.
+- **Audio that isn't saved yet** keeps its bookmarks and writes them into the MP3 when you save it.
+- Bookmarks need MP3; WAV files have none.
 
 On mobile, the same player opens as a full-screen pane, optimized for touch:
 
@@ -139,7 +152,7 @@ In the Voice player there's also a dedicated **folder button** (📂, next to th
   ![status bar controls](./assets/status-bar-complete.png)
 
 - Use rewind / fast-forward and on-the-fly speed changes for quick navigation — from the player or the status bar.
-- Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 3 seconds).
+- Set how far rewind and fast-forward jump — configure each independently from 1 to 60 seconds in settings (defaults to 5 seconds).
 - **Speed on the fly** — nudge playback with the player's **− / +** control (0.5×–2.0×), or click the speed in the status bar (e.g. **1.0× ⌃**) and pick one from the menu; hotkeys can also jump to preset tempos.
 
   ![speed control](./assets/tempo.png)
@@ -219,8 +232,8 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 | Setting                      | What it does                                                                                                                                                                                                                                                                                                                                                      |
 | ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Speech Provider**          | Choose the engine: **AWS Polly**, **ElevenLabs**, **Google Cloud**, **Azure Speech**, **OpenAI**, **OpenAI-compatible**, or **MiniMax**. The credential fields below adapt to your choice.                                                                                                                                                                        |
-| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 3s).                                                                                                                                                                                                                                                                                               |
-| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 3s).                                                                                                                                                                                                                                                                                        |
+| **Rewind interval**          | How many seconds the rewind control jumps back (1–60s, default 5s).                                                                                                                                                                                                                                                                                               |
+| **Fast-forward interval**    | How many seconds the fast-forward control jumps ahead (1–60s, default 5s).                                                                                                                                                                                                                                                                                        |
 | **Play while generating**    | Start playing long notes before all of the audio is generated. On by default. **Set start point automatically** (on) calculates when to start from the provider's measured speed after every long note; until it is measured, playback starts once 25% is ready. Turn it off to choose the **Start playback at** share yourself (0% starts after the first part). |
 | **Save automatically**       | Automatically save and embed the MP3 after each playback. Off by default.                                                                                                                                                                                                                                                                                         |
 | **Save location**            | Where saved MP3s go. Next to the note by default. Hold the save button to open the folder picker, then pin (📌) a folder as your default; tap the pin again to clear it. Star (⭐) folders for quick access.                                                                                                                                                      |
@@ -230,7 +243,7 @@ Configure your provider and credentials in **Settings → Voice**. The settings 
 
 ## Keyboard Shortcuts
 
-Voice ships **17 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
+Voice ships **18 commands** you can bind to any hotkey. No keys are assigned by default — open **Settings → Hotkeys**, search for **Voice**, and assign whatever feels natural. (In the command palette, each command is prefixed with **Voice:**.)
 
 | Command                                                                   | What it does                             |
 | ------------------------------------------------------------------------- | ---------------------------------------- |
@@ -239,6 +252,7 @@ Voice ships **17 commands** you can bind to any hotkey. No keys are assigned by 
 | Pause reading the current document.                                       | Pause playback                           |
 | Stop reading the current document.                                        | Stop playback and reset                  |
 | Stop generating audio (asks first).                                       | Cancel the audio being generated         |
+| Add a bookmark at the current position.                                   | Bookmark the spot you're hearing         |
 | Rewind by few seconds reading the current document.                       | Jump back by your rewind interval        |
 | Fast-Forward by few seconds reading the current document.                 | Jump ahead by your fast-forward interval |
 | Increase the reading speed by 0.1x.                                       | Speed up playback                        |

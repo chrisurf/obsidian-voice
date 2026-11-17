@@ -119,6 +119,9 @@ export interface VoiceSettings {
   // Measured synthesis speed (audio seconds per second) per provider, see
   // utils/streamStart.ts streamRateKey.
   streamRates: Record<string, number>;
+  // Bookmarks not yet written into their MP3 (the file was playing), by file
+  // path, so none are lost if Obsidian closes first. See BookmarkStore.
+  pendingBookmarks: Record<string, { startMs: number; title: string }[]>;
   // Audio files: the default folder for saved MP3s. When set, a tap on the save
   // button always saves here (and auto-save writes here silently); when empty,
   // saves go next to the active note. Managed from the folder picker's pin
@@ -147,6 +150,8 @@ export interface VoiceSettings {
   profilesSeeded: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
+  // Internal: tracks the one-time move of the old 3 s skip default to 5 s
+  skipDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
   // so it is discoverable by default without re-adding it after the user closes it.
   playerPanePlaced: boolean;
@@ -160,7 +165,18 @@ export interface VoiceSettings {
  */
 export const MIN_SKIP_SECONDS = 1;
 export const MAX_SKIP_SECONDS = 60;
-export const DEFAULT_SKIP_SECONDS = 3;
+export const DEFAULT_SKIP_SECONDS = 5;
+/** The default up to 1.21, too short to catch a missed sentence. */
+const OLD_DEFAULT_SKIP_SECONDS = 3;
+
+/**
+ * A stored skip interval after the default became 5 s: the old default of 3 s
+ * moves along (settings store it even if it was never changed); any other
+ * value is the user's choice and stays.
+ */
+export function migrateSkipSeconds(seconds: number): number {
+  return seconds === OLD_DEFAULT_SKIP_SECONDS ? DEFAULT_SKIP_SECONDS : seconds;
+}
 
 export interface VoiceOption {
   id: string;
@@ -541,6 +557,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   streamStartAuto: true,
   streamStartPercent: DEFAULT_START_PERCENT,
   streamRates: {},
+  pendingBookmarks: {},
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,
@@ -549,6 +566,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   profilesMigrated: false,
   profilesSeeded: false,
   acronymDefaultMigrated: false,
+  skipDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",
 };

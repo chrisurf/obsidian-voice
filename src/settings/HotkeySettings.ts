@@ -41,6 +41,12 @@ export class HotkeySettings {
     });
 
     this.voice.addCommand({
+      id: "add-bookmark",
+      name: "Add a bookmark at the current position.",
+      callback: () => void this.voice.addBookmarkHere(),
+    });
+
+    this.voice.addCommand({
       id: "rewind-audio",
       name: "Rewind by few seconds reading the current document.",
       callback: () => this.voice.getSpeechProvider().rewindAudio(),

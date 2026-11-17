@@ -5,6 +5,7 @@ import {
   DEFAULT_SKIP_SECONDS,
   MIN_SKIP_SECONDS,
   MAX_SKIP_SECONDS,
+  migrateSkipSeconds,
 } from "../src/settings/VoiceSettings";
 
 function makeProvider(): AwsPollyService {
@@ -32,7 +33,14 @@ function seekable(
 
 describe("Unit Tests - Configurable Skip Interval", () => {
   describe("Defaults", () => {
-    test("rewind and forward default to 3 seconds", () => {
+    test("an interval at the old 3 s default moves to 5 s, others stay", () => {
+      expect(migrateSkipSeconds(3)).toBe(5);
+      expect(migrateSkipSeconds(10)).toBe(10);
+      expect(migrateSkipSeconds(1)).toBe(1);
+    });
+
+    test("rewind and forward default to 5 seconds", () => {
+      expect(DEFAULT_SKIP_SECONDS).toBe(5);
       const provider = makeProvider();
       expect(provider.getRewindSeconds()).toBe(DEFAULT_SKIP_SECONDS);
       expect(provider.getForwardSeconds()).toBe(DEFAULT_SKIP_SECONDS);

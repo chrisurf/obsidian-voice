@@ -11,6 +11,7 @@ import {
   UnsupportedTagError,
   writeChapters,
 } from "./id3Chapters";
+import { mp3NeedsRepair } from "./audioFormat";
 import type { LoadedReading } from "../service/SpeechProvider";
 
 /** What a bookmark is set in: a saved MP3, or a reading not saved yet. */
@@ -291,12 +292,14 @@ export class BookmarkStore {
   private async readFile(path: string): Promise<Bookmark[]> {
     const file = this.app.vault.getAbstractFileByPath(path);
     let list: Bookmark[] = [];
+    let repair = false;
     if (file instanceof TFile && file.extension.toLowerCase() === "mp3") {
       try {
-        list = readChapters(await this.app.vault.readBinary(file)).map((b) => ({
-          ...b,
-          id: this.newId(),
-        }));
+        const bytes = await this.app.vault.readBinary(file);
+        list = readChapters(bytes).map((b) => ({ ...b, id: this.newId() }));
+        // iPhone and iPad can't seek to bookmarks past the first chunk of an
+        // old reading with a header per chunk: write it once to repair it.
+        repair = list.length > 0 && mp3NeedsRepair(bytes);
       } catch (error) {
         console.error("Voice: could not read bookmarks", error);
       }
@@ -307,6 +310,10 @@ export class BookmarkStore {
       return current;
     }
     this.files.set(path, list);
+    if (repair) {
+      this.dirty.add(path);
+      this.schedule();
+    }
     this.emit();
     return list;
   }

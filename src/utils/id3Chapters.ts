@@ -8,9 +8,11 @@
  * Android's media3 and tag editors read them. Writing replaces only the CHAP
  * and CTOC frames; every other frame (title, artist, cover) is kept as it is.
  * A file without a tag gets a new ID3v2.3 tag, the most widely read version.
+ * An old reading that kept every chunk's Xing header is repaired on the way
+ * (see repairMp3), so iPhone and iPad can seek to its bookmarks.
  */
 
-import { audioDurationSeconds } from "./audioFormat";
+import { audioDurationSeconds, repairMp3 } from "./audioFormat";
 import { sortBookmarks, type Bookmark } from "./bookmarks";
 
 /** An ID3 tag this module can't rewrite safely (e.g. ID3v2.2). */
@@ -50,8 +52,9 @@ export function readChapters(buffer: ArrayBuffer): Bookmark[] {
 }
 
 /**
- * The MP3 with `bookmarks` as its chapters (none removes them). The audio
- * itself is unchanged; only the ID3v2 tag at the start is rewritten.
+ * The MP3 with `bookmarks` as its chapters (none removes them). The ID3v2 tag
+ * at the start is rewritten; the audio frames are unchanged (a stream with
+ * several Xing headers gets one for the whole stream).
  * @throws UnsupportedTagError for a tag version other than 2.3 / 2.4.
  */
 export function writeChapters(
@@ -61,7 +64,7 @@ export function writeChapters(
   const bytes = new Uint8Array(buffer);
   const tag = parseTag(bytes);
   const version = tag?.version ?? 3;
-  const audio = bytes.subarray(tag?.length ?? 0);
+  const audio = new Uint8Array(repairMp3(bytes.slice(tag?.length ?? 0).buffer));
 
   const kept = (tag?.frames ?? []).filter((f) => {
     const id = frameId(f);

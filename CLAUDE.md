@@ -205,8 +205,11 @@ README.
   tag is v2.3) and `BookmarkStore.ts` (Obsidian glue: reads lazily, writes a
   moment after the last change but **never while that file plays** — the
   player flushes on pause / chapter switch — and journals unwritten bookmarks
-  in `settings.pendingBookmarks`). Bookmarks set on a generated reading that
-  isn't saved yet live in memory (`SpeechProvider.getLoadedReading()`) and
+  in `settings.pendingBookmarks`). Readings joined byte-wise before 1.21 kept
+  a Xing header per chunk; iPhone/iPad read only the first and can't seek
+  past it, so writing chapters also repairs the stream (`repairMp3`), and a
+  bookmarked file that needs it is rewritten once when read. Bookmarks set
+  on a generated reading that isn't saved yet live in memory (`SpeechProvider.getLoadedReading()`) and
   are written into the MP3 on save (`AudioFileManager`'s `saveBytes` hook →
   `Voice.bookmarkBytesForSave`). The player adds them (🔖 button, command
   `add-bookmark`), marks them on the scrubber, and lists them under a chapter

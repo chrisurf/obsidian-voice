@@ -48,7 +48,7 @@ Closes #
 - [ ] `npm run lint:check` passes
 - [ ] `npm test` passes
 - [ ] Added/updated tests where it makes sense
-- [ ] Updated docs (README / TROUBLESHOOTING) if behaviour or settings changed
+- [ ] Updated the User Guide (`docs/`, `npm run docs:build`) if behaviour or settings changed
 - [ ] PR title follows Conventional Commits (e.g. `fix(player): …`)
 - [ ] No secrets/credentials committed
 

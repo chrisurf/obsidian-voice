@@ -57,6 +57,8 @@ export const config: WebdriverIO.Config = {
   framework: "mocha",
 
   specs: ["./test/specs/**/*.e2e.ts"],
+  // The User Guide screenshots run on their own (npm run docs:screenshots).
+  exclude: ["./test/specs/user-guide.e2e.ts"],
 
   // GitHub runners are 2-core; overridable via WDIO_MAX_INSTANCES.
   maxInstances: Number(env.WDIO_MAX_INSTANCES || 2),

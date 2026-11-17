@@ -1,0 +1,162 @@
+{
+  "repo": "chrisurf/obsidian-voice",
+  "branch": "main",
+  "title": "User Guide",
+  "sections": [
+    {
+      "dir": "getting-started",
+      "title": "Getting started",
+      "description": "Install Voice, connect a provider and hear your first note.",
+      "pages": [
+        {
+          "file": "install.md",
+          "title": "Install Voice",
+          "description": "Install and enable the plugin, find the player and the ribbon icons."
+        },
+        {
+          "file": "connect-a-provider.md",
+          "title": "Connect a provider",
+          "description": "Pick a text-to-speech provider, enter your key and test the connection."
+        },
+        {
+          "file": "first-reading.md",
+          "title": "Your first reading",
+          "description": "Read a note aloud, follow the progress and save the audio."
+        }
+      ]
+    },
+    {
+      "dir": "providers",
+      "title": "Providers",
+      "description": "Step-by-step setup for every supported text-to-speech provider.",
+      "pages": [
+        {
+          "file": "aws-polly.md",
+          "title": "AWS Polly",
+          "description": "Neural voices in many languages, with a dedicated, minimal AWS key."
+        },
+        {
+          "file": "elevenlabs.md",
+          "title": "ElevenLabs",
+          "description": "Expressive, multilingual voices and models for quality or speed."
+        },
+        {
+          "file": "openai.md",
+          "title": "OpenAI",
+          "description": "Natural multilingual voices such as Alloy and Nova."
+        },
+        {
+          "file": "google-cloud.md",
+          "title": "Google Cloud",
+          "description": "Neural2 and WaveNet voices with an API key."
+        },
+        {
+          "file": "azure-speech.md",
+          "title": "Azure Speech",
+          "description": "Hundreds of neural voices, loaded from your Azure account."
+        },
+        {
+          "file": "minimax.md",
+          "title": "MiniMax",
+          "description": "Multilingual voices with strong Chinese support and a mainland-China region."
+        },
+        {
+          "file": "openai-compatible.md",
+          "title": "OpenAI-compatible servers",
+          "description": "OpenRouter, LiteLLM or a voice running on your own computer."
+        }
+      ]
+    },
+    {
+      "dir": "using-voice",
+      "title": "Using Voice",
+      "description": "Everything you do while listening: the player, chapters, bookmarks and saving.",
+      "pages": [
+        {
+          "file": "player.md",
+          "title": "The Voice player",
+          "description": "A tour of every control in the player."
+        },
+        {
+          "file": "listening.md",
+          "title": "Reading notes aloud",
+          "description": "Whole notes or a selection, long notes that start early, and the Cache toggle."
+        },
+        {
+          "file": "playback-controls.md",
+          "title": "Speed, skipping and repeat",
+          "description": "Change the tempo, jump back or ahead, and repeat chapters."
+        },
+        {
+          "file": "chapters.md",
+          "title": "Chapters",
+          "description": "Your saved audio as a playlist: play, move, rename and delete tracks."
+        },
+        {
+          "file": "bookmarks.md",
+          "title": "Bookmarks",
+          "description": "Mark a spot while you listen and jump back to it later."
+        },
+        {
+          "file": "saving-audio.md",
+          "title": "Saving audio",
+          "description": "Save MP3s, choose folders, set a default folder and embed audio in notes."
+        },
+        {
+          "file": "status-bar.md",
+          "title": "Status bar controls",
+          "description": "Control playback from the bottom of the window on desktop."
+        },
+        {
+          "file": "mobile.md",
+          "title": "On iPhone, iPad and Android",
+          "description": "The full-screen player and the control bar on mobile."
+        }
+      ]
+    },
+    {
+      "dir": "customizing",
+      "title": "Customizing",
+      "description": "Make Voice read the way you like and fit your workflow.",
+      "pages": [
+        {
+          "file": "voices-and-languages.md",
+          "title": "Voices and languages",
+          "description": "Choose and switch voices, and how the language is picked."
+        },
+        {
+          "file": "speech-profiles.md",
+          "title": "Speech profiles",
+          "description": "How Voice reads acronyms, abbreviations, lists and pauses, per language."
+        },
+        {
+          "file": "settings.md",
+          "title": "Settings",
+          "description": "Every setting explained."
+        },
+        {
+          "file": "shortcuts.md",
+          "title": "Commands and shortcuts",
+          "description": "All commands, and how to give them your own hotkeys."
+        }
+      ]
+    },
+    {
+      "dir": "help",
+      "title": "Help",
+      "description": "Fix problems and find answers.",
+      "pages": [
+        {
+          "file": "troubleshooting.md",
+          "title": "Troubleshooting",
+          "description": "Quick fixes, error messages and common problems."
+        },
+        {
+          "file": "faq.md",
+          "title": "FAQ",
+          "description": "Costs, privacy, offline listening, sync and file formats."
+        }
+      ]
+    }
+  ]
+}

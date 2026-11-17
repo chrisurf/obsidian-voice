@@ -1032,14 +1032,13 @@ export class VoicePlayerView extends ItemView {
       );
 
       // Bookmarks control next to ⋮: a tap opens the list below the row. It
-      // shows how many bookmarks the file has once they are known.
+      // is filled once the file is known to have bookmarks.
       if (isMp3Path(chapter.path)) {
         const badge = item.createEl("button", {
           cls: "voice-player-chapter-marks",
           attr: { "aria-label": "Bookmarks" },
         });
         setVoiceIcon(badge, "bookmark");
-        badge.createSpan({ cls: "voice-player-chapter-marks-count" });
         this.registerDomEvent(badge, "click", (evt) => {
           evt.stopPropagation();
           this.toggleBookmarks(chapter.path);
@@ -1350,8 +1349,8 @@ export class VoicePlayerView extends ItemView {
   }
 
   /**
-   * Redraw the open bookmark list below its chapter, and the bookmark count
-   * on every chapter whose bookmarks are known.
+   * Redraw the open bookmark list below its chapter, and mark every chapter
+   * known to have bookmarks.
    */
   private renderBookmarkList(highlightId?: string): void {
     if (!this.chaptersListEl) {
@@ -1362,15 +1361,14 @@ export class VoicePlayerView extends ItemView {
       .querySelectorAll<HTMLElement>(".voice-player-chapter")
       .forEach((row) => {
         const path = row.getAttribute("data-path") ?? "";
-        const count = store.peek(path)?.length ?? 0;
         const badge = row.querySelector<HTMLElement>(
           ".voice-player-chapter-marks",
         );
-        badge?.toggleClass("has-count", count > 0);
+        badge?.toggleClass(
+          "has-bookmarks",
+          (store.peek(path)?.length ?? 0) > 0,
+        );
         badge?.toggleClass("is-open", this.expandedPath === path);
-        badge
-          ?.querySelector(".voice-player-chapter-marks-count")
-          ?.setText(count > 0 ? `${count}` : "");
       });
 
     this.chaptersListEl.querySelector(".voice-player-bookmarks")?.remove();

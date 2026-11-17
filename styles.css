@@ -1158,15 +1158,14 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 }
 
 /* Bookmarks control on a chapter row, left of ⋮: a tap opens the list
-   below the row. Revealed like ⋮ (on hover, always on touch); always shown
-   with the bookmark count once the file has bookmarks, or while open. */
+   below the row. Revealed like ⋮ (on hover, always on touch); always shown,
+   filled, once the file has bookmarks, and while the list is open. */
 .voice-player-chapter-marks.voice-player-chapter-marks {
   display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
   justify-content: center;
-  gap: 2px;
-  min-width: 24px;
+  width: 24px;
   height: 24px;
   min-height: 0;
   margin: 0;
@@ -1176,8 +1175,6 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   box-shadow: none;
   background: transparent;
   color: var(--text-faint);
-  font-size: 11px;
-  font-variant-numeric: tabular-nums;
   cursor: pointer;
   opacity: 0;
   transition: opacity 0.1s ease;
@@ -1185,7 +1182,7 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 }
 
 .voice-player-chapter:hover .voice-player-chapter-marks,
-.voice-player-chapter-marks.voice-player-chapter-marks.has-count,
+.voice-player-chapter-marks.voice-player-chapter-marks.has-bookmarks,
 .voice-player-chapter-marks.voice-player-chapter-marks.is-open {
   opacity: 1;
 }
@@ -1201,13 +1198,12 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   background: var(--background-modifier-hover);
 }
 
-.voice-player-chapter-marks.voice-player-chapter-marks.has-count {
-  height: 20px;
-  padding: 0 6px 0 4px;
-  border-radius: 10px;
-  background: var(--background-modifier-hover);
+.voice-player-chapter-marks.voice-player-chapter-marks.has-bookmarks {
   color: var(--text-muted);
-  --voice-icon-size: 12px;
+}
+
+.voice-player-chapter-marks.has-bookmarks > svg.voice-icon.voice-icon {
+  fill: currentColor;
 }
 
 .voice-player-chapter-marks.voice-player-chapter-marks.is-open {

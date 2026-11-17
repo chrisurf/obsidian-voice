@@ -210,7 +210,7 @@ README.
   are written into the MP3 on save (`AudioFileManager`'s `saveBytes` hook →
   `Voice.bookmarkBytesForSave`). The player adds them (🔖 button, command
   `add-bookmark`), marks them on the scrubber, and lists them under a chapter
-  (**⋮ → Bookmarks**).
+  (🔖 icon next to the row's ⋮, or **⋮ → Bookmarks**).
 - `pressGesture.ts` — reusable tap-vs-hold pointer gesture with a fill-ring
   while holding (e.g. save buttons: tap = save, hold = folder picker; the player
   play button: tap = play/pause/cancel, hold = regenerate). Shared by the

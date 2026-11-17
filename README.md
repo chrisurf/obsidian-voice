@@ -92,7 +92,7 @@ Tap 🔖 while you listen and Voice bookmarks the spot — _Bookmark 1 · 12:34_
 ![Bookmarks of a chapter, listed below it and marked on the seek bar](./assets/voice-player-bookmarks.png)
 
 - **On the seek bar** — every bookmark is a small mark; tap one to jump there.
-- **Below the chapter** — **⋮ → Bookmarks** (or the 🔖 count on the row) opens the list: name on the left, position on the right. Tap a bookmark to play from there, even from another chapter; its **⋮** renames or deletes it (with Undo).
+- **Below the chapter** — the 🔖 icon next to the chapter's **⋮** (or **⋮ → Bookmarks**) opens the list; once a file has bookmarks, the icon shows how many: name on the left, position on the right. Tap a bookmark to play from there, even from another chapter; its **⋮** renames or deletes it (with Undo).
 - **Stored in the MP3 itself** — as standard ID3 chapters, so they travel with the file and show up as chapters in podcast apps such as Apple Podcasts or Overcast. A file is written a moment after your last change, never while it plays (it is written when you pause), and nothing is lost if Obsidian closes first.
 - **Audio that isn't saved yet** keeps its bookmarks and writes them into the MP3 when you save it.
 - Bookmarks need MP3; WAV files have none.

@@ -1157,30 +1157,57 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   font-size: inherit;
 }
 
-/* Bookmark count on a chapter row (shown once the file's bookmarks are
-   known); a tap opens the list below the row. */
+/* Bookmarks control on a chapter row, left of ⋮: a tap opens the list
+   below the row. Revealed like ⋮ (on hover, always on touch); always shown
+   with the bookmark count once the file has bookmarks, or while open. */
 .voice-player-chapter-marks.voice-player-chapter-marks {
-  display: none;
+  display: inline-flex;
   flex: 0 0 auto;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  height: 20px;
+  min-width: 24px;
+  height: 24px;
   min-height: 0;
   margin: 0;
-  padding: 0 6px 0 4px;
+  padding: 0;
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-s);
   box-shadow: none;
-  background: var(--background-modifier-hover);
-  color: var(--text-muted);
+  background: transparent;
+  color: var(--text-faint);
   font-size: 11px;
   font-variant-numeric: tabular-nums;
   cursor: pointer;
-  --voice-icon-size: 12px;
+  opacity: 0;
+  transition: opacity 0.1s ease;
+  --voice-icon-size: 14px;
 }
 
-.voice-player-chapter-marks.voice-player-chapter-marks.is-visible {
-  display: inline-flex;
+.voice-player-chapter:hover .voice-player-chapter-marks,
+.voice-player-chapter-marks.voice-player-chapter-marks.has-count,
+.voice-player-chapter-marks.voice-player-chapter-marks.is-open {
+  opacity: 1;
+}
+
+@media (hover: none) {
+  .voice-player-chapter-marks.voice-player-chapter-marks {
+    opacity: 1;
+  }
+}
+
+.voice-player-chapter-marks.voice-player-chapter-marks:hover {
+  color: var(--text-normal);
+  background: var(--background-modifier-hover);
+}
+
+.voice-player-chapter-marks.voice-player-chapter-marks.has-count {
+  height: 20px;
+  padding: 0 6px 0 4px;
+  border-radius: 10px;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  --voice-icon-size: 12px;
 }
 
 .voice-player-chapter-marks.voice-player-chapter-marks.is-open {

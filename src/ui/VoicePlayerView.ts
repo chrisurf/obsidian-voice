@@ -1031,17 +1031,20 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
-      // How many bookmarks the file has (once known); a tap opens the list.
-      const badge = item.createEl("button", {
-        cls: "voice-player-chapter-marks",
-        attr: { "aria-label": "Show bookmarks" },
-      });
-      setVoiceIcon(badge, "bookmark");
-      badge.createSpan({ cls: "voice-player-chapter-marks-count" });
-      this.registerDomEvent(badge, "click", (evt) => {
-        evt.stopPropagation();
-        this.toggleBookmarks(chapter.path);
-      });
+      // Bookmarks control next to ⋮: a tap opens the list below the row. It
+      // shows how many bookmarks the file has once they are known.
+      if (isMp3Path(chapter.path)) {
+        const badge = item.createEl("button", {
+          cls: "voice-player-chapter-marks",
+          attr: { "aria-label": "Bookmarks" },
+        });
+        setVoiceIcon(badge, "bookmark");
+        badge.createSpan({ cls: "voice-player-chapter-marks-count" });
+        this.registerDomEvent(badge, "click", (evt) => {
+          evt.stopPropagation();
+          this.toggleBookmarks(chapter.path);
+        });
+      }
 
       // Actions control: opens a small bar over this row with Delete / Move /
       // Rename for this track. Stops propagation so it doesn't play.
@@ -1363,11 +1366,11 @@ export class VoicePlayerView extends ItemView {
         const badge = row.querySelector<HTMLElement>(
           ".voice-player-chapter-marks",
         );
-        badge?.toggleClass("is-visible", count > 0);
+        badge?.toggleClass("has-count", count > 0);
         badge?.toggleClass("is-open", this.expandedPath === path);
         badge
           ?.querySelector(".voice-player-chapter-marks-count")
-          ?.setText(`${count}`);
+          ?.setText(count > 0 ? `${count}` : "");
       });
 
     this.chaptersListEl.querySelector(".voice-player-bookmarks")?.remove();

@@ -38,7 +38,7 @@ export const WHATS_NEW = `## 🔖 New: bookmarks in your audio
 Mark the spots you want to come back to. Tap 🔖 in the Voice player while you listen — or bind the command _Add a bookmark at the current position_ to a hotkey.
 
 - 📍 **On the seek bar:** every bookmark is a small mark; tap it to jump there.
-- 📑 **Below the chapter:** **⋮ → Bookmarks** lists them with their position. Tap one to play from there; rename or delete it from its **⋮**.
+- 📑 **Below the chapter:** the 🔖 icon next to its **⋮** lists them with their position. Tap one to play from there; rename or delete it from its **⋮**.
 - 🎧 **Stored in the MP3 itself** as standard chapters — they travel with the file and show up in podcast apps such as Apple Podcasts or Overcast.
 
 ## ⚡ New: long notes start playing while they are generated

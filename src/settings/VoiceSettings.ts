@@ -150,6 +150,8 @@ export interface VoiceSettings {
   profilesSeeded: boolean;
   // Internal: tracks the one-time reset of the legacy spellOutAcronyms default
   acronymDefaultMigrated: boolean;
+  // Internal: tracks the one-time move of the old 3 s skip default to 5 s
+  skipDefaultMigrated: boolean;
   // Internal: tracks the one-time placement of the player in the right sidebar
   // so it is discoverable by default without re-adding it after the user closes it.
   playerPanePlaced: boolean;
@@ -163,7 +165,18 @@ export interface VoiceSettings {
  */
 export const MIN_SKIP_SECONDS = 1;
 export const MAX_SKIP_SECONDS = 60;
-export const DEFAULT_SKIP_SECONDS = 3;
+export const DEFAULT_SKIP_SECONDS = 5;
+/** The default up to 1.21, too short to catch a missed sentence. */
+const OLD_DEFAULT_SKIP_SECONDS = 3;
+
+/**
+ * A stored skip interval after the default became 5 s: the old default of 3 s
+ * moves along (settings store it even if it was never changed); any other
+ * value is the user's choice and stays.
+ */
+export function migrateSkipSeconds(seconds: number): number {
+  return seconds === OLD_DEFAULT_SKIP_SECONDS ? DEFAULT_SKIP_SECONDS : seconds;
+}
 
 export interface VoiceOption {
   id: string;
@@ -553,6 +566,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   profilesMigrated: false,
   profilesSeeded: false,
   acronymDefaultMigrated: false,
+  skipDefaultMigrated: false,
   playerPanePlaced: false,
   lastWhatsNewVersion: "",
 };

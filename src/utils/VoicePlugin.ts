@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   VoiceSettings,
   migrateMiniMaxHost,
+  migrateSkipSeconds,
 } from "../settings/VoiceSettings";
 import { VoiceSettingTab } from "../settings/VoiceSettingTab";
 import { HotkeySettings } from "../settings/HotkeySettings";
@@ -411,6 +412,19 @@ export class Voice extends Plugin {
         this.settings.defaultAudioFolder = this.settings.lastAudioFolder;
       }
       this.settings.audioFolderMigrated = true;
+      await this.saveSettings();
+    }
+
+    // One-time migration: the rewind / fast-forward default went from 3 s to
+    // 5 s; intervals still at the old default move along.
+    if (!this.settings.skipDefaultMigrated) {
+      this.settings.rewindSeconds = migrateSkipSeconds(
+        this.settings.rewindSeconds,
+      );
+      this.settings.forwardSeconds = migrateSkipSeconds(
+        this.settings.forwardSeconds,
+      );
+      this.settings.skipDefaultMigrated = true;
       await this.saveSettings();
     }
 

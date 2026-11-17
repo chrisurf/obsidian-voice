@@ -119,6 +119,9 @@ export interface VoiceSettings {
   // Measured synthesis speed (audio seconds per second) per provider, see
   // utils/streamStart.ts streamRateKey.
   streamRates: Record<string, number>;
+  // Bookmarks not yet written into their MP3 (the file was playing), by file
+  // path, so none are lost if Obsidian closes first. See BookmarkStore.
+  pendingBookmarks: Record<string, { startMs: number; title: string }[]>;
   // Audio files: the default folder for saved MP3s. When set, a tap on the save
   // button always saves here (and auto-save writes here silently); when empty,
   // saves go next to the active note. Managed from the folder picker's pin
@@ -541,6 +544,7 @@ export const DEFAULT_SETTINGS: VoiceSettings = {
   streamStartAuto: true,
   streamStartPercent: DEFAULT_START_PERCENT,
   streamRates: {},
+  pendingBookmarks: {},
   defaultAudioFolder: "",
   favoriteAudioFolders: [],
   audioFolderMigrated: false,

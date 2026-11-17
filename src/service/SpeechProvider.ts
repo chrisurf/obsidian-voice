@@ -17,6 +17,14 @@ import type { PauseStyle } from "../types/ProcessorTypes";
 /**
  * Result of validating a provider's credentials
  */
+/** A generated reading loaded in the audio element. */
+export interface LoadedReading {
+  /** The note it reads, if known. */
+  path: string | null;
+  /** Changes with every reading put into the element. */
+  id: number;
+}
+
 export interface CredentialValidationResult {
   isValid: boolean;
   error?: string;
@@ -117,6 +125,12 @@ export interface SpeechProvider {
 
   // Caching / download
   getLastGeneratedAudio(filePath?: string): Blob | null;
+  /**
+   * The generated reading in the audio element (streaming or complete): the
+   * note it reads and a number that changes with every new reading. Null
+   * before the first one.
+   */
+  getLoadedReading(): LoadedReading | null;
   clearCachedAudio(): void;
   setCachedAudio(audioBlob: Blob, filePath: string): void;
 

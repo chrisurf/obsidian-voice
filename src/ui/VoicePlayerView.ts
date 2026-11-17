@@ -26,6 +26,11 @@ import { noteAudioPath } from "../utils/audioFolders";
 import { resolvePlayTap } from "../utils/playTap";
 import { MAX_SPEED, MIN_SPEED } from "../utils/speedChoices";
 import { groupVoicesByLanguage } from "../service/voiceCatalog";
+import {
+  bookmarkPositions,
+  formatClock,
+  type Bookmark,
+} from "../utils/bookmarks";
 import { setVoiceIcon } from "./icons";
 
 export const VIEW_TYPE_VOICE_PLAYER = "voice-player-view";
@@ -61,6 +66,10 @@ export class VoicePlayerView extends ItemView {
   private currentTimeEl: HTMLElement;
   private durationEl: HTMLElement;
   private scrubberEl: HTMLInputElement;
+  // Bookmarks of the loaded audio, drawn as marks on the scrubber; redrawn
+  // only when they or the length change (the poller runs every 250ms).
+  private marksEl: HTMLElement;
+  private marksKey = "";
   private playPauseBtn: HTMLElement;
   private prevTrackBtn: HTMLElement;
   private nextTrackBtn: HTMLElement;
@@ -69,6 +78,7 @@ export class VoicePlayerView extends ItemView {
   private chaptersListEl: HTMLElement;
   private downloadBtn: HTMLButtonElement;
   private folderBtn: HTMLButtonElement;
+  private bookmarkBtn: HTMLButtonElement;
   // Tracks which icon the download button currently shows, so we only swap it
   // when the save target changes (the update poller runs every 250ms).
   private downloadShowsSave = false;
@@ -98,6 +108,10 @@ export class VoicePlayerView extends ItemView {
   // its outside-click / Escape listeners, if one is currently shown.
   private openActionsEl: HTMLElement | null = null;
   private chapterActionsCleanup: (() => void) | null = null;
+  // The chapter whose bookmark list is open below it, if any.
+  private expandedPath: string | null = null;
+  // Whether the audio played at the last poll: a pause writes the bookmarks.
+  private wasPlaying = false;
 
   constructor(leaf: WorkspaceLeaf, plugin: Voice) {
     super(leaf);
@@ -124,8 +138,14 @@ export class VoicePlayerView extends ItemView {
     this.registerInterval(window.setInterval(() => this.update(), 250));
 
     // Refresh title + chapters when the active note changes.
+    // Focusing the player itself (e.g. a rename field) changes nothing it
+    // shows, and re-rendering would drop that field.
     this.registerEvent(
-      this.app.workspace.on("active-leaf-change", () => this.refreshContext()),
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf?.view !== this) {
+          this.refreshContext();
+        }
+      }),
     );
 
     // Refresh the chapter list when audio files appear/disappear in the vault
@@ -138,6 +158,19 @@ export class VoicePlayerView extends ItemView {
     this.registerEvent(this.app.vault.on("create", refreshOnAudio));
     this.registerEvent(this.app.vault.on("delete", refreshOnAudio));
     this.registerEvent(this.app.vault.on("rename", refreshOnAudio));
+
+    // Bookmarks changed (added, renamed, read from a file): redraw them.
+    this.register(
+      this.plugin.bookmarks.onChange(() => {
+        this.marksKey = "";
+        this.renderBookmarkList();
+      }),
+    );
+  }
+
+  async onClose(): Promise<void> {
+    this.closeChapterActions();
+    await this.plugin.bookmarks.flush();
   }
 
   private provider() {
@@ -162,16 +195,19 @@ export class VoicePlayerView extends ItemView {
     const seek = root.createDiv({ cls: "voice-player-seek" });
     this.currentTimeEl = seek.createSpan({ cls: "voice-player-time" });
     this.currentTimeEl.setText("0:00");
-    this.scrubberEl = seek.createEl("input", {
+    // The scrubber with the bookmarks marked on it (a tap on a mark jumps).
+    const track = seek.createDiv({ cls: "voice-player-scrubber-wrap" });
+    this.scrubberEl = track.createEl("input", {
       cls: "voice-player-scrubber",
       attr: { type: "range", min: "0", max: "0", value: "0", step: "1" },
     });
+    this.marksEl = track.createDiv({ cls: "voice-player-marks" });
     this.durationEl = seek.createSpan({ cls: "voice-player-time" });
     this.durationEl.setText("0:00");
 
     this.registerDomEvent(this.scrubberEl, "input", () => {
       this.isScrubbing = true;
-      this.currentTimeEl.setText(formatTime(Number(this.scrubberEl.value)));
+      this.currentTimeEl.setText(formatClock(Number(this.scrubberEl.value)));
     });
     this.registerDomEvent(this.scrubberEl, "change", () => {
       const audio = this.audio();
@@ -271,6 +307,18 @@ export class VoicePlayerView extends ItemView {
     setVoiceIcon(this.folderBtn, "folder-open");
     this.registerDomEvent(this.folderBtn, "click", () =>
       this.saveToCustomFolder(),
+    );
+
+    // Bookmark the current position of the loaded audio (also a command).
+    this.bookmarkBtn = secondary.createEl("button", {
+      cls: "voice-ctl voice-player-bookmark-btn",
+      attr: { "aria-label": "Add a bookmark here" },
+    });
+    setVoiceIcon(this.bookmarkBtn, "bookmark-plus");
+    this.registerDomEvent(
+      this.bookmarkBtn,
+      "click",
+      () => void this.plugin.addBookmarkHere(),
     );
 
     // Repeat: cycle off → repeat one → repeat all → off.
@@ -376,10 +424,10 @@ export class VoicePlayerView extends ItemView {
     // Loading bar, shown while a note's audio is being generated, with the
     // only control that cancels it (asks first).
     this.loadingBarEl = root.createDiv({ cls: "voice-player-loading" });
-    const track = this.loadingBarEl.createDiv({
+    const loadingTrack = this.loadingBarEl.createDiv({
       cls: "voice-player-loading-track",
     });
-    this.loadingFillEl = track.createDiv({
+    this.loadingFillEl = loadingTrack.createDiv({
       cls: "voice-player-loading-fill",
     });
     const cancelBtn = this.loadingBarEl.createEl("button", {
@@ -983,6 +1031,18 @@ export class VoicePlayerView extends ItemView {
         this.playChapter(chapter.path),
       );
 
+      // How many bookmarks the file has (once known); a tap opens the list.
+      const badge = item.createEl("button", {
+        cls: "voice-player-chapter-marks",
+        attr: { "aria-label": "Show bookmarks" },
+      });
+      setVoiceIcon(badge, "bookmark");
+      badge.createSpan({ cls: "voice-player-chapter-marks-count" });
+      this.registerDomEvent(badge, "click", (evt) => {
+        evt.stopPropagation();
+        this.toggleBookmarks(chapter.path);
+      });
+
       // Actions control: opens a small bar over this row with Delete / Move /
       // Rename for this track. Stops propagation so it doesn't play.
       const actionsBtn = item.createDiv({
@@ -996,42 +1056,63 @@ export class VoicePlayerView extends ItemView {
       });
     });
     this.highlightCurrentChapter();
+    this.renderBookmarkList();
   }
 
   /**
-   * Show a small action bar laid over the chapter row with Delete / Move /
-   * Rename for that track, so the actions clearly belong to that file. Only one
-   * bar is open at a time; clicking elsewhere or pressing Escape closes it.
+   * Show a small action bar laid over the chapter row with Bookmarks / Delete
+   * / Move / Rename for that track, so the actions clearly belong to that
+   * file. Only one bar is open at a time; clicking elsewhere or pressing
+   * Escape closes it.
    */
   private openChapterActions(item: HTMLElement, chapter: ChapterFile): void {
+    // Order left → right: Bookmarks, Delete, Move, Rename. Delete sits next to
+    // the faded file name; Rename at the screen edge.
+    this.openActionBar(item, (addBtn, bar) => {
+      if (isMp3Path(chapter.path)) {
+        // Toggles the list; highlighted while it is open.
+        addBtn("Bookmarks", () => {
+          this.closeChapterActions();
+          this.toggleBookmarks(chapter.path);
+        }).toggleClass("is-active", this.expandedPath === chapter.path);
+      }
+      addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
+        "mod-warning",
+      );
+      addBtn("Move", () => {
+        this.closeChapterActions();
+        void this.moveChapter(chapter);
+      });
+      addBtn("Rename", () => {
+        this.closeChapterActions();
+        this.beginRenameChapter(item, chapter);
+      });
+    });
+  }
+
+  /** Lay an action bar over a row (a chapter or a bookmark). */
+  private openActionBar(
+    row: HTMLElement,
+    build: (
+      addBtn: (label: string, onClick: () => void) => HTMLButtonElement,
+      bar: HTMLElement,
+    ) => void,
+  ): void {
     this.closeChapterActions();
 
-    const bar = item.createDiv({ cls: "voice-player-chapter-actions" });
+    const bar = row.createDiv({ cls: "voice-player-chapter-actions" });
     const addBtn = (label: string, onClick: () => void): HTMLButtonElement => {
       const btn = bar.createEl("button", {
         cls: "voice-player-chapter-action",
         text: label,
       });
-      this.registerDomEvent(btn, "click", (evt) => {
+      btn.addEventListener("click", (evt) => {
         evt.stopPropagation();
         onClick();
       });
       return btn;
     };
-
-    // Order left → right: Delete, Move, Rename. Delete is left-most (next to the
-    // faded file name); Rename sits at the screen edge.
-    addBtn("Delete", () => this.showDeleteConfirm(bar, chapter)).addClass(
-      "mod-warning",
-    );
-    addBtn("Move", () => {
-      this.closeChapterActions();
-      void this.moveChapter(chapter);
-    });
-    addBtn("Rename", () => {
-      this.closeChapterActions();
-      this.beginRenameChapter(item, chapter);
-    });
+    build(addBtn, bar);
 
     this.openActionsEl = bar;
 
@@ -1205,24 +1286,301 @@ export class VoicePlayerView extends ItemView {
     this.refreshContext();
   }
 
-  private playChapter(path: string): void {
+  // --- Bookmarks ---
+  // Stored in the MP3s by the plugin's BookmarkStore; the player adds them
+  // (button), marks them on the scrubber, and lists them below a chapter.
+
+  /** The saved file loaded in the player, if any. */
+  getLoadedChapterPath(): string | null {
+    return this.audio().currentSrc !== "" ? this.currentChapterPath : null;
+  }
+
+  /** Whether `path` is loaded and playing (its bookmarks wait to be written). */
+  isPlayingFile(path: string): boolean {
+    return this.currentChapterPath === path && !this.audio().paused;
+  }
+
+  /**
+   * The loaded file was rewritten (its bookmarks were saved): load it again
+   * at the same position, so it doesn't read the changed file mid-stream.
+   * Files are written while paused; resumed during the write, it goes on.
+   */
+  reloadFile(path: string): void {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    const audio = this.audio();
+    if (
+      this.currentChapterPath !== path ||
+      !(file instanceof TFile) ||
+      audio.currentSrc === ""
+    ) {
+      return;
+    }
+    const position = audio.currentTime;
+    const rate = audio.playbackRate;
+    const wasPlaying = !audio.paused;
+    audio.src = this.app.vault.getResourcePath(file);
+    audio.addEventListener(
+      "loadedmetadata",
+      () => {
+        audio.currentTime = position;
+        audio.playbackRate = rate;
+        if (wasPlaying) {
+          void audio.play();
+        }
+      },
+      { once: true },
+    );
+  }
+
+  /** Open a file's bookmark list (after adding one), highlighting `id`. */
+  showBookmarks(path: string, id?: string): void {
+    if (!this.chapters.some((c) => c.path === path)) {
+      return;
+    }
+    this.expandedPath = path;
+    this.renderBookmarkList(id);
+  }
+
+  private toggleBookmarks(path: string): void {
+    this.expandedPath = this.expandedPath === path ? null : path;
+    this.renderBookmarkList();
+  }
+
+  /**
+   * Redraw the open bookmark list below its chapter, and the bookmark count
+   * on every chapter whose bookmarks are known.
+   */
+  private renderBookmarkList(highlightId?: string): void {
+    if (!this.chaptersListEl) {
+      return;
+    }
+    const store = this.plugin.bookmarks;
+    this.chaptersListEl
+      .querySelectorAll<HTMLElement>(".voice-player-chapter")
+      .forEach((row) => {
+        const path = row.getAttribute("data-path") ?? "";
+        const count = store.peek(path)?.length ?? 0;
+        const badge = row.querySelector<HTMLElement>(
+          ".voice-player-chapter-marks",
+        );
+        badge?.toggleClass("is-visible", count > 0);
+        badge?.toggleClass("is-open", this.expandedPath === path);
+        badge
+          ?.querySelector(".voice-player-chapter-marks-count")
+          ?.setText(`${count}`);
+      });
+
+    this.chaptersListEl.querySelector(".voice-player-bookmarks")?.remove();
+    const path = this.expandedPath;
+    const row = path
+      ? this.chaptersListEl.querySelector<HTMLElement>(
+          `.voice-player-chapter[data-path="${CSS.escape(path)}"]`,
+        )
+      : null;
+    if (!path || !row) {
+      return;
+    }
+    const listEl = createDiv({ cls: "voice-player-bookmarks" });
+    row.after(listEl);
+
+    const target = { kind: "file" as const, path };
+    const list = store.get(target);
+    if (list === null) {
+      listEl
+        .createDiv({ cls: "voice-player-bookmarks-empty" })
+        .setText("Reading bookmarks…");
+      return;
+    }
+    if (list.length === 0) {
+      listEl
+        .createDiv({ cls: "voice-player-bookmarks-empty" })
+        .setText(
+          "No bookmarks yet. While listening, tap the bookmark button to mark a spot.",
+        );
+      return;
+    }
+    for (const bookmark of list) {
+      const item = listEl.createDiv({
+        cls: "voice-player-bookmark",
+        attr: { "data-id": bookmark.id },
+      });
+      setVoiceIcon(item, "bookmark");
+      item
+        .createSpan({ cls: "voice-player-bookmark-name" })
+        .setText(bookmark.title);
+      item
+        .createSpan({ cls: "voice-player-bookmark-time" })
+        .setText(formatClock(bookmark.startMs / 1000));
+      item.addEventListener("click", () => this.jumpTo(path, bookmark));
+
+      const more = item.createDiv({
+        cls: "voice-player-chapter-edit",
+        attr: { "aria-label": "Bookmark actions" },
+      });
+      setVoiceIcon(more, "more");
+      more.addEventListener("click", (evt) => {
+        evt.stopPropagation();
+        this.openActionBar(item, (addBtn) => {
+          addBtn("Delete", () => {
+            this.closeChapterActions();
+            void this.plugin.deleteBookmark(target, bookmark);
+          }).addClass("mod-warning");
+          addBtn("Rename", () => {
+            this.closeChapterActions();
+            this.beginRenameBookmark(item, path, bookmark);
+          });
+        });
+      });
+
+      if (bookmark.id === highlightId) {
+        item.addClass("is-new");
+        item.scrollIntoView({ block: "nearest" });
+      }
+    }
+    this.highlightPassedBookmark();
+  }
+
+  /** Rename a bookmark in place: Enter / leaving the field saves, Esc cancels. */
+  private beginRenameBookmark(
+    item: HTMLElement,
+    path: string,
+    bookmark: Bookmark,
+  ): void {
+    const nameEl = item.querySelector<HTMLElement>(
+      ".voice-player-bookmark-name",
+    );
+    if (!nameEl) {
+      return;
+    }
+    const input = createEl("input", {
+      cls: "voice-player-chapter-rename",
+      attr: { type: "text", "aria-label": "Bookmark name" },
+    });
+    input.value = bookmark.title;
+    nameEl.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let settled = false;
+    const finish = (save: boolean) => {
+      if (settled) return;
+      settled = true;
+      if (save && input.value.trim() && input.value !== bookmark.title) {
+        void this.plugin.bookmarks.rename(
+          { kind: "file", path },
+          bookmark.id,
+          input.value,
+        );
+      } else {
+        this.renderBookmarkList();
+      }
+    };
+    input.addEventListener("click", (evt) => evt.stopPropagation());
+    input.addEventListener("keydown", (evt) => {
+      if (evt.key === "Enter") {
+        evt.preventDefault();
+        finish(true);
+      } else if (evt.key === "Escape") {
+        evt.preventDefault();
+        finish(false);
+      }
+    });
+    input.addEventListener("blur", () => finish(true));
+  }
+
+  /** Play a file from a bookmark (loading the file if needed). */
+  private jumpTo(path: string, bookmark: Bookmark): void {
+    const seconds = bookmark.startMs / 1000;
+    if (this.getLoadedChapterPath() === path) {
+      this.audio().currentTime = seconds;
+      void this.provider().playAudio();
+      return;
+    }
+    this.playChapter(path, seconds);
+  }
+
+  /** Mark the bookmark the playing file last passed. */
+  private highlightPassedBookmark(): void {
+    const listEl = this.chaptersListEl?.querySelector(
+      ".voice-player-bookmarks",
+    );
+    if (!listEl) {
+      return;
+    }
+    const loaded = this.getLoadedChapterPath();
+    const list =
+      loaded && loaded === this.expandedPath
+        ? (this.plugin.bookmarks.peek(loaded) ?? [])
+        : [];
+    const ms = this.audio().currentTime * 1000;
+    const passed = list.filter((b) => b.startMs <= ms + 250).pop();
+    listEl
+      .querySelectorAll<HTMLElement>(".voice-player-bookmark")
+      .forEach((el) =>
+        el.toggleClass("is-current", el.getAttribute("data-id") === passed?.id),
+      );
+  }
+
+  /** Draw the loaded audio's bookmarks on the scrubber. */
+  private renderMarks(duration: number): void {
+    const target = this.plugin.bookmarkTarget();
+    const list = target ? (this.plugin.bookmarks.get(target) ?? []) : [];
+    const key = `${Math.floor(duration)}|${list
+      .map((b) => `${b.id}:${b.startMs}:${b.title}`)
+      .join(",")}`;
+    if (key === this.marksKey) {
+      return;
+    }
+    this.marksKey = key;
+    this.marksEl.empty();
+    for (const { bookmark, share } of bookmarkPositions(list, duration)) {
+      const mark = this.marksEl.createEl("button", {
+        cls: "voice-player-mark",
+        attr: {
+          "aria-label": `${bookmark.title} · ${formatClock(bookmark.startMs / 1000)}`,
+        },
+      });
+      mark.setCssProps({ "--voice-mark-pos": `${share}` });
+      mark.addEventListener("click", () => {
+        this.audio().currentTime = bookmark.startMs / 1000;
+      });
+    }
+  }
+
+  /**
+   * Load a saved file into the player and play it, from `startAt` seconds if
+   * given. False when it can't be loaded now.
+   */
+  private playChapter(path: string, startAt?: number): boolean {
     const file = this.app.vault.getAbstractFileByPath(path);
     if (!(file instanceof TFile)) {
-      return;
+      return false;
     }
     // The audio element is playing (or about to play) the reading being
     // generated; loading a file would cut it off.
     if (this.plugin.isGenerating()) {
       this.plugin.notifyStillGenerating();
-      return;
+      return false;
     }
     const audio = this.audio();
     audio.src = this.app.vault.getResourcePath(file);
+    if (startAt !== undefined) {
+      audio.addEventListener(
+        "loadedmetadata",
+        () => {
+          audio.currentTime = startAt;
+        },
+        { once: true },
+      );
+    }
     this.currentChapterPath = path;
     void this.provider().playAudio();
     this.highlightCurrentChapter();
     // Reflect the playing chapter in the header instead of the active note.
     this.updateTitle();
+    // The file played before is free now: write its bookmarks.
+    void this.plugin.bookmarks.flush();
+    return true;
   }
 
   /**
@@ -1359,11 +1717,24 @@ export class VoicePlayerView extends ItemView {
     if (!this.isScrubbing) {
       this.scrubberEl.max = `${Math.floor(duration)}`;
       this.scrubberEl.value = `${Math.floor(currentTime)}`;
-      this.currentTimeEl.setText(formatTime(currentTime));
+      this.currentTimeEl.setText(formatClock(currentTime));
     }
-    this.durationEl.setText(formatTime(duration));
+    this.durationEl.setText(formatClock(duration));
 
     this.speedEl.setText(`${provider.getSpeed().toFixed(1)}×`);
+
+    this.renderMarks(duration);
+    this.highlightPassedBookmark();
+    this.bookmarkBtn.toggleClass(
+      "is-muted",
+      this.plugin.bookmarkTarget() === null,
+    );
+    // Bookmarks of a playing file are written once it pauses.
+    const playing = provider.isPlaying();
+    if (this.wasPlaying && !playing) {
+      void this.plugin.bookmarks.flush();
+    }
+    this.wasPlaying = playing;
 
     // Loading feedback while a note is being synthesized: grow the bottom bar to
     // the synthesis progress and fill the ring around the play button.
@@ -1412,18 +1783,7 @@ export class VoicePlayerView extends ItemView {
   }
 }
 
-/** Format seconds as m:ss (or h:mm:ss for long audio). */
-function formatTime(seconds: number): string {
-  if (!isFinite(seconds) || seconds < 0) {
-    return "0:00";
-  }
-  const total = Math.floor(seconds);
-  const h = Math.floor(total / 3600);
-  const m = Math.floor((total % 3600) / 60);
-  const s = total % 60;
-  const ss = `${s}`.padStart(2, "0");
-  if (h > 0) {
-    return `${h}:${`${m}`.padStart(2, "0")}:${ss}`;
-  }
-  return `${m}:${ss}`;
+/** Whether a path is an MP3 (only MP3s hold bookmarks). */
+function isMp3Path(path: string): boolean {
+  return path.toLowerCase().endsWith(".mp3");
 }

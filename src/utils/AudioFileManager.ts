@@ -21,11 +21,20 @@ export type ConflictResolver = (info: {
  * - Insert audio embed tags at correct position
  * - Validate filename synchronization
  */
+/** The bytes to write for generated audio saved at a path. */
+export type SaveBytes = (blob: Blob, path: string) => Promise<ArrayBuffer>;
+
 export class AudioFileManager {
   private app: App;
+  private saveBytes: SaveBytes;
 
-  constructor(app: App) {
+  /**
+   * @param saveBytes - Turns the generated audio into the bytes to save (the
+   *   plugin adds the bookmarks set while it played). Defaults to the audio.
+   */
+  constructor(app: App, saveBytes?: SaveBytes) {
     this.app = app;
+    this.saveBytes = saveBytes ?? ((blob) => blob.arrayBuffer());
   }
 
   /**
@@ -130,7 +139,7 @@ export class AudioFileManager {
     if (!blob) {
       return;
     }
-    const arrayBuffer = await blob.arrayBuffer();
+    const arrayBuffer = await this.saveBytes(blob, finalPath);
     const existing = this.app.vault.getAbstractFileByPath(finalPath);
     if (existing instanceof TFile) {
       await this.app.vault.modifyBinary(existing, arrayBuffer);
@@ -180,8 +189,7 @@ export class AudioFileManager {
       // (custom folders may not have been created yet).
       await this.ensureFolderExists(fileDir);
 
-      // Convert Blob to ArrayBuffer
-      const arrayBuffer = await audioBlob.arrayBuffer();
+      const arrayBuffer = await this.saveBytes(audioBlob, audioFilePath);
 
       // Check if file exists
       const existingFile = this.app.vault.getAbstractFileByPath(audioFilePath);

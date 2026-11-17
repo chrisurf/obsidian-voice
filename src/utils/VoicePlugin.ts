@@ -15,13 +15,17 @@ import {
   startPercentForRate,
   streamRateKey,
 } from "./streamStart";
-import { Plugin, Platform, Notice } from "obsidian";
+import { Plugin, Platform, Notice, TFile, type TAbstractFile } from "obsidian";
 import { MarkdownHelper } from "./MarkdownHelper";
 import { IconEventHandler } from "./IconEventHandler";
 import { TextSpeaker } from "./TextSpeaker";
 import { VoicePlayerView, VIEW_TYPE_VOICE_PLAYER } from "../ui/VoicePlayerView";
 import { WhatsNewModal } from "../ui/WhatsNewModal";
 import { CancelGenerationModal } from "../ui/CancelGenerationModal";
+import { BookmarkNameModal } from "../ui/BookmarkNameModal";
+import { BookmarkStore, type BookmarkTarget } from "./BookmarkStore";
+import { formatClock, type Bookmark } from "./bookmarks";
+import { isAudioPath } from "./audioFormat";
 import { shouldShowWhatsNew } from "./whatsNew";
 import { ProfileStore } from "../profiles/ProfileStore";
 import { readingLanguage } from "../profiles/language";
@@ -39,12 +43,14 @@ export class Voice extends Plugin {
   public iconEventHandler: IconEventHandler;
   private textSpeaker: TextSpeaker;
   public profileStore: ProfileStore;
+  public bookmarks: BookmarkStore;
   // Last resolved profile, reused while neither the language nor any profile
   // changed (the player asks several times a second).
   private profileCache: { key: string; profile: ResolvedProfile } | null = null;
 
   async onload() {
     await this.loadSettings();
+    this.initBookmarks();
     this.profileStore = new ProfileStore(this.app, () => this.profilesFolder());
     await this.loadProfiles();
     this.addSettingTab(new VoiceSettingTab(this.app, this));
@@ -92,6 +98,8 @@ export class Voice extends Plugin {
     // (place it as a sidebar tab once) and surface the "What's New" note once
     // per install/update so users learn about new functionality.
     this.app.workspace.onLayoutReady(() => {
+      // Bookmarks left unwritten when Obsidian closed.
+      void this.bookmarks.flush();
       void this.placeDefaultPlayerPane();
       this.maybeShowWhatsNew();
     });
@@ -173,6 +181,209 @@ export class Voice extends Plugin {
     if (this.iconEventHandler) {
       this.iconEventHandler.removeEventListeners();
     }
+    // Unwritten bookmarks are also kept in the settings, should this not
+    // finish before Obsidian closes.
+    void this.bookmarks?.flush(true);
+  }
+
+  // --- Bookmarks ---
+  // Named positions in a saved MP3, stored in the file as ID3 chapters (see
+  // BookmarkStore). Added with the player's bookmark button or the command.
+
+  private initBookmarks(): void {
+    this.bookmarks = new BookmarkStore(this.app, {
+      getJournal: () => this.settings.pendingBookmarks ?? {},
+      setJournal: async (journal) => {
+        this.settings.pendingBookmarks = journal;
+        await this.saveSettings();
+      },
+      isPlaying: (path) =>
+        this.playerViews().some((view) => view.isPlayingFile(path)),
+      reloadIfLoaded: (path) =>
+        this.playerViews().forEach((view) => view.reloadFile(path)),
+    });
+    const isAudio = (file: TAbstractFile) =>
+      file instanceof TFile && isAudioPath(file.path);
+    this.registerEvent(
+      this.app.vault.on("rename", (file, oldPath) => {
+        if (isAudio(file)) {
+          this.bookmarks.renamed(oldPath, file.path);
+        }
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("delete", (file) => {
+        if (isAudio(file)) {
+          this.bookmarks.forget(file.path);
+        }
+      }),
+    );
+    this.registerEvent(
+      this.app.vault.on("modify", (file) => {
+        if (isAudio(file)) {
+          this.bookmarks.modified(file.path);
+        }
+      }),
+    );
+  }
+
+  private playerViews(): VoicePlayerView[] {
+    return this.app.workspace
+      .getLeavesOfType(VIEW_TYPE_VOICE_PLAYER)
+      .map((leaf) => leaf.view)
+      .filter(
+        (view): view is VoicePlayerView => view instanceof VoicePlayerView,
+      );
+  }
+
+  /**
+   * What a bookmark set now belongs to: the saved file loaded in the player,
+   * or the generated reading playing (not saved yet). Null with no audio.
+   */
+  public bookmarkTarget(): BookmarkTarget | null {
+    const audio = this.speechProvider.getAudio();
+    if (audio.currentSrc === "") {
+      return null;
+    }
+    for (const view of this.playerViews()) {
+      const path = view.getLoadedChapterPath();
+      if (path) {
+        return { kind: "file", path };
+      }
+    }
+    // A generated reading plays from a blob (a file or a MediaSource).
+    const reading = this.speechProvider.getLoadedReading();
+    if (!audio.currentSrc.startsWith("blob:") || !reading) {
+      return null;
+    }
+    return { kind: "reading", reading };
+  }
+
+  /** Bookmark the current position of the audio in the player. */
+  public async addBookmarkHere(): Promise<void> {
+    const target = this.bookmarkTarget();
+    if (!target) {
+      new Notice("Play an audio file or a note first, then bookmark a spot.");
+      return;
+    }
+    const isWav =
+      target.kind === "file"
+        ? !target.path.toLowerCase().endsWith(".mp3")
+        : (this.speechProvider.getLastGeneratedAudio()?.type ?? "").includes(
+            "wav",
+          );
+    if (isWav) {
+      new Notice("Bookmarks are saved in MP3 files; this audio is WAV.");
+      return;
+    }
+    const ms = this.speechProvider.getAudio().currentTime * 1000;
+    let result;
+    try {
+      result = await this.bookmarks.add(target, ms);
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : String(error));
+      return;
+    }
+    const { bookmark, added } = result;
+    const file = this.bookmarks.filePath(target);
+    if (file) {
+      this.playerViews().forEach((view) =>
+        view.showBookmarks(file, bookmark.id),
+      );
+    }
+    const when = formatClock(bookmark.startMs / 1000);
+    this.bookmarkNotice(
+      added
+        ? `${bookmark.title} · ${when}`
+        : `Already bookmarked: ${bookmark.title} · ${when}`,
+      added && !file
+        ? "Saved into the MP3 when you save this audio."
+        : undefined,
+      [
+        {
+          label: "Rename",
+          run: () => void this.renameBookmarkByModal(target, bookmark),
+        },
+        ...(added
+          ? [
+              {
+                label: "Undo",
+                run: () => void this.bookmarks.remove(target, bookmark.id),
+              },
+            ]
+          : []),
+      ],
+    );
+  }
+
+  /** Delete a bookmark, with an Undo in the notice. */
+  public async deleteBookmark(
+    target: BookmarkTarget,
+    bookmark: Bookmark,
+  ): Promise<void> {
+    await this.bookmarks.remove(target, bookmark.id);
+    this.bookmarkNotice(`Deleted ${bookmark.title}`, undefined, [
+      {
+        label: "Undo",
+        run: () =>
+          void this.bookmarks
+            .add(target, bookmark.startMs)
+            .then(({ bookmark: back }) =>
+              this.bookmarks.rename(target, back.id, bookmark.title),
+            ),
+      },
+    ]);
+  }
+
+  private async renameBookmarkByModal(
+    target: BookmarkTarget,
+    bookmark: Bookmark,
+  ): Promise<void> {
+    const name = await BookmarkNameModal.ask(this.app, bookmark.title);
+    if (name) {
+      await this.bookmarks.rename(target, bookmark.id, name);
+    }
+  }
+
+  /** A short notice with a bookmark icon and action links. */
+  private bookmarkNotice(
+    title: string,
+    hint: string | undefined,
+    actions: { label: string; run: () => void }[],
+  ): void {
+    const fragment = createFragment((f) => {
+      const row = f.createDiv({ cls: "voice-bookmark-notice" });
+      row.createSpan({ cls: "voice-bookmark-notice-title", text: title });
+      for (const action of actions) {
+        const link = row.createEl("button", {
+          cls: "voice-bookmark-notice-action",
+          text: action.label,
+        });
+        link.addEventListener("click", () => action.run());
+      }
+      if (hint) {
+        f.createDiv({ cls: "voice-bookmark-notice-hint", text: hint });
+      }
+    });
+    new Notice(fragment, 5000);
+  }
+
+  /**
+   * The bytes to save for generated audio: with the bookmarks set while the
+   * reading played, when the saved audio is that reading.
+   */
+  public bookmarkBytesForSave(blob: Blob, path: string): Promise<ArrayBuffer> {
+    const provider = this.speechProvider;
+    const reading = provider.getLoadedReading();
+    const isLoadedReading =
+      reading !== null &&
+      !provider.isOperationInProgress() &&
+      provider.getLastGeneratedAudio(reading.path ?? undefined) === blob;
+    return this.bookmarks.bytesForSave(
+      blob,
+      path,
+      isLoadedReading ? reading : null,
+    );
   }
 
   async loadSettings() {

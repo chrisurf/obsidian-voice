@@ -160,6 +160,12 @@ export const VOICE_ICONS = {
   ],
   "chevron-up": [{ d: "m18 15-6-6-6 6" }],
   close: [{ d: "M18 6 6 18" }, { d: "m6 6 12 12" }],
+  bookmark: [{ d: "m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" }],
+  "bookmark-plus": [
+    { d: "m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z" },
+    { d: "M12 7v6" },
+    { d: "M15 10H9" },
+  ],
 } satisfies Record<string, VoiceIconShape[]>;
 
 export type VoiceIconName = keyof typeof VOICE_ICONS;

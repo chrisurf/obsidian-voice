@@ -603,9 +603,61 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   gap: 8px;
 }
 
+.voice-player-scrubber-wrap {
+  position: relative;
+  display: flex;
+  flex: 1;
+  align-items: center;
+  min-width: 0;
+}
+
 .voice-player-scrubber {
   flex: 1;
   min-width: 0;
+}
+
+/* Bookmarks on the scrubber: a small accent pill per bookmark, laid over the
+   track (inset by half the thumb, where the thumb's centre can reach). A tap
+   jumps there. */
+.voice-player-marks {
+  --voice-thumb-half: calc(var(--slider-thumb-width, 18px) / 2);
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: var(--voice-thumb-half);
+  right: var(--voice-thumb-half);
+  pointer-events: none;
+}
+
+.voice-player-mark.voice-player-mark {
+  position: absolute;
+  top: 50%;
+  left: calc(var(--voice-mark-pos, 0) * 100%);
+  width: 4px;
+  height: 14px;
+  min-width: 0;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  border: none;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1.5px var(--background-primary);
+  background: var(--interactive-accent);
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  cursor: pointer;
+  transition: transform 0.12s ease;
+}
+
+/* A bigger, invisible target around the thin mark, for fingers. */
+.voice-player-mark.voice-player-mark::before {
+  content: "";
+  position: absolute;
+  inset: -6px -8px;
+}
+
+.voice-player-mark.voice-player-mark:hover {
+  transform: translate(-50%, -50%) scale(1.3);
 }
 
 .voice-player-time {
@@ -815,15 +867,18 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   animation: rotateCounterClockwise 2s linear infinite;
 }
 
-/* Actions row: save · folder on the left, repeat · speed on the right. */
+/* Actions row: save · folder · bookmark on the left, repeat · speed on the
+   right. A container, so a narrow sidebar gets smaller controls (below). */
 .voice-player-secondary {
   display: flex;
   align-items: center;
   gap: 8px;
+  container-type: inline-size;
 }
 
 .voice-player button.voice-ctl.voice-player-download,
 .voice-player button.voice-ctl.voice-player-folder-btn,
+.voice-player button.voice-ctl.voice-player-bookmark-btn,
 .voice-player button.voice-ctl.voice-player-repeat {
   --voice-ctl-size: 36px;
   background: var(--voice-surface);
@@ -849,7 +904,8 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 /* The download/save button stays interactive even with no audio to save, so a
    press-and-hold can still open the folder picker (e.g. to pin a default
    folder). It only dims to hint that a plain tap has nothing to save. */
-.voice-player button.voice-ctl.voice-player-download.is-muted {
+.voice-player button.voice-ctl.voice-player-download.is-muted,
+.voice-player button.voice-ctl.voice-player-bookmark-btn.is-muted {
   opacity: 0.45;
 }
 
@@ -882,6 +938,32 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   font-weight: 600;
   font-variant-numeric: tabular-nums;
   color: var(--text-normal);
+}
+
+/* A narrow sidebar: tighter actions row, so the speed stepper still fits. */
+@container (max-width: 300px) {
+  .voice-player-secondary {
+    gap: 4px;
+  }
+
+  .voice-player button.voice-ctl.voice-player-download,
+  .voice-player button.voice-ctl.voice-player-folder-btn,
+  .voice-player button.voice-ctl.voice-player-bookmark-btn,
+  .voice-player button.voice-ctl.voice-player-repeat {
+    --voice-ctl-size: 32px;
+  }
+
+  .voice-player button.voice-ctl.voice-player-speed-btn {
+    --voice-ctl-size: 28px;
+  }
+
+  .voice-player-speed {
+    height: 32px;
+  }
+
+  .voice-player-speed-value {
+    min-width: 34px;
+  }
 }
 
 /* Reading toggles + Cache: five equal segments, icon over a short caption. */
@@ -982,6 +1064,10 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   cursor: pointer;
 }
 
+.voice-player-chapter-action.voice-player-chapter-action.is-active {
+  color: var(--interactive-accent);
+}
+
 .voice-player-chapter-action:hover {
   color: var(--text-normal);
   background: var(--background-modifier-hover);
@@ -1069,6 +1155,161 @@ svg.voice-icon.voice-icon .voice-icon-fill {
   flex: 1;
   min-width: 0;
   font-size: inherit;
+}
+
+/* Bookmark count on a chapter row (shown once the file's bookmarks are
+   known); a tap opens the list below the row. */
+.voice-player-chapter-marks.voice-player-chapter-marks {
+  display: none;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 2px;
+  height: 20px;
+  min-height: 0;
+  margin: 0;
+  padding: 0 6px 0 4px;
+  border: none;
+  border-radius: 10px;
+  box-shadow: none;
+  background: var(--background-modifier-hover);
+  color: var(--text-muted);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  --voice-icon-size: 12px;
+}
+
+.voice-player-chapter-marks.voice-player-chapter-marks.is-visible {
+  display: inline-flex;
+}
+
+.voice-player-chapter-marks.voice-player-chapter-marks.is-open {
+  background: var(--voice-accent-soft);
+  color: var(--interactive-accent);
+}
+
+/* The bookmark list, opened below its chapter. */
+.voice-player-bookmarks {
+  margin: 2px 0 6px 22px;
+  padding-left: 8px;
+  border-left: 2px solid var(--background-modifier-border);
+}
+
+.voice-player-bookmarks-empty {
+  padding: 6px 8px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+
+.voice-player-bookmark {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  font-size: var(--font-ui-small);
+  cursor: pointer;
+  --voice-icon-size: 14px;
+}
+
+.voice-player-bookmark:hover {
+  background: var(--background-modifier-hover);
+}
+
+.voice-player-bookmark > svg.voice-icon.voice-icon {
+  color: var(--text-faint);
+}
+
+.voice-player-bookmark-name {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-normal);
+}
+
+.voice-player-bookmark-time {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* The bookmark the playing file passed last. */
+.voice-player-bookmark.is-current .voice-player-bookmark-name {
+  color: var(--text-accent);
+  font-weight: 600;
+}
+
+.voice-player-bookmark.is-current > svg.voice-icon.voice-icon {
+  color: var(--interactive-accent);
+  fill: var(--interactive-accent);
+}
+
+.voice-player-bookmark:hover .voice-player-chapter-edit {
+  opacity: 1;
+}
+
+/* A bookmark just added lights up briefly. */
+.voice-player-bookmark.is-new {
+  animation: voice-bookmark-new 1.6s ease-out;
+}
+
+@keyframes voice-bookmark-new {
+  from {
+    background: var(--voice-accent-soft);
+  }
+  to {
+    background: transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .voice-player-bookmark.is-new {
+    animation: none;
+  }
+}
+
+/* The notice after adding or deleting a bookmark: name · time, then actions. */
+.voice-bookmark-notice {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.voice-bookmark-notice-title {
+  flex: 1;
+  min-width: 0;
+  margin-right: 8px;
+  font-variant-numeric: tabular-nums;
+}
+
+.voice-bookmark-notice-action.voice-bookmark-notice-action {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 0;
+  margin: 0;
+  padding: 2px 8px;
+  border: none;
+  border-radius: var(--radius-s);
+  box-shadow: none;
+  background: transparent;
+  color: var(--text-accent);
+  font-size: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.voice-bookmark-notice-action.voice-bookmark-notice-action:hover {
+  background: var(--background-modifier-hover);
+}
+
+.voice-bookmark-notice-hint {
+  margin-top: 4px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
 }
 
 /* Provider / voice selectors + read-code-blocks toggle */
@@ -1234,8 +1475,6 @@ svg.voice-icon.voice-icon .voice-icon-fill {
 .voice-mobile-progress-row .voice-cancel-generation:hover {
   background: rgba(var(--color-red-rgb), 0.15);
 }
-
-
 
 /* Tap-vs-hold save gesture (issue #57): a translucent accent sweep fills around
    the button while it is held, signalling that the hold action is about to

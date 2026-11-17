@@ -144,6 +144,21 @@ describe("Unit Tests - ID3 chapters", () => {
     });
   });
 
+  test("a reading with a header per chunk is repaired on the way", () => {
+    // Two chunks, each with its own Xing header frame (joined byte-wise).
+    const xing = (frames: number) => {
+      const bytes = new Uint8Array(mp3(frames + 1));
+      bytes.set(text("Xing"), 4 + 9);
+      return [...bytes];
+    };
+    const broken = new Uint8Array([...xing(50), ...xing(50)]).buffer;
+    const written = writeChapters(broken, [bm("a", 1500, "Late")]);
+    const latin = Buffer.from(written).toString("latin1");
+    expect(latin.split("Xing")).toHaveLength(2);
+    expect(readChapters(written)[0].title).toBe("Late");
+    expect(audioDurationSeconds(written)).toBeCloseTo(2.4);
+  });
+
   test("the last chapter ends at the end of the audio", () => {
     const written = new Uint8Array(writeChapters(mp3(100), [bm("a", 1000)]));
     // CHAP header (10 bytes), then "chp0\0", then the times.

@@ -205,8 +205,11 @@ README.
   tag is v2.3) and `BookmarkStore.ts` (Obsidian glue: reads lazily, writes a
   moment after the last change but **never while that file plays** — the
   player flushes on pause / chapter switch — and journals unwritten bookmarks
-  in `settings.pendingBookmarks`). Bookmarks set on a generated reading that
-  isn't saved yet live in memory (`SpeechProvider.getLoadedReading()`) and
+  in `settings.pendingBookmarks`). Readings joined byte-wise before 1.21 kept
+  a Xing header per chunk; iPhone/iPad read only the first and can't seek
+  past it, so writing chapters also repairs the stream (`repairMp3`), and a
+  bookmarked file that needs it is rewritten once when read. Bookmarks set
+  on a generated reading that isn't saved yet live in memory (`SpeechProvider.getLoadedReading()`) and
   are written into the MP3 on save (`AudioFileManager`'s `saveBytes` hook →
   `Voice.bookmarkBytesForSave`). The player adds them (🔖 button, command
   `add-bookmark`), marks them on the scrubber, and lists them under a chapter
@@ -264,8 +267,10 @@ tests/                          # Jest unit + integration tests, mocks, helpers
   from any folder.
 - **Renaming a setting's display name needs no migration** (the stored key is
   what matters); changing a **stored key** does.
-- New user-facing behaviour should be reflected in the **README** and, when
-  notable, the **What's New** modal (`utils/whatsNew.ts`).
+- New user-facing behaviour should be reflected in the **User Guide**
+  (`docs/`, see "User Guide" below), the **README** when it changes what the
+  plugin is about, and, when notable, the **What's New** modal
+  (`utils/whatsNew.ts`).
 
 ---
 
@@ -313,20 +318,50 @@ format matters:
 
 ### Commands
 
-| Task              | Command                                               |
-| ----------------- | ----------------------------------------------------- |
-| Build (typecheck) | `npm run build` (tsc + esbuild)                       |
-| Lint              | `npm run lint:check` (or `npm run lint` to autofix)   |
-| Format            | `npm run format:check` (or `npm run format` to write) |
-| Test (all)        | `npm test`                                            |
-| Test (unit only)  | `npm run test:unit`                                   |
-| Dev watch build   | `npm run dev`                                         |
+| Task              | Command                                                                |
+| ----------------- | ---------------------------------------------------------------------- |
+| Build (typecheck) | `npm run build` (tsc + esbuild)                                        |
+| Lint              | `npm run lint:check` (or `npm run lint` to autofix)                    |
+| Format            | `npm run format:check` (or `npm run format` to write)                  |
+| Test (all)        | `npm test`                                                             |
+| Test (unit only)  | `npm run test:unit`                                                    |
+| Dev watch build   | `npm run dev`                                                          |
+| User Guide        | `npm run docs:build` / `docs:check` / `docs:screenshots` / `docs:wiki` |
 
 Run the full gate before pushing — it mirrors the `feature` CI workflow:
 
 ```
 npm run build && npm run lint:check && npm test && npm run format:check
 ```
+
+### User Guide (`docs/`)
+
+The user documentation lives in `docs/`: one Markdown page per feature,
+grouped in section folders, each with a `README.md` overview; `docs/README.md`
+is the start page. The README in the root is a short, use-case-led entry that
+links into the guide.
+
+- **Pages and their order** are in `docs/guide.json`. `npm run docs:build`
+  (`scripts/guide.ts`) writes what every page shares between
+  `<!-- guide:… -->` markers: the menu and breadcrumb (`header`), previous /
+  next (`footer`), the table of contents (`toc`, start page) and a section's
+  page list (`pages`). Never edit inside the markers.
+- **Every link is absolute** — pages as
+  `https://github.com/chrisurf/obsidian-voice/blob/main/docs/…`, images as
+  `https://raw.githubusercontent.com/chrisurf/obsidian-voice/main/docs/images/…`.
+  Obsidian shows the README in the plugin details and turns relative links
+  into broken internal links. `npm run docs:check` (also a unit test) fails on
+  relative links, missing files or headings, unused images and out-of-date
+  navigation.
+- **Screenshots** come from `npm run docs:screenshots`
+  (`test/specs/user-guide.e2e.ts`, desktop and iPhone size): a sandboxed
+  Obsidian with made-up sample notes, silent MP3s and a stand-in TTS server —
+  never personal data or real keys. Images go straight into `docs/images/`;
+  check the diff before committing. Add a shot there when a page needs one.
+- **The GitHub wiki** mirrors the guide: `npm run docs:wiki` builds it
+  (Home, one page per page, `_Sidebar.md` with the table of contents,
+  `_Footer.md`), and `.github/workflows/wiki.yml` publishes it on every push
+  to `main` that touches `docs/`. Edit `docs/`, never the wiki.
 
 ### Testing conventions
 

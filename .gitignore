@@ -52,3 +52,6 @@ test/artifacts/
 
 # Python bytecode (scripts/local-tts)
 __pycache__/
+
+# The GitHub wiki, built from docs/ (npm run docs:wiki)
+/wiki/

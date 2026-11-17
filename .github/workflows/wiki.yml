@@ -1,0 +1,55 @@
+# Publishes the User Guide (docs/) to the GitHub wiki, page for page, whenever
+# it changes on main: scripts/guide.ts --wiki writes Home.md, one file per page,
+# _Sidebar.md (the table of contents next to every page) and _Footer.md.
+# The wiki must exist first: create its first page once on GitHub (Wiki →
+# Create the first page); this workflow replaces it.
+name: Wiki
+
+on:
+  push:
+    branches: ["main"]
+    paths: ["docs/**", "scripts/guide.ts", ".github/workflows/wiki.yml"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "24.x"
+          cache: "npm"
+
+      - run: npm ci
+
+      - name: Check the guide
+        run: npm run docs:check
+
+      - name: Build the wiki pages
+        run: npx tsx scripts/guide.ts --wiki wiki-pages
+
+      - name: Publish to the wiki
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          git clone --depth 1 "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.wiki.git" wiki
+          rsync -a --delete --exclude .git wiki-pages/ wiki/
+          cd wiki
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "The wiki is up to date."
+            exit 0
+          fi
+          git commit -m "Update the wiki from docs/ at ${GITHUB_SHA::7}"
+          git push

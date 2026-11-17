@@ -40,6 +40,7 @@ Mark the spots you want to come back to. Tap 🔖 in the Voice player while you 
 - 📍 **On the seek bar:** every bookmark is a small mark; tap it to jump there.
 - 📑 **Below the chapter:** the 🔖 icon next to its **⋮** lists them with their position. Tap one to play from there; rename or delete it from its **⋮**.
 - 🎧 **Stored in the MP3 itself** as standard chapters — they travel with the file and show up in podcast apps such as Apple Podcasts or Overcast.
+- 📱 **Bookmarks on iPhone and iPad:** jumping to a bookmark now works in older long readings too — Voice repairs the file's length information once, the first time you open its bookmarks.
 - ⏪ **Longer skips:** rewind and fast-forward now jump 5 seconds by default (was 3). Set your own interval in the settings.
 
 ## ⚡ New: long notes start playing while they are generated

@@ -171,6 +171,26 @@ export function concatMp3Buffers(buffers: ArrayBuffer[]): ArrayBuffer {
 }
 
 /**
+ * Whether an MP3 holds more than one Xing/Info/VBRI header frame: readings
+ * joined byte-wise before 1.21 kept every chunk's header. iPhone and iPad read
+ * only the first, so they take the whole file for the first chunk's length
+ * (a 98-minute reading for 1:55) and can't seek past it.
+ */
+export function mp3NeedsRepair(buffer: ArrayBuffer): boolean {
+  const parts = parseMp3(new Uint8Array(buffer));
+  return parts !== null && parts.headers > 1 && parts.frames.length > 0;
+}
+
+/**
+ * The MP3 rebuilt with one Xing header for the whole stream when it needs
+ * repair (see mp3NeedsRepair), else unchanged. Tags and stray header frames
+ * inside are dropped; the audio frames are kept as they are.
+ */
+export function repairMp3(buffer: ArrayBuffer): ArrayBuffer {
+  return mp3NeedsRepair(buffer) ? concatMp3Buffers([buffer]) : buffer;
+}
+
+/**
  * The audio frames of one MP3 file without its ID3 tags and Xing/Info header
  * frame — what a streaming player (MediaSource) appends chunk after chunk.
  * Returns the bytes unchanged when they are not MPEG Layer III.
@@ -229,6 +249,8 @@ interface Mp3Parts {
   frames: Mp3Frame[];
   /** Whether the file carried a Xing/Info/VBRI header frame or an ID3 tag. */
   hadHeader: boolean;
+  /** How many Xing/Info/VBRI header frames it carried. */
+  headers: number;
 }
 
 interface FrameInfo {
@@ -289,6 +311,7 @@ function frameAt(bytes: Uint8Array, offset: number): FrameInfo | null {
 function parseMp3(bytes: Uint8Array): Mp3Parts | null {
   const frames: Mp3Frame[] = [];
   let hadHeader = false;
+  let headers = 0;
   let offset = 0;
   let end = bytes.length;
 
@@ -323,12 +346,13 @@ function parseMp3(bytes: Uint8Array): Mp3Parts | null {
       ascii(bytes, offset + 36, 4) === "VBRI"
     ) {
       hadHeader = true;
+      headers++;
     } else {
       frames.push(bytes.subarray(offset, offset + frame.length));
     }
     offset += frame.length;
   }
-  return { frames, hadHeader };
+  return { frames, hadHeader, headers };
 }
 
 /** An empty frame shaped like the first audio frame, big enough for a Xing tag. */

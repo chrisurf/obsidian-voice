@@ -3,6 +3,8 @@ import {
   audioExtensionForMime,
   concatMp3Buffers,
   mp3AudioFrames,
+  mp3NeedsRepair,
+  repairMp3,
   concatWavBuffers,
   isAudioExtension,
   isAudioPath,
@@ -164,6 +166,34 @@ describe("Unit Tests - Audio format helpers", () => {
       const tagged = mp3(1, "Xing");
       const out = new Uint8Array(concatMp3Buffers([tagged, junk]));
       expect(out.length).toBe(tagged.byteLength + junk.byteLength);
+    });
+  });
+
+  describe("repairMp3", () => {
+    // A reading joined byte-wise before 1.21: every chunk kept its header.
+    const joinedByteWise = () =>
+      new Uint8Array([
+        ...new Uint8Array(mp3(2, "Xing")),
+        ...new Uint8Array(mp3(3, "Info", true)),
+        ...new Uint8Array(mp3(1, "Xing")),
+      ]).buffer;
+
+    test("rebuilds a file with a header per chunk with one header", () => {
+      const broken = joinedByteWise();
+      expect(mp3NeedsRepair(broken)).toBe(true);
+      const out = new Uint8Array(repairMp3(broken));
+      expect(count(out, "Xing")).toBe(1);
+      expect(count(out, "Info")).toBe(0);
+      expect(new DataView(out.buffer).getUint32(TAG_OFFSET + 8)).toBe(6);
+      expect(audioDurationSeconds(out.buffer)).toBeCloseTo(6 * 0.024, 5);
+      expect(mp3NeedsRepair(out.buffer)).toBe(false);
+    });
+
+    test("leaves a file with one header or none as it is", () => {
+      for (const ok of [mp3(4, "Xing"), mp3(4)]) {
+        expect(mp3NeedsRepair(ok)).toBe(false);
+        expect(repairMp3(ok)).toBe(ok);
+      }
     });
   });
 

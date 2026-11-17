@@ -76,6 +76,40 @@ describe("Unit Tests - Bookmark store", () => {
     expect(store.get(file("a.mp3"))).toHaveLength(1);
   });
 
+  test("a bookmarked file with a header per chunk is rewritten once", async () => {
+    // Bookmarks written by 1.22 into a reading joined byte-wise before 1.21:
+    // the tag, then two chunks that each kept their Xing header frame.
+    const chunk = () => {
+      const bytes = new Uint8Array(mp3(50));
+      bytes.set(
+        [..."Xing"].map((c) => c.charCodeAt(0)),
+        4 + 9,
+      );
+      return [...bytes];
+    };
+    const tagged = new Uint8Array(
+      writeChapters(mp3(1), [{ id: "x", startMs: 1500, title: "Late" }]),
+    );
+    const tagLength = 10 + ((tagged[8] << 7) | tagged[9]);
+    const { app, files, writes } = fakeApp({
+      "old.mp3": new Uint8Array([
+        ...tagged.subarray(0, tagLength),
+        ...chunk(),
+        ...chunk(),
+      ]).buffer,
+      "ok.mp3": writeChapters(mp3(), [{ id: "y", startMs: 0, title: "Ok" }]),
+    });
+    const store = new BookmarkStore(app as never, fakeHost().host);
+    await store.load("old.mp3");
+    await store.load("ok.mp3");
+    jest.advanceTimersByTime(2000);
+    await store.flush();
+    expect(writes).toEqual(["old.mp3"]);
+    const latin = Buffer.from(files["old.mp3"]).toString("latin1");
+    expect(latin.split("Xing")).toHaveLength(2);
+    expect(readChapters(files["old.mp3"])[0].title).toBe("Late");
+  });
+
   test("writes a moment after the last change, once", async () => {
     const { app, files, writes } = fakeApp({ "a.mp3": mp3() });
     const { host, journal } = fakeHost();
